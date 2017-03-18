@@ -14,5 +14,8 @@ path = "src/lib.rs"
 name = "pfctl-rs"
 path = "src/main.rs"
 
+[dependencies]
+ioctl-sys = "0.5.2"
+
 [build-dependencies]
 bindgen = "0.22"
