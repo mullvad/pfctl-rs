@@ -1,0 +1,14 @@
+[package]
+name = "pfctl"
+version = "0.1.0"
+authors = ["Mullvad VPN", "Linus Färnstrand <faern@faern.net>"]
+description = "Library and CLI for interfacing with the PF firewall on macOS"
+keywords = ["pf", "pfctl", "firewall", "macos", "network"]
+categories = ["network-programming", "os", "os::unix-apis", "api-bindings", "command-line-utilities"]
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "pfctl-rs"
+path = "src/main.rs"
