@@ -171,9 +171,9 @@ impl ToFfi<u8> for bool {
 /// Safely copy a Rust string into a raw buffer. Returning an error if `src` could not be
 /// copied to the buffer.
 
-impl<'a> ApplyToFfi<[i8]> for &'a str {
+impl<'a, T: AsRef<str>> ApplyToFfi<[i8]> for T {
     fn apply_to(&self, dst: &mut [i8]) -> ::Result<()> {
-        let src_i8: &[i8] = unsafe { mem::transmute(self.as_bytes()) };
+        let src_i8: &[i8] = unsafe { mem::transmute(self.as_ref().as_bytes()) };
 
         ensure!(src_i8.len() < dst.len(),
                 ::ErrorKind::InvalidArgument("String does not fit destination"));
