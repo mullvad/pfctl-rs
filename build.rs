@@ -19,6 +19,8 @@ fn main() {
         .clang_arg(format!("-I{}/System/Library/Frameworks/Kernel.framework/Versions/A/Headers",
                            sdk_path))
         .whitelisted_type("pf_status")
+        .whitelisted_type("pfioc_rule")
+        .whitelisted_var("PF_PASS")
         .generate()
         .expect("Unable to generate bindings for pfvar.h")
         .write_to_file(Path::new(&out_dir).join("pfvar.rs"))

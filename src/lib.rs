@@ -12,6 +12,7 @@ use std::mem;
 
 pub mod ffi;
 
+
 /// The path to the PF device file this library will use to communicate with PF.
 pub const PF_DEV_PATH: &'static str = "/dev/pf";
 
@@ -23,6 +24,9 @@ mod errors {
             DeviceOpenError(s: &'static str) {
                 description("Unable to open PF device file")
                 display("Unable to open PF device file at '{}'", s)
+            }
+            InvalidArgument(s: &'static str) {
+                display("Invalid argument: {}", s)
             }
             StateAlreadyActive {
                 description("Target state is already active")
@@ -52,7 +56,6 @@ macro_rules! ioctl_guard {
         }
     }
 }
-
 
 
 /// Struct communicating with the PF firewall.
@@ -89,9 +92,36 @@ impl PfCtl {
         Ok(pf_status.running == 1)
     }
 
+    pub fn add_filter_anchor<S: AsRef<str>>(&mut self, name: S) -> Result<()> {
+        let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
+
+        pfioc_rule.rule.action = ffi::pfvar::PF_PASS as u8;
+        Self::copy_str_to_ffi(name, &mut pfioc_rule.anchor_call[..])
+            .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
+
+        ioctl_guard!(ffi::pf_insert_rule(self.fd(), &mut pfioc_rule))?;
+        Ok(())
+    }
+
     /// Internal function for getting the raw file descriptor to PF.
     fn fd(&self) -> ::std::os::unix::io::RawFd {
         use std::os::unix::io::AsRawFd;
         self.file.as_raw_fd()
+    }
+
+    /// Safely copy a Rust string into a raw buffer. Returning an error if `src` could not be
+    /// copied to the buffer.
+    fn copy_str_to_ffi<S: AsRef<str>>(src: S, dst: &mut [i8]) -> Result<()> {
+        let src_i8: &[i8] = unsafe { mem::transmute(src.as_ref().as_bytes()) };
+
+        ensure!(src_i8.len() < dst.len(),
+                ErrorKind::InvalidArgument("String does not fit destination"));
+        ensure!(!src_i8.contains(&0),
+                ErrorKind::InvalidArgument("String has null byte"));
+
+        dst[..src_i8.len()].copy_from_slice(src_i8);
+        // Terminate ffi string with null byte
+        dst[src_i8.len()] = 0;
+        Ok(())
     }
 }
