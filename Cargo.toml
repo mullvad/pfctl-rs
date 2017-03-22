@@ -14,5 +14,11 @@ path = "src/lib.rs"
 name = "pfctl-rs"
 path = "src/main.rs"
 
+[dependencies]
+errno = "0.2"
+error-chain = "0.10"
+ioctl-sys = "0.5.2"
+libc = "0.2"
+
 [build-dependencies]
 bindgen = "0.22"
