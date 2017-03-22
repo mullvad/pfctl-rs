@@ -167,3 +167,22 @@ impl ToFfi<u8> for bool {
         if *self { 1 } else { 0 }
     }
 }
+
+/// Safely copy a Rust string into a raw buffer. Returning an error if `src` could not be
+/// copied to the buffer.
+
+impl<'a> ApplyToFfi<[i8]> for &'a str {
+    fn apply_to(&self, dst: &mut [i8]) -> ::Result<()> {
+        let src_i8: &[i8] = unsafe { mem::transmute(self.as_bytes()) };
+
+        ensure!(src_i8.len() < dst.len(),
+                ::ErrorKind::InvalidArgument("String does not fit destination"));
+        ensure!(!src_i8.contains(&0),
+                ::ErrorKind::InvalidArgument("String has null byte"));
+
+        dst[..src_i8.len()].copy_from_slice(src_i8);
+        // Terminate ffi string with null byte
+        dst[src_i8.len()] = 0;
+        Ok(())
+    }
+}
