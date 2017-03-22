@@ -3,6 +3,8 @@ extern crate pfctl;
 #[macro_use]
 extern crate error_chain;
 
+use std::net::Ipv4Addr;
+
 mod errors {
     error_chain! {
         links {
@@ -48,5 +50,18 @@ fn run() -> Result<()> {
         Err(pfctl::Error(pfctl::ErrorKind::StateAlreadyActive, _)) => (),
         err => err.chain_err(|| "Unable to add filter anchor")?,
     }
+
+    let mut rule_builder = pfctl::FilterRuleBuilder::default();
+    let rule = rule_builder.action(pfctl::RuleAction::Drop)
+        .af(pfctl::AddrFamily::Ipv4)
+        .build()
+        .unwrap();
+    pf.add_rule(anchor_name, &rule).chain_err(|| "Unable to add rule")?;
+    let rule2 = rule_builder.from(Ipv4Addr::new(192, 168, 99, 11))
+        .action(pfctl::RuleAction::Pass)
+        .build()
+        .unwrap();
+    pf.add_rule(anchor_name, &rule2).chain_err(|| "Unable to add second rule")?;
+
     Ok(())
 }

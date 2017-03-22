@@ -3,6 +3,8 @@ extern crate ioctl_sys;
 #[macro_use]
 extern crate error_chain;
 extern crate errno;
+#[macro_use]
+extern crate derive_builder;
 extern crate libc;
 
 use std::fs::File;
@@ -10,8 +12,10 @@ use std::fs::OpenOptions;
 use std::io;
 use std::mem;
 
-pub mod ffi;
+mod ffi;
 
+mod rule;
+pub use rule::*;
 
 /// The path to the PF device file this library will use to communicate with PF.
 pub const PF_DEV_PATH: &'static str = "/dev/pf";
@@ -57,6 +61,20 @@ macro_rules! ioctl_guard {
     }
 }
 
+/// Module for types and traits dealing with translating between Rust and FFI and back.
+mod conversion {
+    /// Internal hidden trait for all types that can be converted into a FFI representation
+    pub trait ToFfi<T> {
+        fn to_ffi(&self) -> T;
+    }
+
+    /// Internal hidden trait for all Rust types that can write their value into a FFI struct.
+    pub trait ApplyToFfi<T> {
+        fn apply_to(&self, dst: &mut T) -> ::Result<()>;
+    }
+}
+use conversion::*;
+
 
 /// Struct communicating with the PF firewall.
 pub struct PfCtl {
@@ -101,6 +119,39 @@ impl PfCtl {
 
         ioctl_guard!(ffi::pf_insert_rule(self.fd(), &mut pfioc_rule))?;
         Ok(())
+    }
+
+    // TODO(linus): Make more generic. No hardcoded ADD_TAIL etc.
+    pub fn add_rule<S: AsRef<str>>(&mut self, anchor: S, rule: &FilterRule) -> Result<()> {
+        let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
+
+        pfioc_rule.pool_ticket = self.get_pool_ticket(&anchor)?;
+        pfioc_rule.ticket = self.get_ticket(&anchor)?;
+        Self::copy_str_to_ffi(&anchor, &mut pfioc_rule.anchor[..])
+            .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
+        rule.apply_to(&mut pfioc_rule.rule)?;
+
+        pfioc_rule.action = ffi::pfvar::PF_CHANGE_ADD_TAIL as u32;
+        ioctl_guard!(ffi::pf_change_rule(self.fd(), &mut pfioc_rule))?;
+        Ok(())
+    }
+
+    fn get_pool_ticket<S: AsRef<str>>(&self, anchor: S) -> Result<u32> {
+        let mut pfioc_pooladdr = unsafe { mem::zeroed::<ffi::pfvar::pfioc_pooladdr>() };
+        pfioc_pooladdr.action = ffi::pfvar::PF_CHANGE_GET_TICKET as u32;
+        Self::copy_str_to_ffi(&anchor, &mut pfioc_pooladdr.anchor[..])
+            .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
+        ioctl_guard!(ffi::pf_begin_addrs(self.fd(), &mut pfioc_pooladdr))?;
+        Ok(pfioc_pooladdr.ticket)
+    }
+
+    fn get_ticket<S: AsRef<str>>(&self, anchor: S) -> Result<u32> {
+        let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
+        pfioc_rule.action = ffi::pfvar::PF_CHANGE_GET_TICKET as u32;
+        Self::copy_str_to_ffi(&anchor, &mut pfioc_rule.anchor[..])
+            .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
+        ioctl_guard!(ffi::pf_change_rule(self.fd(), &mut pfioc_rule))?;
+        Ok(pfioc_rule.ticket)
     }
 
     /// Internal function for getting the raw file descriptor to PF.
