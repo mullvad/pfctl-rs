@@ -69,8 +69,8 @@ mod conversion {
     }
 
     /// Internal hidden trait for all Rust types that can write their value into a FFI struct.
-    pub trait ApplyToFfi<T: ?Sized> {
-        fn apply_to(&self, dst: &mut T) -> ::Result<()>;
+    pub trait CopyToFfi<T: ?Sized> {
+        fn copy_to(&self, dst: &mut T) -> ::Result<()>;
     }
 }
 use conversion::*;
@@ -114,7 +114,7 @@ impl PfCtl {
         let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
 
         pfioc_rule.rule.action = ffi::pfvar::PF_PASS as u8;
-        name.as_ref().apply_to(&mut pfioc_rule.anchor_call[..])
+        name.copy_to(&mut pfioc_rule.anchor_call[..])
             .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
 
         ioctl_guard!(ffi::pf_insert_rule(self.fd(), &mut pfioc_rule))?;
@@ -127,9 +127,9 @@ impl PfCtl {
 
         pfioc_rule.pool_ticket = self.get_pool_ticket(&anchor)?;
         pfioc_rule.ticket = self.get_ticket(&anchor)?;
-        anchor.as_ref().apply_to(&mut pfioc_rule.anchor[..])
+        anchor.copy_to(&mut pfioc_rule.anchor[..])
             .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
-        rule.apply_to(&mut pfioc_rule.rule)?;
+        rule.copy_to(&mut pfioc_rule.rule)?;
 
         pfioc_rule.action = ffi::pfvar::PF_CHANGE_ADD_TAIL as u32;
         ioctl_guard!(ffi::pf_change_rule(self.fd(), &mut pfioc_rule))?;
@@ -139,7 +139,7 @@ impl PfCtl {
     fn get_pool_ticket<S: AsRef<str>>(&self, anchor: S) -> Result<u32> {
         let mut pfioc_pooladdr = unsafe { mem::zeroed::<ffi::pfvar::pfioc_pooladdr>() };
         pfioc_pooladdr.action = ffi::pfvar::PF_CHANGE_GET_TICKET as u32;
-        anchor.as_ref().apply_to(&mut pfioc_pooladdr.anchor[..])
+        anchor.copy_to(&mut pfioc_pooladdr.anchor[..])
             .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
         ioctl_guard!(ffi::pf_begin_addrs(self.fd(), &mut pfioc_pooladdr))?;
         Ok(pfioc_pooladdr.ticket)
@@ -148,7 +148,7 @@ impl PfCtl {
     fn get_ticket<S: AsRef<str>>(&self, anchor: S) -> Result<u32> {
         let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
         pfioc_rule.action = ffi::pfvar::PF_CHANGE_GET_TICKET as u32;
-        anchor.as_ref().apply_to(&mut pfioc_rule.anchor[..])
+        anchor.copy_to(&mut pfioc_rule.anchor[..])
             .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
         ioctl_guard!(ffi::pf_change_rule(self.fd(), &mut pfioc_rule))?;
         Ok(pfioc_rule.ticket)

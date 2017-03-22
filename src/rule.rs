@@ -1,4 +1,4 @@
-use conversion::{ToFfi, ApplyToFfi};
+use conversion::{ToFfi, CopyToFfi};
 use ffi;
 
 use libc;
@@ -51,8 +51,8 @@ impl FilterRule {
     }
 }
 
-impl ApplyToFfi<ffi::pfvar::pf_rule> for FilterRule {
-    fn apply_to(&self, pf_rule: &mut ffi::pfvar::pf_rule) -> ::Result<()> {
+impl CopyToFfi<ffi::pfvar::pf_rule> for FilterRule {
+    fn copy_to(&self, pf_rule: &mut ffi::pfvar::pf_rule) -> ::Result<()> {
         pf_rule.action = self.action.to_ffi();
         pf_rule.direction = self.direction.to_ffi();
         pf_rule.quick = self.quick.to_ffi();
@@ -171,9 +171,9 @@ impl ToFfi<u8> for bool {
 /// Safely copy a Rust string into a raw buffer. Returning an error if `src` could not be
 /// copied to the buffer.
 
-impl<'a> ApplyToFfi<[i8]> for &'a str {
-    fn apply_to(&self, dst: &mut [i8]) -> ::Result<()> {
-        let src_i8: &[i8] = unsafe { mem::transmute(self.as_bytes()) };
+impl<T: AsRef<str>> CopyToFfi<[i8]> for T {
+    fn copy_to(&self, dst: &mut [i8]) -> ::Result<()> {
+        let src_i8: &[i8] = unsafe { mem::transmute(self.as_ref().as_bytes()) };
 
         ensure!(src_i8.len() < dst.len(),
                 ::ErrorKind::InvalidArgument("String does not fit destination"));
