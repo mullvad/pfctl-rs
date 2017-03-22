@@ -3,6 +3,7 @@ extern crate ioctl_sys;
 #[macro_use]
 extern crate error_chain;
 extern crate errno;
+extern crate libc;
 
 use std::fs::File;
 use std::fs::OpenOptions;
@@ -15,7 +16,6 @@ pub mod ffi;
 pub const PF_DEV_PATH: &'static str = "/dev/pf";
 
 const IOCTL_ERROR: i32 = -1;
-const FILE_EXISTS: i32 = 17;
 
 mod errors {
     error_chain! {
@@ -43,7 +43,7 @@ macro_rules! ioctl_guard {
             let errno::Errno(error_code) = errno::errno();
             let io_error = io::Error::from_raw_os_error(error_code);
             let mut err = Err(ErrorKind::IoctlError(io_error).into());
-            if error_code == FILE_EXISTS {
+            if error_code == libc::EEXIST {
                 err = err.chain_err(|| ErrorKind::StateAlreadyActive);
             }
             err
