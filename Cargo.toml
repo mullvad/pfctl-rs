@@ -22,7 +22,8 @@ libc = "0.2"
 
 # At the moment we need stuff not in released derive_builder.
 # The fixes we need include compatibility with error-chain and the possibility
-# to use the #[builder(default)] feature
+# to use the #[builder(default)] feature.
+# TODO(linus): Use release when merged, or build our own builder
 [dependencies.derive_builder]
 git = "https://github.com/colin-kiegel/rust-derive-builder"
 branch = "feature/custom_default"
