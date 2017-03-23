@@ -146,9 +146,9 @@ impl Default for AddrFamily {
 impl ToFfi<u8> for AddrFamily {
     fn to_ffi(&self) -> u8 {
         match *self {
-            AddrFamily::Any => 0,
-            AddrFamily::Ipv4 => libc::AF_INET as u8,
-            AddrFamily::Ipv6 => libc::AF_INET6 as u8,
+            AddrFamily::Any => ffi::pfvar::PF_UNSPEC as u8,
+            AddrFamily::Ipv4 => ffi::pfvar::PF_INET as u8,
+            AddrFamily::Ipv6 => ffi::pfvar::PF_INET6 as u8,
         }
     }
 }
