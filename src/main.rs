@@ -45,10 +45,16 @@ fn run() -> Result<()> {
     }
 
     let anchor_name = "test.anchor";
-    match pf.add_filter_anchor(anchor_name) {
-        Ok(_) => println!("Added anchor \"{}\"", anchor_name),
+    match pf.add_anchor(anchor_name, pfctl::AnchorKind::Filter) {
+        Ok(_) => println!("Added filter anchor \"{}\"", anchor_name),
         Err(pfctl::Error(pfctl::ErrorKind::StateAlreadyActive, _)) => (),
         err => err.chain_err(|| "Unable to add filter anchor")?,
+    }
+
+    match pf.add_anchor(anchor_name, pfctl::AnchorKind::Redirect) {
+        Ok(_) => println!("Added redirect anchor \"{}\"", anchor_name),
+        Err(pfctl::Error(pfctl::ErrorKind::StateAlreadyActive, _)) => (),
+        err => err.chain_err(|| "Unable to add redirect anchor")?,
     }
 
     let mut rule_builder = pfctl::FilterRuleBuilder::default();

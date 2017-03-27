@@ -17,6 +17,9 @@ mod ffi;
 mod rule;
 pub use rule::*;
 
+mod anchor;
+pub use anchor::*;
+
 /// The path to the PF device file this library will use to communicate with PF.
 pub const PF_DEV_PATH: &'static str = "/dev/pf";
 
@@ -110,10 +113,10 @@ impl PfCtl {
         Ok(pf_status.running == 1)
     }
 
-    pub fn add_filter_anchor<S: AsRef<str>>(&mut self, name: S) -> Result<()> {
+    pub fn add_anchor<S: AsRef<str>>(&mut self, name: S, kind: AnchorKind) -> Result<()> {
         let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
 
-        pfioc_rule.rule.action = ffi::pfvar::PF_PASS as u8;
+        pfioc_rule.rule.action = kind.to_ffi();
         name.copy_to(&mut pfioc_rule.anchor_call[..])
             .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
 
