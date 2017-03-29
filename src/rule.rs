@@ -153,6 +153,76 @@ impl ToFfi<u8> for AddrFamily {
     }
 }
 
+// Port range representation
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Port {
+    One(u16, PortUnaryModifier),
+    Range(u16, u16, PortRangeModifier),
+}
+
+impl CopyToFfi<ffi::pfvar::pf_port_range> for Port {
+    fn copy_to(&self, pf_port_range: &mut ffi::pfvar::pf_port_range) -> ::Result<()> {
+        match *self {
+            Port::One(port, modifier) => {
+                pf_port_range.op = modifier.to_ffi();
+                // convert port range to network byte order
+                pf_port_range.port[0] = port.to_be();
+                pf_port_range.port[1] = port.to_be();
+            }
+            Port::Range(start_port, end_port, modifier) => {
+                assert!(end_port >= start_port);
+                pf_port_range.op = modifier.to_ffi();
+                // convert port range to network byte order
+                pf_port_range.port[0] = start_port.to_be();
+                pf_port_range.port[1] = end_port.to_be();
+            }
+        }
+        Ok(())
+    }
+}
+
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum PortUnaryModifier {
+    Equal, // ==
+    NotEqual, // !=
+    Greater, // >
+    Less, // <
+    GreaterOrEqual, // >=
+    LessOrEqual, // <=
+}
+
+impl ToFfi<u8> for PortUnaryModifier {
+    fn to_ffi(&self) -> u8 {
+        match *self {
+            PortUnaryModifier::Equal => ffi::pfvar::PF_OP_EQ as u8,
+            PortUnaryModifier::NotEqual => ffi::pfvar::PF_OP_NE as u8,
+            PortUnaryModifier::Greater => ffi::pfvar::PF_OP_GT as u8,
+            PortUnaryModifier::Less => ffi::pfvar::PF_OP_LT as u8,
+            PortUnaryModifier::GreaterOrEqual => ffi::pfvar::PF_OP_GE as u8,
+            PortUnaryModifier::LessOrEqual => ffi::pfvar::PF_OP_LE as u8,
+        }
+    }
+}
+
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum PortRangeModifier {
+    RangeExcludingBoundaries, // ><
+    RangeIncludingBoundaries, // :
+    ExceptRange, // <>
+}
+
+impl ToFfi<u8> for PortRangeModifier {
+    fn to_ffi(&self) -> u8 {
+        match *self {
+            PortRangeModifier::RangeExcludingBoundaries => ffi::pfvar::PF_OP_IRG as u8,
+            PortRangeModifier::RangeIncludingBoundaries => ffi::pfvar::PF_OP_RRG as u8,
+            PortRangeModifier::ExceptRange => ffi::pfvar::PF_OP_XRG as u8,
+        }
+    }
+}
+
 
 // Implementations to convert types that are not ours into their FFI representation
 

@@ -16,4 +16,3 @@ impl ToFfi<u8> for AnchorKind {
         }
     }
 }
-
