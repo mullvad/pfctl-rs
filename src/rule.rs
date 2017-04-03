@@ -215,17 +215,17 @@ impl ToFfi<u8> for PortUnaryModifier {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PortRangeModifier {
-    RangeExcludingBoundaries, // ><
-    RangeIncludingBoundaries, // :
-    ExceptRange, // <>
+    Exclusive,
+    Inclusive,
+    Except,
 }
 
 impl ToFfi<u8> for PortRangeModifier {
     fn to_ffi(&self) -> u8 {
         match *self {
-            PortRangeModifier::RangeExcludingBoundaries => ffi::pfvar::PF_OP_IRG as u8,
-            PortRangeModifier::RangeIncludingBoundaries => ffi::pfvar::PF_OP_RRG as u8,
-            PortRangeModifier::ExceptRange => ffi::pfvar::PF_OP_XRG as u8,
+            PortRangeModifier::Exclusive => ffi::pfvar::PF_OP_IRG as u8,
+            PortRangeModifier::Inclusive => ffi::pfvar::PF_OP_RRG as u8,
+            PortRangeModifier::Except => ffi::pfvar::PF_OP_XRG as u8,
         }
     }
 }
