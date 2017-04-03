@@ -173,7 +173,7 @@ impl CopyToFfi<ffi::pfvar::pf_port_range> for Port {
                 pf_port_range.op = modifier.to_ffi();
                 // convert port range to network byte order
                 pf_port_range.port[0] = port.to_be();
-                pf_port_range.port[1] = port.to_be();
+                pf_port_range.port[1] = 0;
             }
             Port::Range(start_port, end_port, modifier) => {
                 assert!(end_port >= start_port);
