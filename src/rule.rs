@@ -176,7 +176,8 @@ impl CopyToFfi<ffi::pfvar::pf_port_range> for Port {
                 pf_port_range.port[1] = 0;
             }
             Port::Range(start_port, end_port, modifier) => {
-                assert!(end_port >= start_port);
+                ensure!(start_port <= end_port,
+                        ::ErrorKind::InvalidArgument("Lower port is greater than upper port."));
                 pf_port_range.op = modifier.to_ffi();
                 // convert port range to network byte order
                 pf_port_range.port[0] = start_port.to_be();
