@@ -190,12 +190,12 @@ impl CopyToFfi<ffi::pfvar::pf_port_range> for Port {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PortUnaryModifier {
-    Equal, // ==
-    NotEqual, // !=
-    Greater, // >
-    Less, // <
-    GreaterOrEqual, // >=
-    LessOrEqual, // <=
+    Equal,
+    NotEqual,
+    Greater,
+    Less,
+    GreaterOrEqual,
+    LessOrEqual,
 }
 
 impl ToFfi<u8> for PortUnaryModifier {
