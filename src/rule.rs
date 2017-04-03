@@ -156,6 +156,7 @@ impl ToFfi<u8> for AddrFamily {
 // Port range representation
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Port {
+    Any,
     One(u16, PortUnaryModifier),
     Range(u16, u16, PortRangeModifier),
 }
@@ -163,6 +164,11 @@ pub enum Port {
 impl CopyToFfi<ffi::pfvar::pf_port_range> for Port {
     fn copy_to(&self, pf_port_range: &mut ffi::pfvar::pf_port_range) -> ::Result<()> {
         match *self {
+            Port::Any => {
+                pf_port_range.op = ffi::pfvar::PF_OP_NONE as u8;
+                pf_port_range.port[0] = 0;
+                pf_port_range.port[1] = 0;
+            }
             Port::One(port, modifier) => {
                 pf_port_range.op = modifier.to_ffi();
                 // convert port range to network byte order
