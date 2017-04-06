@@ -2,8 +2,12 @@ extern crate pfctl;
 
 #[macro_use]
 extern crate error_chain;
+extern crate ipnetwork;
 
-use std::net::Ipv4Addr;
+use ipnetwork::IpNetwork;
+
+use std::net::Ipv6Addr;
+use std::str::FromStr;
 
 mod errors {
     error_chain! {
@@ -57,17 +61,29 @@ fn run() -> Result<()> {
         err => err.chain_err(|| "Unable to add redirect anchor")?,
     }
 
-    let mut rule_builder = pfctl::FilterRuleBuilder::default();
-    let rule = rule_builder.action(pfctl::RuleAction::Drop)
-        .af(pfctl::AddrFamily::Ipv4)
+    let pass_all_rule = rule_builder().build().unwrap();
+    pf.add_rule(anchor_name, &pass_all_rule).chain_err(|| "Unable to add rule")?;
+
+    let from_net = IpNetwork::from_str("192.168.99.11/24").unwrap();
+    let from_net_rule = rule_builder().from(pfctl::Ip::from(from_net)).build().unwrap();
+    pf.add_rule(anchor_name, &from_net_rule).chain_err(|| "Unable to add second rule")?;
+
+    let to_port_rule = rule_builder().to(pfctl::Port::from(9876)).build().unwrap();
+    pf.add_rule(anchor_name, &to_port_rule).chain_err(|| "Unable to add third rule")?;
+
+    let ipv6 = Ipv6Addr::new(0xbeef, 8, 7, 6, 5, 4, 3, 2);
+    let from_ipv6_rule = rule_builder()
+        .from(ipv6)
+        .af(pfctl::AddrFamily::Ipv6)
         .build()
         .unwrap();
-    pf.add_rule(anchor_name, &rule).chain_err(|| "Unable to add rule")?;
-    let rule2 = rule_builder.from(Ipv4Addr::new(192, 168, 99, 11))
-        .action(pfctl::RuleAction::Pass)
-        .build()
-        .unwrap();
-    pf.add_rule(anchor_name, &rule2).chain_err(|| "Unable to add second rule")?;
+    pf.add_rule(anchor_name, &from_ipv6_rule).chain_err(|| "Unable to add fourth rule")?;
 
     Ok(())
+}
+
+fn rule_builder() -> pfctl::FilterRuleBuilder {
+    let mut rule_builder = pfctl::FilterRuleBuilder::default();
+    rule_builder.action(pfctl::RuleAction::Pass).af(pfctl::AddrFamily::Ipv4);
+    rule_builder
 }
