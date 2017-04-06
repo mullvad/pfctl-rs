@@ -1,10 +1,11 @@
 use conversion::{ToFfi, CopyToFfi};
 use ffi;
+use ipnetwork::{IpNetwork, Ipv4Network, Ipv6Network};
 
 use libc;
 
 use std::mem;
-use std::net::Ipv4Addr;
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[derive(Builder)]
@@ -245,11 +246,43 @@ impl ToFfi<u8> for PortRangeModifier {
 
 // Implementations to convert types that are not ours into their FFI representation
 
-impl ToFfi<u32> for Ipv4Addr {
-    fn to_ffi(&self) -> u32 {
-        unsafe { mem::transmute(self.octets()) }
+impl CopyToFfi<ffi::pfvar::pf_addr_wrap> for IpNetwork {
+    fn copy_to(&self, pf_addr_wrap: &mut ffi::pfvar::pf_addr_wrap) -> ::Result<()> {
+        pf_addr_wrap.type_ = ffi::pfvar::PF_ADDR_ADDRMASK as u8;
+        let a = unsafe { pf_addr_wrap.v.a.as_mut() };
+        self.ip().copy_to(&mut a.addr)?;
+        self.mask().copy_to(&mut a.mask)?;
+        Ok(())
     }
 }
+
+impl CopyToFfi<ffi::pfvar::pf_addr> for IpAddr {
+    fn copy_to(&self, pf_addr: &mut ffi::pfvar::pf_addr) -> ::Result<()> {
+        match *self {
+            IpAddr::V4(ip) => ip.copy_to(unsafe { pf_addr.pfa.v4.as_mut() }),
+            IpAddr::V6(ip) => ip.copy_to(unsafe { pf_addr.pfa.v6.as_mut() }),
+        }
+    }
+}
+
+impl CopyToFfi<ffi::pfvar::in_addr> for Ipv4Addr {
+    fn copy_to(&self, in_addr: &mut ffi::pfvar::in_addr) -> ::Result<()> {
+        in_addr.s_addr = u32::from(*self).to_be();
+        Ok(())
+    }
+}
+
+impl CopyToFfi<ffi::pfvar::in6_addr> for Ipv6Addr {
+    fn copy_to(&self, in6_addr: &mut ffi::pfvar::in6_addr) -> ::Result<()> {
+        let segments = self.segments();
+        let dst_segments = unsafe { in6_addr.__u6_addr.__u6_addr16.as_mut() };
+        for (dst_segment, segment) in dst_segments.iter_mut().zip(segments.into_iter()) {
+            *dst_segment = segment.to_be();
+        }
+        Ok(())
+    }
+}
+
 
 impl ToFfi<u8> for bool {
     fn to_ffi(&self) -> u8 {
