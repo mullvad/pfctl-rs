@@ -19,37 +19,10 @@ pub struct FilterRule {
     proto: Proto,
     #[builder(default)]
     af: AddrFamily,
-    #[builder(default="Ipv4Addr::new(0, 0, 0, 0)")]
-    from: Ipv4Addr,
-    #[builder(default="Ipv4Addr::new(0, 0, 0, 0)")]
-    to: Ipv4Addr,
-}
-
-impl FilterRule {
-    // TODO(linus): Very ugly hack for now :(
-    fn set_addr(addr: Ipv4Addr, pf_addr: &mut ffi::pfvar::pf_rule_addr) {
-        unsafe {
-            pf_addr.addr.type_ = ffi::pfvar::PF_ADDR_ADDRMASK as u8;
-            pf_addr.addr
-                .v
-                .a
-                .as_mut()
-                .addr
-                .pfa
-                .v4
-                .as_mut()
-                .s_addr = addr.to_ffi();
-            pf_addr.addr
-                .v
-                .a
-                .as_mut()
-                .mask
-                .pfa
-                .v4
-                .as_mut()
-                .s_addr = 0xffffffffu32;
-        }
-    }
+    #[builder(default)]
+    from: Endpoint,
+    #[builder(default)]
+    to: Endpoint,
 }
 
 impl CopyToFfi<ffi::pfvar::pf_rule> for FilterRule {
@@ -59,8 +32,8 @@ impl CopyToFfi<ffi::pfvar::pf_rule> for FilterRule {
         pf_rule.quick = self.quick.to_ffi();
         pf_rule.af = self.af.to_ffi();
         pf_rule.proto = self.proto.to_ffi();
-        Self::set_addr(self.from, &mut pf_rule.src);
-        Self::set_addr(self.to, &mut pf_rule.dst);
+        self.from.copy_to(&mut pf_rule.src)?;
+        self.to.copy_to(&mut pf_rule.dst)?;
         Ok(())
     }
 }
