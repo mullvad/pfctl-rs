@@ -161,6 +161,18 @@ pub enum Port {
     Range(u16, u16, PortRangeModifier),
 }
 
+impl Default for Port {
+    fn default() -> Self {
+        Port::Any
+    }
+}
+
+impl From<u16> for Port {
+    fn from(port: u16) -> Self {
+        Port::One(port, PortUnaryModifier::Equal)
+    }
+}
+
 impl CopyToFfi<ffi::pfvar::pf_port_range> for Port {
     fn copy_to(&self, pf_port_range: &mut ffi::pfvar::pf_port_range) -> ::Result<()> {
         match *self {
