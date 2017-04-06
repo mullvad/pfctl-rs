@@ -66,6 +66,83 @@ impl CopyToFfi<ffi::pfvar::pf_rule> for FilterRule {
 }
 
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub struct Endpoint(Ip, Port);
+
+impl From<Ip> for Endpoint {
+    fn from(ip: Ip) -> Self {
+        Endpoint(ip, Port::default())
+    }
+}
+
+impl From<Port> for Endpoint {
+    fn from(port: Port) -> Self {
+        Endpoint(Ip::default(), port)
+    }
+}
+
+impl From<Ipv4Addr> for Endpoint {
+    fn from(ip: Ipv4Addr) -> Self {
+        Self::from(Ip::from(ip))
+    }
+}
+
+impl From<Ipv6Addr> for Endpoint {
+    fn from(ip: Ipv6Addr) -> Self {
+        Self::from(Ip::from(ip))
+    }
+}
+
+impl CopyToFfi<ffi::pfvar::pf_rule_addr> for Endpoint {
+    fn copy_to(&self, pf_rule_addr: &mut ffi::pfvar::pf_rule_addr) -> ::Result<()> {
+        let Endpoint(ref ip, ref port) = *self;
+        ip.copy_to(&mut pf_rule_addr.addr)?;
+        port.copy_to(unsafe { pf_rule_addr.xport.range.as_mut() })?;
+        Ok(())
+    }
+}
+
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Ip(IpNetwork);
+
+impl Ip {
+    pub fn any() -> Self {
+        Ip(IpNetwork::V6(Ipv6Network::new(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0), 0).unwrap()))
+    }
+}
+
+impl Default for Ip {
+    fn default() -> Self {
+        Ip::any()
+    }
+}
+
+impl From<IpNetwork> for Ip {
+    fn from(net: IpNetwork) -> Self {
+        Ip(net)
+    }
+}
+
+impl From<Ipv4Addr> for Ip {
+    fn from(ip: Ipv4Addr) -> Self {
+        Ip(IpNetwork::V4(Ipv4Network::new(ip, 32).unwrap()))
+    }
+}
+
+impl From<Ipv6Addr> for Ip {
+    fn from(ip: Ipv6Addr) -> Self {
+        Ip(IpNetwork::V6(Ipv6Network::new(ip, 128).unwrap()))
+    }
+}
+
+impl CopyToFfi<ffi::pfvar::pf_addr_wrap> for Ip {
+    fn copy_to(&self, pf_addr_wrap: &mut ffi::pfvar::pf_addr_wrap) -> ::Result<()> {
+        self.0.copy_to(pf_addr_wrap)
+    }
+}
+
+
 /// Enum describing what should happen to a packet that matches a rule.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RuleAction {
