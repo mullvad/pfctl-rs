@@ -9,6 +9,7 @@ use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[derive(Builder)]
+#[builder(setter(into))]
 pub struct FilterRule {
     action: RuleAction,
     #[builder(default)]
