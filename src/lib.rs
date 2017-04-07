@@ -6,6 +6,7 @@ extern crate errno;
 #[macro_use]
 extern crate derive_builder;
 extern crate libc;
+extern crate ipnetwork;
 
 use std::fs::File;
 use std::fs::OpenOptions;

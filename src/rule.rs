@@ -1,13 +1,15 @@
 use conversion::{ToFfi, CopyToFfi};
 use ffi;
+use ipnetwork::{IpNetwork, Ipv4Network, Ipv6Network};
 
 use libc;
 
 use std::mem;
-use std::net::Ipv4Addr;
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[derive(Builder)]
+#[builder(setter(into))]
 pub struct FilterRule {
     action: RuleAction,
     #[builder(default)]
@@ -18,37 +20,10 @@ pub struct FilterRule {
     proto: Proto,
     #[builder(default)]
     af: AddrFamily,
-    #[builder(default="Ipv4Addr::new(0, 0, 0, 0)")]
-    from: Ipv4Addr,
-    #[builder(default="Ipv4Addr::new(0, 0, 0, 0)")]
-    to: Ipv4Addr,
-}
-
-impl FilterRule {
-    // TODO(linus): Very ugly hack for now :(
-    fn set_addr(addr: Ipv4Addr, pf_addr: &mut ffi::pfvar::pf_rule_addr) {
-        unsafe {
-            pf_addr.addr.type_ = ffi::pfvar::PF_ADDR_ADDRMASK as u8;
-            pf_addr.addr
-                .v
-                .a
-                .as_mut()
-                .addr
-                .pfa
-                .v4
-                .as_mut()
-                .s_addr = addr.to_ffi();
-            pf_addr.addr
-                .v
-                .a
-                .as_mut()
-                .mask
-                .pfa
-                .v4
-                .as_mut()
-                .s_addr = 0xffffffffu32;
-        }
-    }
+    #[builder(default)]
+    from: Endpoint,
+    #[builder(default)]
+    to: Endpoint,
 }
 
 impl CopyToFfi<ffi::pfvar::pf_rule> for FilterRule {
@@ -58,9 +33,86 @@ impl CopyToFfi<ffi::pfvar::pf_rule> for FilterRule {
         pf_rule.quick = self.quick.to_ffi();
         pf_rule.af = self.af.to_ffi();
         pf_rule.proto = self.proto.to_ffi();
-        Self::set_addr(self.from, &mut pf_rule.src);
-        Self::set_addr(self.to, &mut pf_rule.dst);
+        self.from.copy_to(&mut pf_rule.src)?;
+        self.to.copy_to(&mut pf_rule.dst)?;
         Ok(())
+    }
+}
+
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub struct Endpoint(Ip, Port);
+
+impl From<Ip> for Endpoint {
+    fn from(ip: Ip) -> Self {
+        Endpoint(ip, Port::default())
+    }
+}
+
+impl From<Port> for Endpoint {
+    fn from(port: Port) -> Self {
+        Endpoint(Ip::default(), port)
+    }
+}
+
+impl From<Ipv4Addr> for Endpoint {
+    fn from(ip: Ipv4Addr) -> Self {
+        Self::from(Ip::from(ip))
+    }
+}
+
+impl From<Ipv6Addr> for Endpoint {
+    fn from(ip: Ipv6Addr) -> Self {
+        Self::from(Ip::from(ip))
+    }
+}
+
+impl CopyToFfi<ffi::pfvar::pf_rule_addr> for Endpoint {
+    fn copy_to(&self, pf_rule_addr: &mut ffi::pfvar::pf_rule_addr) -> ::Result<()> {
+        let Endpoint(ref ip, ref port) = *self;
+        ip.copy_to(&mut pf_rule_addr.addr)?;
+        port.copy_to(unsafe { pf_rule_addr.xport.range.as_mut() })?;
+        Ok(())
+    }
+}
+
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct Ip(IpNetwork);
+
+impl Ip {
+    pub fn any() -> Self {
+        Ip(IpNetwork::V6(Ipv6Network::new(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0), 0).unwrap()))
+    }
+}
+
+impl Default for Ip {
+    fn default() -> Self {
+        Ip::any()
+    }
+}
+
+impl From<IpNetwork> for Ip {
+    fn from(net: IpNetwork) -> Self {
+        Ip(net)
+    }
+}
+
+impl From<Ipv4Addr> for Ip {
+    fn from(ip: Ipv4Addr) -> Self {
+        Ip(IpNetwork::V4(Ipv4Network::new(ip, 32).unwrap()))
+    }
+}
+
+impl From<Ipv6Addr> for Ip {
+    fn from(ip: Ipv6Addr) -> Self {
+        Ip(IpNetwork::V6(Ipv6Network::new(ip, 128).unwrap()))
+    }
+}
+
+impl CopyToFfi<ffi::pfvar::pf_addr_wrap> for Ip {
+    fn copy_to(&self, pf_addr_wrap: &mut ffi::pfvar::pf_addr_wrap) -> ::Result<()> {
+        self.0.copy_to(pf_addr_wrap)
     }
 }
 
@@ -161,6 +213,18 @@ pub enum Port {
     Range(u16, u16, PortRangeModifier),
 }
 
+impl Default for Port {
+    fn default() -> Self {
+        Port::Any
+    }
+}
+
+impl From<u16> for Port {
+    fn from(port: u16) -> Self {
+        Port::One(port, PortUnaryModifier::Equal)
+    }
+}
+
 impl CopyToFfi<ffi::pfvar::pf_port_range> for Port {
     fn copy_to(&self, pf_port_range: &mut ffi::pfvar::pf_port_range) -> ::Result<()> {
         match *self {
@@ -233,11 +297,43 @@ impl ToFfi<u8> for PortRangeModifier {
 
 // Implementations to convert types that are not ours into their FFI representation
 
-impl ToFfi<u32> for Ipv4Addr {
-    fn to_ffi(&self) -> u32 {
-        unsafe { mem::transmute(self.octets()) }
+impl CopyToFfi<ffi::pfvar::pf_addr_wrap> for IpNetwork {
+    fn copy_to(&self, pf_addr_wrap: &mut ffi::pfvar::pf_addr_wrap) -> ::Result<()> {
+        pf_addr_wrap.type_ = ffi::pfvar::PF_ADDR_ADDRMASK as u8;
+        let a = unsafe { pf_addr_wrap.v.a.as_mut() };
+        self.ip().copy_to(&mut a.addr)?;
+        self.mask().copy_to(&mut a.mask)?;
+        Ok(())
     }
 }
+
+impl CopyToFfi<ffi::pfvar::pf_addr> for IpAddr {
+    fn copy_to(&self, pf_addr: &mut ffi::pfvar::pf_addr) -> ::Result<()> {
+        match *self {
+            IpAddr::V4(ip) => ip.copy_to(unsafe { pf_addr.pfa.v4.as_mut() }),
+            IpAddr::V6(ip) => ip.copy_to(unsafe { pf_addr.pfa.v6.as_mut() }),
+        }
+    }
+}
+
+impl CopyToFfi<ffi::pfvar::in_addr> for Ipv4Addr {
+    fn copy_to(&self, in_addr: &mut ffi::pfvar::in_addr) -> ::Result<()> {
+        in_addr.s_addr = u32::from(*self).to_be();
+        Ok(())
+    }
+}
+
+impl CopyToFfi<ffi::pfvar::in6_addr> for Ipv6Addr {
+    fn copy_to(&self, in6_addr: &mut ffi::pfvar::in6_addr) -> ::Result<()> {
+        let segments = self.segments();
+        let dst_segments = unsafe { in6_addr.__u6_addr.__u6_addr16.as_mut() };
+        for (dst_segment, segment) in dst_segments.iter_mut().zip(segments.into_iter()) {
+            *dst_segment = segment.to_be();
+        }
+        Ok(())
+    }
+}
+
 
 impl ToFfi<u8> for bool {
     fn to_ffi(&self) -> u8 {
