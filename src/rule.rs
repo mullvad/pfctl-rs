@@ -4,6 +4,7 @@ use ipnetwork::{IpNetwork, Ipv4Network, Ipv6Network};
 
 use libc;
 
+use std::fmt;
 use std::mem;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
@@ -202,6 +203,17 @@ impl ToFfi<u8> for AddrFamily {
             AddrFamily::Ipv4 => ffi::pfvar::PF_INET as u8,
             AddrFamily::Ipv6 => ffi::pfvar::PF_INET6 as u8,
         }
+    }
+}
+
+impl fmt::Display for AddrFamily {
+    fn fmt(&self, f: &mut fmt::Formatter) -> ::std::result::Result<(), fmt::Error> {
+        match *self {
+                AddrFamily::Any => "any",
+                AddrFamily::Ipv4 => "IPv4",
+                AddrFamily::Ipv6 => "IPv6",
+            }
+            .fmt(f)
     }
 }
 
