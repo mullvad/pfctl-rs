@@ -27,13 +27,34 @@ pub struct FilterRule {
     to: Endpoint,
 }
 
+impl FilterRule {
+    /// Returns the `AddrFamily` this rule matches against. Returns an `InvalidRuleCombination`
+    /// error if this rule has an invalid combination of address families.
+    fn get_af(&self) -> ::Result<AddrFamily> {
+        let endpoint_af = Self::compatible_af(self.from.get_af(), self.to.get_af())?;
+        Self::compatible_af(self.af, endpoint_af)
+    }
+
+    fn compatible_af(af1: AddrFamily, af2: AddrFamily) -> ::Result<AddrFamily> {
+        match (af1, af2) {
+            (af1, af2) if af1 == af2 => Ok(af1),
+            (af, AddrFamily::Any) => Ok(af),
+            (AddrFamily::Any, af) => Ok(af),
+            (af1, af2) => {
+                let msg = format!("AddrFamily {} and {} are incompatible", af1, af2);
+                bail!(::ErrorKind::InvalidRuleCombination(msg));
+            }
+        }
+    }
+}
+
 impl CopyToFfi<ffi::pfvar::pf_rule> for FilterRule {
     fn copy_to(&self, pf_rule: &mut ffi::pfvar::pf_rule) -> ::Result<()> {
         pf_rule.action = self.action.to_ffi();
         pf_rule.direction = self.direction.to_ffi();
         pf_rule.quick = self.quick.to_ffi();
-        pf_rule.af = self.af.to_ffi();
         pf_rule.proto = self.proto.to_ffi();
+        pf_rule.af = self.get_af()?.to_ffi();
         self.from.copy_to(&mut pf_rule.src)?;
         self.to.copy_to(&mut pf_rule.dst)?;
         Ok(())
@@ -43,6 +64,12 @@ impl CopyToFfi<ffi::pfvar::pf_rule> for FilterRule {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct Endpoint(pub Ip, pub Port);
+
+impl Endpoint {
+    pub fn get_af(&self) -> AddrFamily {
+        self.0.get_af()
+    }
+}
 
 impl From<Ip> for Endpoint {
     fn from(ip: Ip) -> Self {
@@ -85,6 +112,14 @@ pub enum Ip {
 }
 
 impl Ip {
+    pub fn get_af(&self) -> AddrFamily {
+        match *self {
+            Ip::Any => AddrFamily::Any,
+            Ip::Net(IpNetwork::V4(_)) => AddrFamily::Ipv4,
+            Ip::Net(IpNetwork::V6(_)) => AddrFamily::Ipv6,
+        }
+    }
+
     /// Returns `Ip::Any` represented an as an `IpNetwork`, used for ffi.
     fn any_ffi_repr() -> IpNetwork {
         IpNetwork::V6(Ipv6Network::new(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0), 0).unwrap())
