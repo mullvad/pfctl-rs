@@ -61,6 +61,83 @@ impl CopyToFfi<ffi::pfvar::pf_rule> for FilterRule {
     }
 }
 
+#[cfg(test)]
+mod filter_rule_tests {
+    use super::*;
+
+    lazy_static! {
+        static ref IPV4: Ipv4Addr = Ipv4Addr::new(0, 0, 0, 0);
+        static ref IPV6: Ipv6Addr = Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0);
+    }
+
+    #[test]
+    fn correct_af_default() {
+        let testee = FilterRuleBuilder::default().action(RuleAction::Pass).build().unwrap();
+        assert_eq!(AddrFamily::Any, testee.get_af().unwrap());
+    }
+
+    #[test]
+    fn af_incompatible_from_to() {
+        let mut testee = FilterRuleBuilder::default();
+        testee.action(RuleAction::Pass);
+        let from4to6 = testee.from(*IPV4)
+            .to(*IPV6)
+            .build()
+            .unwrap();
+        let from6to4 = testee.from(*IPV6)
+            .to(*IPV4)
+            .build()
+            .unwrap();
+        assert!(from4to6.get_af().is_err());
+        assert!(from6to4.get_af().is_err());
+    }
+
+    #[test]
+    fn af_compatibility_ipv4() {
+        let mut testee = FilterRuleBuilder::default();
+        testee.action(RuleAction::Pass).from(*IPV4);
+        assert_eq!(AddrFamily::Ipv4,
+                   testee.af(AddrFamily::Any)
+                       .build()
+                       .unwrap()
+                       .get_af()
+                       .unwrap());
+        assert_eq!(AddrFamily::Ipv4,
+                   testee.af(AddrFamily::Ipv4)
+                       .build()
+                       .unwrap()
+                       .get_af()
+                       .unwrap());
+        assert!(testee.af(AddrFamily::Ipv6)
+                    .build()
+                    .unwrap()
+                    .get_af()
+                    .is_err());
+    }
+
+    #[test]
+    fn af_compatibility_ipv6() {
+        let mut testee = FilterRuleBuilder::default();
+        testee.action(RuleAction::Pass).to(*IPV6);
+        assert_eq!(AddrFamily::Ipv6,
+                   testee.af(AddrFamily::Any)
+                       .build()
+                       .unwrap()
+                       .get_af()
+                       .unwrap());
+        assert_eq!(AddrFamily::Ipv6,
+                   testee.af(AddrFamily::Ipv6)
+                       .build()
+                       .unwrap()
+                       .get_af()
+                       .unwrap());
+        assert!(testee.af(AddrFamily::Ipv4)
+                    .build()
+                    .unwrap()
+                    .get_af()
+                    .is_err());
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct Endpoint(pub Ip, pub Port);

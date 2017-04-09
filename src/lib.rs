@@ -7,6 +7,9 @@ extern crate errno;
 extern crate derive_builder;
 extern crate libc;
 extern crate ipnetwork;
+#[cfg(test)]
+#[macro_use]
+extern crate lazy_static;
 
 use std::fs::File;
 use std::fs::OpenOptions;
