@@ -79,41 +79,48 @@ impl CopyToFfi<ffi::pfvar::pf_rule_addr> for Endpoint {
 
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct Ip(IpNetwork);
+pub enum Ip {
+    Any,
+    Net(IpNetwork),
+}
 
 impl Ip {
-    pub fn any() -> Self {
-        Ip(IpNetwork::V6(Ipv6Network::new(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0), 0).unwrap()))
+    /// Returns `Ip::Any` represented an as an `IpNetwork`, used for ffi.
+    fn any_ffi_repr() -> IpNetwork {
+        IpNetwork::V6(Ipv6Network::new(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0), 0).unwrap())
     }
 }
 
 impl Default for Ip {
     fn default() -> Self {
-        Ip::any()
+        Ip::Any
     }
 }
 
 impl From<IpNetwork> for Ip {
     fn from(net: IpNetwork) -> Self {
-        Ip(net)
+        Ip::Net(net)
     }
 }
 
 impl From<Ipv4Addr> for Ip {
     fn from(ip: Ipv4Addr) -> Self {
-        Ip(IpNetwork::V4(Ipv4Network::new(ip, 32).unwrap()))
+        Ip::Net(IpNetwork::V4(Ipv4Network::new(ip, 32).unwrap()))
     }
 }
 
 impl From<Ipv6Addr> for Ip {
     fn from(ip: Ipv6Addr) -> Self {
-        Ip(IpNetwork::V6(Ipv6Network::new(ip, 128).unwrap()))
+        Ip::Net(IpNetwork::V6(Ipv6Network::new(ip, 128).unwrap()))
     }
 }
 
 impl CopyToFfi<ffi::pfvar::pf_addr_wrap> for Ip {
     fn copy_to(&self, pf_addr_wrap: &mut ffi::pfvar::pf_addr_wrap) -> ::Result<()> {
-        self.0.copy_to(pf_addr_wrap)
+        match *self {
+            Ip::Any => Self::any_ffi_repr().copy_to(pf_addr_wrap),
+            Ip::Net(net) => net.copy_to(pf_addr_wrap),
+        }
     }
 }
 
