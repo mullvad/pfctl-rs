@@ -39,6 +39,10 @@ mod errors {
             StateAlreadyActive {
                 description("Target state is already active")
             }
+            InvalidRuleCombination(s: String) {
+                description("Rule containts incompatible values")
+                display("Incompatible values in rule: {}", s)
+            }
         }
         foreign_links {
             IoctlError(::std::io::Error);
