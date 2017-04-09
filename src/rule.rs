@@ -472,10 +472,9 @@ impl ToFfi<u8> for bool {
     }
 }
 
-/// Safely copy a Rust string into a raw buffer. Returning an error if `src` could not be
-/// copied to the buffer.
-
 impl<T: AsRef<str>> CopyToFfi<[i8]> for T {
+    /// Safely copy a Rust string into a raw buffer. Returning an error if the string could not be
+    /// copied to the buffer.
     fn copy_to(&self, dst: &mut [i8]) -> ::Result<()> {
         let src_i8: &[i8] = unsafe { mem::transmute(self.as_ref().as_bytes()) };
 
