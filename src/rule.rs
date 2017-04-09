@@ -42,7 +42,7 @@ impl CopyToFfi<ffi::pfvar::pf_rule> for FilterRule {
 
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub struct Endpoint(Ip, Port);
+pub struct Endpoint(pub Ip, pub Port);
 
 impl From<Ip> for Endpoint {
     fn from(ip: Ip) -> Self {
