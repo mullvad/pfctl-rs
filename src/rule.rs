@@ -1,3 +1,4 @@
+use ResultExt;
 use conversion::{ToFfi, CopyToFfi};
 use ffi;
 use ipnetwork::{IpNetwork, Ipv4Network, Ipv6Network};
@@ -8,7 +9,7 @@ use std::fmt;
 use std::mem;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[derive(Builder)]
 #[builder(setter(into))]
 pub struct FilterRule {
@@ -17,6 +18,8 @@ pub struct FilterRule {
     direction: Direction,
     #[builder(default)]
     quick: bool,
+    #[builder(default)]
+    interface: Interface,
     #[builder(default)]
     proto: Proto,
     #[builder(default)]
@@ -53,6 +56,9 @@ impl CopyToFfi<ffi::pfvar::pf_rule> for FilterRule {
         pf_rule.action = self.action.to_ffi();
         pf_rule.direction = self.direction.to_ffi();
         pf_rule.quick = self.quick.to_ffi();
+        self.interface
+            .copy_to(&mut pf_rule.ifname)
+            .chain_err(|| ::ErrorKind::InvalidArgument("Incompatible interface name"))?;
         pf_rule.proto = self.proto.to_ffi();
         pf_rule.af = self.get_af()?.to_ffi();
         self.from.copy_to(&mut pf_rule.src)?;
@@ -422,6 +428,34 @@ impl ToFfi<u8> for PortRangeModifier {
             PortRangeModifier::Inclusive => ffi::pfvar::PF_OP_RRG as u8,
             PortRangeModifier::Except => ffi::pfvar::PF_OP_XRG as u8,
         }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Interface {
+    Any,
+    Name(String),
+}
+
+impl Default for Interface {
+    fn default() -> Self {
+        Interface::Any
+    }
+}
+
+impl<T: AsRef<str>> From<T> for Interface {
+    fn from(name: T) -> Self {
+        Interface::Name(name.as_ref().to_owned())
+    }
+}
+
+impl CopyToFfi<[i8]> for Interface {
+    fn copy_to(&self, dst: &mut [i8]) -> ::Result<()> {
+        match *self {
+                Interface::Any => "",
+                Interface::Name(ref name) => &name[..],
+            }
+            .copy_to(dst)
     }
 }
 
