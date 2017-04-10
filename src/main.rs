@@ -51,6 +51,7 @@ fn run() -> Result<()> {
     let pass_all6_rule = pfctl::FilterRuleBuilder::default()
         .action(pfctl::RuleAction::Pass)
         .af(pfctl::AddrFamily::Ipv6)
+        .interface("utun0")
         .build()
         .unwrap();
     pf.add_rule(anchor_name, &pass_all_rule).chain_err(|| "Unable to add rule")?;

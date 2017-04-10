@@ -43,7 +43,7 @@ mod errors {
                 description("Target state is already active")
             }
             InvalidRuleCombination(s: String) {
-                description("Rule containts incompatible values")
+                description("Rule contains incompatible values")
                 display("Incompatible values in rule: {}", s)
             }
         }
