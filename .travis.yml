@@ -15,7 +15,7 @@ before_script:
 script:
   - cargo build --verbose
   - cargo test --verbose
-  - find . -iname "*.rs" -not -path "*/target/*" -print0 | xargs -0 -n1 rustfmt --write-mode=diff
+  - ./format.sh --write-mode=diff
 
 notifications:
   email:
