@@ -4,6 +4,7 @@ use ipnetwork::{IpNetwork, Ipv4Network, Ipv6Network};
 
 use libc;
 
+use std::fmt;
 use std::mem;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
@@ -26,22 +27,126 @@ pub struct FilterRule {
     to: Endpoint,
 }
 
+impl FilterRule {
+    /// Returns the `AddrFamily` this rule matches against. Returns an `InvalidRuleCombination`
+    /// error if this rule has an invalid combination of address families.
+    fn get_af(&self) -> ::Result<AddrFamily> {
+        let endpoint_af = Self::compatible_af(self.from.get_af(), self.to.get_af())?;
+        Self::compatible_af(self.af, endpoint_af)
+    }
+
+    fn compatible_af(af1: AddrFamily, af2: AddrFamily) -> ::Result<AddrFamily> {
+        match (af1, af2) {
+            (af1, af2) if af1 == af2 => Ok(af1),
+            (af, AddrFamily::Any) => Ok(af),
+            (AddrFamily::Any, af) => Ok(af),
+            (af1, af2) => {
+                let msg = format!("AddrFamily {} and {} are incompatible", af1, af2);
+                bail!(::ErrorKind::InvalidRuleCombination(msg));
+            }
+        }
+    }
+}
+
 impl CopyToFfi<ffi::pfvar::pf_rule> for FilterRule {
     fn copy_to(&self, pf_rule: &mut ffi::pfvar::pf_rule) -> ::Result<()> {
         pf_rule.action = self.action.to_ffi();
         pf_rule.direction = self.direction.to_ffi();
         pf_rule.quick = self.quick.to_ffi();
-        pf_rule.af = self.af.to_ffi();
         pf_rule.proto = self.proto.to_ffi();
+        pf_rule.af = self.get_af()?.to_ffi();
         self.from.copy_to(&mut pf_rule.src)?;
         self.to.copy_to(&mut pf_rule.dst)?;
         Ok(())
     }
 }
 
+#[cfg(test)]
+mod filter_rule_tests {
+    use super::*;
+
+    lazy_static! {
+        static ref IPV4: Ipv4Addr = Ipv4Addr::new(0, 0, 0, 0);
+        static ref IPV6: Ipv6Addr = Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0);
+    }
+
+    #[test]
+    fn correct_af_default() {
+        let testee = FilterRuleBuilder::default().action(RuleAction::Pass).build().unwrap();
+        assert_eq!(AddrFamily::Any, testee.get_af().unwrap());
+    }
+
+    #[test]
+    fn af_incompatible_from_to() {
+        let mut testee = FilterRuleBuilder::default();
+        testee.action(RuleAction::Pass);
+        let from4to6 = testee.from(*IPV4)
+            .to(*IPV6)
+            .build()
+            .unwrap();
+        let from6to4 = testee.from(*IPV6)
+            .to(*IPV4)
+            .build()
+            .unwrap();
+        assert!(from4to6.get_af().is_err());
+        assert!(from6to4.get_af().is_err());
+    }
+
+    #[test]
+    fn af_compatibility_ipv4() {
+        let mut testee = FilterRuleBuilder::default();
+        testee.action(RuleAction::Pass).from(*IPV4);
+        assert_eq!(AddrFamily::Ipv4,
+                   testee.af(AddrFamily::Any)
+                       .build()
+                       .unwrap()
+                       .get_af()
+                       .unwrap());
+        assert_eq!(AddrFamily::Ipv4,
+                   testee.af(AddrFamily::Ipv4)
+                       .build()
+                       .unwrap()
+                       .get_af()
+                       .unwrap());
+        assert!(testee.af(AddrFamily::Ipv6)
+                    .build()
+                    .unwrap()
+                    .get_af()
+                    .is_err());
+    }
+
+    #[test]
+    fn af_compatibility_ipv6() {
+        let mut testee = FilterRuleBuilder::default();
+        testee.action(RuleAction::Pass).to(*IPV6);
+        assert_eq!(AddrFamily::Ipv6,
+                   testee.af(AddrFamily::Any)
+                       .build()
+                       .unwrap()
+                       .get_af()
+                       .unwrap());
+        assert_eq!(AddrFamily::Ipv6,
+                   testee.af(AddrFamily::Ipv6)
+                       .build()
+                       .unwrap()
+                       .get_af()
+                       .unwrap());
+        assert!(testee.af(AddrFamily::Ipv4)
+                    .build()
+                    .unwrap()
+                    .get_af()
+                    .is_err());
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub struct Endpoint(Ip, Port);
+pub struct Endpoint(pub Ip, pub Port);
+
+impl Endpoint {
+    pub fn get_af(&self) -> AddrFamily {
+        self.0.get_af()
+    }
+}
 
 impl From<Ip> for Endpoint {
     fn from(ip: Ip) -> Self {
@@ -78,41 +183,56 @@ impl CopyToFfi<ffi::pfvar::pf_rule_addr> for Endpoint {
 
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct Ip(IpNetwork);
+pub enum Ip {
+    Any,
+    Net(IpNetwork),
+}
 
 impl Ip {
-    pub fn any() -> Self {
-        Ip(IpNetwork::V6(Ipv6Network::new(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0), 0).unwrap()))
+    pub fn get_af(&self) -> AddrFamily {
+        match *self {
+            Ip::Any => AddrFamily::Any,
+            Ip::Net(IpNetwork::V4(_)) => AddrFamily::Ipv4,
+            Ip::Net(IpNetwork::V6(_)) => AddrFamily::Ipv6,
+        }
+    }
+
+    /// Returns `Ip::Any` represented an as an `IpNetwork`, used for ffi.
+    fn any_ffi_repr() -> IpNetwork {
+        IpNetwork::V6(Ipv6Network::new(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0), 0).unwrap())
     }
 }
 
 impl Default for Ip {
     fn default() -> Self {
-        Ip::any()
+        Ip::Any
     }
 }
 
 impl From<IpNetwork> for Ip {
     fn from(net: IpNetwork) -> Self {
-        Ip(net)
+        Ip::Net(net)
     }
 }
 
 impl From<Ipv4Addr> for Ip {
     fn from(ip: Ipv4Addr) -> Self {
-        Ip(IpNetwork::V4(Ipv4Network::new(ip, 32).unwrap()))
+        Ip::Net(IpNetwork::V4(Ipv4Network::new(ip, 32).unwrap()))
     }
 }
 
 impl From<Ipv6Addr> for Ip {
     fn from(ip: Ipv6Addr) -> Self {
-        Ip(IpNetwork::V6(Ipv6Network::new(ip, 128).unwrap()))
+        Ip::Net(IpNetwork::V6(Ipv6Network::new(ip, 128).unwrap()))
     }
 }
 
 impl CopyToFfi<ffi::pfvar::pf_addr_wrap> for Ip {
     fn copy_to(&self, pf_addr_wrap: &mut ffi::pfvar::pf_addr_wrap) -> ::Result<()> {
-        self.0.copy_to(pf_addr_wrap)
+        match *self {
+            Ip::Any => Self::any_ffi_repr().copy_to(pf_addr_wrap),
+            Ip::Net(net) => net.copy_to(pf_addr_wrap),
+        }
     }
 }
 
@@ -202,6 +322,17 @@ impl ToFfi<u8> for AddrFamily {
             AddrFamily::Ipv4 => ffi::pfvar::PF_INET as u8,
             AddrFamily::Ipv6 => ffi::pfvar::PF_INET6 as u8,
         }
+    }
+}
+
+impl fmt::Display for AddrFamily {
+    fn fmt(&self, f: &mut fmt::Formatter) -> ::std::result::Result<(), fmt::Error> {
+        match *self {
+                AddrFamily::Any => "any",
+                AddrFamily::Ipv4 => "IPv4",
+                AddrFamily::Ipv6 => "IPv6",
+            }
+            .fmt(f)
     }
 }
 
@@ -341,10 +472,9 @@ impl ToFfi<u8> for bool {
     }
 }
 
-/// Safely copy a Rust string into a raw buffer. Returning an error if `src` could not be
-/// copied to the buffer.
-
 impl<T: AsRef<str>> CopyToFfi<[i8]> for T {
+    /// Safely copy a Rust string into a raw buffer. Returning an error if the string could not be
+    /// copied to the buffer.
     fn copy_to(&self, dst: &mut [i8]) -> ::Result<()> {
         let src_i8: &[i8] = unsafe { mem::transmute(self.as_ref().as_bytes()) };
 

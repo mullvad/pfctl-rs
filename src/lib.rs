@@ -7,6 +7,9 @@ extern crate errno;
 extern crate derive_builder;
 extern crate libc;
 extern crate ipnetwork;
+#[cfg(test)]
+#[macro_use]
+extern crate lazy_static;
 
 use std::fs::File;
 use std::fs::OpenOptions;
@@ -38,6 +41,10 @@ mod errors {
             }
             StateAlreadyActive {
                 description("Target state is already active")
+            }
+            InvalidRuleCombination(s: String) {
+                description("Rule containts incompatible values")
+                display("Incompatible values in rule: {}", s)
             }
         }
         foreign_links {
