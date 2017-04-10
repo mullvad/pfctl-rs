@@ -115,10 +115,10 @@ mod filter_rule_tests {
                        .get_af()
                        .unwrap());
         assert!(testee.af(AddrFamily::Ipv6)
-                    .build()
-                    .unwrap()
-                    .get_af()
-                    .is_err());
+            .build()
+            .unwrap()
+            .get_af()
+            .is_err());
     }
 
     #[test]
@@ -138,10 +138,10 @@ mod filter_rule_tests {
                        .get_af()
                        .unwrap());
         assert!(testee.af(AddrFamily::Ipv4)
-                    .build()
-                    .unwrap()
-                    .get_af()
-                    .is_err());
+            .build()
+            .unwrap()
+            .get_af()
+            .is_err());
     }
 }
 
