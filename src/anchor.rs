@@ -1,4 +1,3 @@
-use conversion::ToFfi;
 use ffi;
 
 /// Enum describing the kinds of anchor
@@ -8,9 +7,9 @@ pub enum AnchorKind {
     Redirect,
 }
 
-impl ToFfi<u8> for AnchorKind {
-    fn to_ffi(&self) -> u8 {
-        match *self {
+impl From<AnchorKind> for u8 {
+    fn from(anchor_kind: AnchorKind) -> u8 {
+        match anchor_kind {
             AnchorKind::Filter => ffi::pfvar::PF_PASS as u8,
             AnchorKind::Redirect => ffi::pfvar::PF_RDR as u8,
         }
