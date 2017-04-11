@@ -6,7 +6,7 @@ extern crate ipnetwork;
 
 use ipnetwork::IpNetwork;
 
-use std::net::{Ipv4Addr, Ipv6Addr};
+use std::net::Ipv6Addr;
 use std::str::FromStr;
 
 mod errors {
@@ -43,9 +43,10 @@ fn run() -> Result<()> {
 
     let pass_all_rule =
         pfctl::FilterRuleBuilder::default().action(pfctl::RuleAction::Pass).build().unwrap();
-    let pass_all4_rule = pfctl::FilterRuleBuilder::default()
+    let pass_all4_quick_rule = pfctl::FilterRuleBuilder::default()
         .action(pfctl::RuleAction::Pass)
         .af(pfctl::AddrFamily::Ipv4)
+        .quick(true)
         .build()
         .unwrap();
     let pass_all6_rule = pfctl::FilterRuleBuilder::default()
@@ -55,7 +56,7 @@ fn run() -> Result<()> {
         .build()
         .unwrap();
     pf.add_rule(anchor_name, &pass_all_rule).chain_err(|| "Unable to add rule")?;
-    pf.add_rule(anchor_name, &pass_all4_rule).chain_err(|| "Unable to add rule")?;
+    pf.add_rule(anchor_name, &pass_all4_quick_rule).chain_err(|| "Unable to add rule")?;
     pf.add_rule(anchor_name, &pass_all6_rule).chain_err(|| "Unable to add rule")?;
 
     let from_net = IpNetwork::from_str("192.168.99.11/24").unwrap();
