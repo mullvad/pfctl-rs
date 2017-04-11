@@ -1,0 +1,68 @@
+use conversion::{CopyToFfi, ToFfi};
+use ffi;
+use rule::Ip;
+use std::mem;
+use std::net::Ipv4Addr;
+
+use std::ptr;
+use std::vec::Vec;
+
+pub struct PoolAddrList {
+    list: ffi::pfvar::pf_palist,
+    pool: Box<[ffi::pfvar::pf_pooladdr]>,
+}
+
+impl PoolAddrList {
+    pub fn new(ips: &[Ip]) -> ::Result<Self> {
+        let mut pool = Self::init_pool(ips)?;
+        Self::link_elements(&mut pool);
+        let list = Self::create_palist(&mut pool);
+
+        let palist = PoolAddrList {
+            list: list,
+            pool: pool.into_boxed_slice(),
+        };
+
+        Ok(palist)
+    }
+
+    pub fn to_palist(&self) -> ffi::pfvar::pf_palist {
+        self.list
+    }
+
+    fn init_pool(ips: &[Ip]) -> ::Result<Vec<ffi::pfvar::pf_pooladdr>> {
+        let mut pool = Vec::with_capacity(ips.len());
+        for ip in ips {
+            let mut pooladdr = unsafe { mem::zeroed::<ffi::pfvar::pf_pooladdr>() };
+            ip.copy_to(&mut pooladdr.addr)?;
+            pool.push(pooladdr);
+        }
+        Ok(pool)
+    }
+
+    fn link_elements(pool: &mut Vec<ffi::pfvar::pf_pooladdr>) {
+        for i in 1..pool.len() {
+            let mut elem1 = pool[i - 1];
+            let mut elem2 = pool[i];
+            elem1.entries.tqe_next = &mut elem2;
+            elem2.entries.tqe_prev = &mut elem1.entries.tqe_next;
+        }
+    }
+
+    fn create_palist(pool: &mut Vec<ffi::pfvar::pf_pooladdr>) -> ffi::pfvar::pf_palist {
+        let mut list = unsafe { mem::zeroed::<ffi::pfvar::pf_palist>() };
+        if pool.len() > 0 {
+            let mut first_elem = pool[0];
+            let mut last_elem = pool[pool.len() - 1];
+
+            list.tqh_first = &mut first_elem;
+            first_elem.entries.tqe_prev = &mut list.tqh_first;
+            last_elem.entries.tqe_next = ptr::null_mut();
+            list.tqh_last = &mut last_elem.entries.tqe_next;
+        } else {
+            list.tqh_first = ptr::null_mut();
+            list.tqh_last = &mut list.tqh_first;
+        }
+        list
+    }
+}
