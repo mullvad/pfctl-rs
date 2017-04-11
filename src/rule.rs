@@ -389,6 +389,31 @@ impl CopyToFfi<ffi::pfvar::pf_port_range> for Port {
     }
 }
 
+impl CopyToFfi<ffi::pfvar::pf_pool> for Port {
+    fn copy_to(&self, pf_pool: &mut ffi::pfvar::pf_pool) -> ::Result<()> {
+        match *self {
+            Port::Any => {
+                pf_pool.port_op = ffi::pfvar::PF_OP_NONE as u8;
+                pf_pool.proxy_port[0] = 0;
+                pf_pool.proxy_port[1] = 0;
+            }
+            Port::One(port, modifier) => {
+                pf_pool.port_op = modifier.to_ffi();
+                pf_pool.proxy_port[0] = port;
+                pf_pool.proxy_port[1] = 0;
+            }
+            Port::Range(start_port, end_port, modifier) => {
+                ensure!(start_port <= end_port,
+                        ::ErrorKind::InvalidArgument("Lower port is greater than upper port."));
+                pf_pool.port_op = modifier.to_ffi();
+                pf_pool.proxy_port[0] = start_port;
+                pf_pool.proxy_port[1] = end_port;
+            }
+        }
+        Ok(())
+    }
+}
+
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PortUnaryModifier {
