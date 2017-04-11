@@ -14,6 +14,23 @@ pub struct PoolAddrList {
 
 impl PoolAddrList {
 
+    pub fn new(ips: &[Ip]) -> ::Result<Self> {
+        let mut pool = Self::init_pool(ips)?;
+        Self::link_elements(&mut pool);
+        let list = Self::create_palist(&mut pool);
+
+        let palist = PoolAddrList {
+            list: list,
+            pool: pool.into_boxed_slice(),
+        };
+
+        Ok(palist)
+    }
+
+    pub fn to_palist(&self) -> ffi::pfvar::pf_palist {
+        self.list
+    }
+
     fn init_pool(ips: &[Ip]) -> ::Result<Vec<ffi::pfvar::pf_pooladdr>> {
         let mut pool = Vec::with_capacity(ips.len());
         for ip in ips {
@@ -48,23 +65,6 @@ impl PoolAddrList {
             list.tqh_last = &mut list.tqh_first;
         }
         list
-    }
-
-    pub fn new(ips: &[Ip]) -> ::Result<Self> {
-        let mut pool = Self::init_pool(ips)?;
-        Self::link_elements(&mut pool);
-        let list = Self::create_palist(&mut pool);
-
-        let palist = PoolAddrList {
-            list: list,
-            pool: pool.into_boxed_slice(),
-        };
-
-        Ok(palist)
-    }
-
-    pub fn get_ptr(&self) -> ffi::pfvar::pf_palist {
-        self.list
     }
 }
 
