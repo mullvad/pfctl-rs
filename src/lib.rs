@@ -82,8 +82,14 @@ mod conversion {
         fn to_ffi(&self) -> T;
     }
 
-    /// Internal hidden trait for all Rust types that can write their value into a FFI struct.
-    pub trait CopyToFfi<T: ?Sized> {
+    /// Internal trait for all types that can write their value into another type without risk of
+    /// failing.
+    pub trait CopyTo<T: ?Sized> {
+        fn copy_to(&self, dst: &mut T);
+    }
+
+    /// Internal trait for all types that can try to write their value into another type.
+    pub trait TryCopyTo<T: ?Sized> {
         fn copy_to(&self, dst: &mut T) -> ::Result<()>;
     }
 }
