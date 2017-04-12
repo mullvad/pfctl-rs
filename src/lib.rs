@@ -150,6 +150,39 @@ impl PfCtl {
         Ok(())
     }
 
+    pub fn flush_rules<S: AsRef<str>>(&mut self, anchor: S, kind: AnchorKind) -> Result<()> {
+        let nr = self.get_num_rules(&anchor, kind)?;
+        for i in (0..nr).rev() {
+            self.remove_rule(&anchor, kind, i)?;
+        }
+        Ok(())
+    }
+
+    fn remove_rule<S: AsRef<str>>(&mut self,
+                                  anchor: S,
+                                  kind: AnchorKind,
+                                  rule_index: u32)
+                                  -> Result<()> {
+        let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
+        pfioc_rule.action = ffi::pfvar::PF_CHANGE_REMOVE as u32;
+        pfioc_rule.nr = rule_index;
+        pfioc_rule.rule.action = kind.to_ffi();
+        pfioc_rule.ticket = self.get_ticket(&anchor)?;
+        anchor.copy_to(&mut pfioc_rule.anchor[..])
+            .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
+        ioctl_guard!(ffi::pf_change_rule(self.fd(), &mut pfioc_rule))?;
+        Ok(())
+    }
+
+    fn get_num_rules<S: AsRef<str>>(&mut self, anchor: S, kind: AnchorKind) -> Result<u32> {
+        let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
+        pfioc_rule.rule.action = kind.to_ffi();
+        anchor.copy_to(&mut pfioc_rule.anchor[..])
+            .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
+        ioctl_guard!(ffi::pf_get_rules(self.fd(), &mut pfioc_rule))?;
+        Ok(pfioc_rule.nr)
+    }
+
     fn get_pool_ticket<S: AsRef<str>>(&self, anchor: S) -> Result<u32> {
         let mut pfioc_pooladdr = unsafe { mem::zeroed::<ffi::pfvar::pfioc_pooladdr>() };
         pfioc_pooladdr.action = ffi::pfvar::PF_CHANGE_GET_TICKET as u32;
