@@ -21,6 +21,9 @@ mod ffi;
 mod rule;
 pub use rule::*;
 
+mod pooladdr;
+pub use pooladdr::*;
+
 mod anchor;
 pub use anchor::*;
 
