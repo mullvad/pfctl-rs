@@ -75,15 +75,16 @@ macro_rules! ioctl_guard {
     }
 }
 
-/// Module for types and traits dealing with translating between Rust and FFI and back.
+/// Module for types and traits dealing with translating between Rust and FFI.
 mod conversion {
-    /// Internal hidden trait for all types that can be converted into a FFI representation
-    pub trait ToFfi<T> {
-        fn to_ffi(&self) -> T;
+    /// Internal trait for all types that can write their value into another type without risk of
+    /// failing.
+    pub trait CopyTo<T: ?Sized> {
+        fn copy_to(&self, dst: &mut T);
     }
 
-    /// Internal hidden trait for all Rust types that can write their value into a FFI struct.
-    pub trait CopyToFfi<T: ?Sized> {
+    /// Internal trait for all types that can try to write their value into another type.
+    pub trait TryCopyTo<T: ?Sized> {
         fn copy_to(&self, dst: &mut T) -> ::Result<()>;
     }
 }
@@ -127,7 +128,7 @@ impl PfCtl {
     pub fn add_anchor<S: AsRef<str>>(&mut self, name: S, kind: AnchorKind) -> Result<()> {
         let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
 
-        pfioc_rule.rule.action = kind.to_ffi();
+        pfioc_rule.rule.action = kind.into();
         name.copy_to(&mut pfioc_rule.anchor_call[..])
             .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
 

@@ -1,5 +1,5 @@
 use ResultExt;
-use conversion::{ToFfi, CopyToFfi};
+use conversion::{CopyTo, TryCopyTo};
 use ffi;
 use ipnetwork::{IpNetwork, Ipv4Network, Ipv6Network};
 
@@ -51,16 +51,16 @@ impl FilterRule {
     }
 }
 
-impl CopyToFfi<ffi::pfvar::pf_rule> for FilterRule {
+impl TryCopyTo<ffi::pfvar::pf_rule> for FilterRule {
     fn copy_to(&self, pf_rule: &mut ffi::pfvar::pf_rule) -> ::Result<()> {
-        pf_rule.action = self.action.to_ffi();
-        pf_rule.direction = self.direction.to_ffi();
-        pf_rule.quick = self.quick.to_ffi();
+        pf_rule.action = self.action.into();
+        pf_rule.direction = self.direction.into();
+        pf_rule.quick = self.quick as u8;
         self.interface
             .copy_to(&mut pf_rule.ifname)
             .chain_err(|| ::ErrorKind::InvalidArgument("Incompatible interface name"))?;
-        pf_rule.proto = self.proto.to_ffi();
-        pf_rule.af = self.get_af()?.to_ffi();
+        pf_rule.proto = self.proto.into();
+        pf_rule.af = self.get_af()?.into();
         self.from.copy_to(&mut pf_rule.src)?;
         self.to.copy_to(&mut pf_rule.dst)?;
         Ok(())
@@ -178,10 +178,10 @@ impl From<Ipv6Addr> for Endpoint {
     }
 }
 
-impl CopyToFfi<ffi::pfvar::pf_rule_addr> for Endpoint {
+impl TryCopyTo<ffi::pfvar::pf_rule_addr> for Endpoint {
     fn copy_to(&self, pf_rule_addr: &mut ffi::pfvar::pf_rule_addr) -> ::Result<()> {
         let Endpoint(ref ip, ref port) = *self;
-        ip.copy_to(&mut pf_rule_addr.addr)?;
+        ip.copy_to(&mut pf_rule_addr.addr);
         port.copy_to(unsafe { pf_rule_addr.xport.range.as_mut() })?;
         Ok(())
     }
@@ -233,8 +233,8 @@ impl From<Ipv6Addr> for Ip {
     }
 }
 
-impl CopyToFfi<ffi::pfvar::pf_addr_wrap> for Ip {
-    fn copy_to(&self, pf_addr_wrap: &mut ffi::pfvar::pf_addr_wrap) -> ::Result<()> {
+impl CopyTo<ffi::pfvar::pf_addr_wrap> for Ip {
+    fn copy_to(&self, pf_addr_wrap: &mut ffi::pfvar::pf_addr_wrap) {
         match *self {
             Ip::Any => Self::any_ffi_repr().copy_to(pf_addr_wrap),
             Ip::Net(net) => net.copy_to(pf_addr_wrap),
@@ -250,9 +250,9 @@ pub enum RuleAction {
     Drop,
 }
 
-impl ToFfi<u8> for RuleAction {
-    fn to_ffi(&self) -> u8 {
-        match *self {
+impl From<RuleAction> for u8 {
+    fn from(rule_action: RuleAction) -> Self {
+        match rule_action {
             RuleAction::Pass => ffi::pfvar::PF_PASS as u8,
             RuleAction::Drop => ffi::pfvar::PF_DROP as u8,
         }
@@ -274,9 +274,9 @@ impl Default for Direction {
     }
 }
 
-impl ToFfi<u8> for Direction {
-    fn to_ffi(&self) -> u8 {
-        match *self {
+impl From<Direction> for u8 {
+    fn from(direction: Direction) -> Self {
+        match direction {
             Direction::Any => ffi::pfvar::PF_INOUT as u8,
             Direction::In => ffi::pfvar::PF_IN as u8,
             Direction::Out => ffi::pfvar::PF_OUT as u8,
@@ -298,9 +298,9 @@ impl Default for Proto {
     }
 }
 
-impl ToFfi<u8> for Proto {
-    fn to_ffi(&self) -> u8 {
-        match *self {
+impl From<Proto> for u8 {
+    fn from(proto: Proto) -> Self {
+        match proto {
             Proto::Any => libc::IPPROTO_IP as u8,
             Proto::Tcp => libc::IPPROTO_TCP as u8,
         }
@@ -321,9 +321,9 @@ impl Default for AddrFamily {
     }
 }
 
-impl ToFfi<u8> for AddrFamily {
-    fn to_ffi(&self) -> u8 {
-        match *self {
+impl From<AddrFamily> for u8 {
+    fn from(af: AddrFamily) -> Self {
+        match af {
             AddrFamily::Any => ffi::pfvar::PF_UNSPEC as u8,
             AddrFamily::Ipv4 => ffi::pfvar::PF_INET as u8,
             AddrFamily::Ipv6 => ffi::pfvar::PF_INET6 as u8,
@@ -362,7 +362,7 @@ impl From<u16> for Port {
     }
 }
 
-impl CopyToFfi<ffi::pfvar::pf_port_range> for Port {
+impl TryCopyTo<ffi::pfvar::pf_port_range> for Port {
     fn copy_to(&self, pf_port_range: &mut ffi::pfvar::pf_port_range) -> ::Result<()> {
         match *self {
             Port::Any => {
@@ -371,7 +371,7 @@ impl CopyToFfi<ffi::pfvar::pf_port_range> for Port {
                 pf_port_range.port[1] = 0;
             }
             Port::One(port, modifier) => {
-                pf_port_range.op = modifier.to_ffi();
+                pf_port_range.op = modifier.into();
                 // convert port range to network byte order
                 pf_port_range.port[0] = port.to_be();
                 pf_port_range.port[1] = 0;
@@ -379,7 +379,7 @@ impl CopyToFfi<ffi::pfvar::pf_port_range> for Port {
             Port::Range(start_port, end_port, modifier) => {
                 ensure!(start_port <= end_port,
                         ::ErrorKind::InvalidArgument("Lower port is greater than upper port."));
-                pf_port_range.op = modifier.to_ffi();
+                pf_port_range.op = modifier.into();
                 // convert port range to network byte order
                 pf_port_range.port[0] = start_port.to_be();
                 pf_port_range.port[1] = end_port.to_be();
@@ -389,7 +389,7 @@ impl CopyToFfi<ffi::pfvar::pf_port_range> for Port {
     }
 }
 
-impl CopyToFfi<ffi::pfvar::pf_pool> for Port {
+impl TryCopyTo<ffi::pfvar::pf_pool> for Port {
     fn copy_to(&self, pf_pool: &mut ffi::pfvar::pf_pool) -> ::Result<()> {
         match *self {
             Port::Any => {
@@ -398,14 +398,14 @@ impl CopyToFfi<ffi::pfvar::pf_pool> for Port {
                 pf_pool.proxy_port[1] = 0;
             }
             Port::One(port, modifier) => {
-                pf_pool.port_op = modifier.to_ffi();
+                pf_pool.port_op = modifier.into();
                 pf_pool.proxy_port[0] = port;
                 pf_pool.proxy_port[1] = 0;
             }
             Port::Range(start_port, end_port, modifier) => {
                 ensure!(start_port <= end_port,
                         ::ErrorKind::InvalidArgument("Lower port is greater than upper port."));
-                pf_pool.port_op = modifier.to_ffi();
+                pf_pool.port_op = modifier.into();
                 pf_pool.proxy_port[0] = start_port;
                 pf_pool.proxy_port[1] = end_port;
             }
@@ -425,9 +425,9 @@ pub enum PortUnaryModifier {
     LessOrEqual,
 }
 
-impl ToFfi<u8> for PortUnaryModifier {
-    fn to_ffi(&self) -> u8 {
-        match *self {
+impl From<PortUnaryModifier> for u8 {
+    fn from(modifier: PortUnaryModifier) -> Self {
+        match modifier {
             PortUnaryModifier::Equal => ffi::pfvar::PF_OP_EQ as u8,
             PortUnaryModifier::NotEqual => ffi::pfvar::PF_OP_NE as u8,
             PortUnaryModifier::Greater => ffi::pfvar::PF_OP_GT as u8,
@@ -446,9 +446,9 @@ pub enum PortRangeModifier {
     Except,
 }
 
-impl ToFfi<u8> for PortRangeModifier {
-    fn to_ffi(&self) -> u8 {
-        match *self {
+impl From<PortRangeModifier> for u8 {
+    fn from(modifier: PortRangeModifier) -> Self {
+        match modifier {
             PortRangeModifier::Exclusive => ffi::pfvar::PF_OP_IRG as u8,
             PortRangeModifier::Inclusive => ffi::pfvar::PF_OP_RRG as u8,
             PortRangeModifier::Except => ffi::pfvar::PF_OP_XRG as u8,
@@ -474,7 +474,7 @@ impl<T: AsRef<str>> From<T> for Interface {
     }
 }
 
-impl CopyToFfi<[i8]> for Interface {
+impl TryCopyTo<[i8]> for Interface {
     fn copy_to(&self, dst: &mut [i8]) -> ::Result<()> {
         match *self {
                 Interface::Any => "",
@@ -487,18 +487,17 @@ impl CopyToFfi<[i8]> for Interface {
 
 // Implementations to convert types that are not ours into their FFI representation
 
-impl CopyToFfi<ffi::pfvar::pf_addr_wrap> for IpNetwork {
-    fn copy_to(&self, pf_addr_wrap: &mut ffi::pfvar::pf_addr_wrap) -> ::Result<()> {
+impl CopyTo<ffi::pfvar::pf_addr_wrap> for IpNetwork {
+    fn copy_to(&self, pf_addr_wrap: &mut ffi::pfvar::pf_addr_wrap) {
         pf_addr_wrap.type_ = ffi::pfvar::PF_ADDR_ADDRMASK as u8;
         let a = unsafe { pf_addr_wrap.v.a.as_mut() };
-        self.ip().copy_to(&mut a.addr)?;
-        self.mask().copy_to(&mut a.mask)?;
-        Ok(())
+        self.ip().copy_to(&mut a.addr);
+        self.mask().copy_to(&mut a.mask);
     }
 }
 
-impl CopyToFfi<ffi::pfvar::pf_addr> for IpAddr {
-    fn copy_to(&self, pf_addr: &mut ffi::pfvar::pf_addr) -> ::Result<()> {
+impl CopyTo<ffi::pfvar::pf_addr> for IpAddr {
+    fn copy_to(&self, pf_addr: &mut ffi::pfvar::pf_addr) {
         match *self {
             IpAddr::V4(ip) => ip.copy_to(unsafe { pf_addr.pfa.v4.as_mut() }),
             IpAddr::V6(ip) => ip.copy_to(unsafe { pf_addr.pfa.v6.as_mut() }),
@@ -506,32 +505,23 @@ impl CopyToFfi<ffi::pfvar::pf_addr> for IpAddr {
     }
 }
 
-impl CopyToFfi<ffi::pfvar::in_addr> for Ipv4Addr {
-    fn copy_to(&self, in_addr: &mut ffi::pfvar::in_addr) -> ::Result<()> {
+impl CopyTo<ffi::pfvar::in_addr> for Ipv4Addr {
+    fn copy_to(&self, in_addr: &mut ffi::pfvar::in_addr) {
         in_addr.s_addr = u32::from(*self).to_be();
-        Ok(())
     }
 }
 
-impl CopyToFfi<ffi::pfvar::in6_addr> for Ipv6Addr {
-    fn copy_to(&self, in6_addr: &mut ffi::pfvar::in6_addr) -> ::Result<()> {
+impl CopyTo<ffi::pfvar::in6_addr> for Ipv6Addr {
+    fn copy_to(&self, in6_addr: &mut ffi::pfvar::in6_addr) {
         let segments = self.segments();
         let dst_segments = unsafe { in6_addr.__u6_addr.__u6_addr16.as_mut() };
         for (dst_segment, segment) in dst_segments.iter_mut().zip(segments.into_iter()) {
             *dst_segment = segment.to_be();
         }
-        Ok(())
     }
 }
 
-
-impl ToFfi<u8> for bool {
-    fn to_ffi(&self) -> u8 {
-        if *self { 1 } else { 0 }
-    }
-}
-
-impl<T: AsRef<str>> CopyToFfi<[i8]> for T {
+impl<T: AsRef<str>> TryCopyTo<[i8]> for T {
     /// Safely copy a Rust string into a raw buffer. Returning an error if the string could not be
     /// copied to the buffer.
     fn copy_to(&self, dst: &mut [i8]) -> ::Result<()> {
