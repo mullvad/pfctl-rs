@@ -1,6 +1,6 @@
 use ffi;
 
-/// Enum describing the kinds of anchor
+/// Enum describing the kinds of anchors
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum AnchorKind {
     Filter,

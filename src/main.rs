@@ -41,6 +41,11 @@ fn run() -> Result<()> {
         err => err.chain_err(|| "Unable to add redirect anchor")?,
     }
 
+    match pf.flush_rules(anchor_name, pfctl::RulesetKind::Filter) {
+        Ok(_) => println!("Flushed filter rules"),
+        err => err.chain_err(|| "Unable to flush filter rules")?,
+    }
+
     let pass_all_rule =
         pfctl::FilterRuleBuilder::default().action(pfctl::RuleAction::Pass).build().unwrap();
     let pass_all4_quick_rule = pfctl::FilterRuleBuilder::default()
