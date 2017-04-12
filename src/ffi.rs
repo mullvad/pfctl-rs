@@ -19,3 +19,7 @@ ioctl!(readwrite pf_insert_rule with b'D', 27; pfvar::pfioc_rule);
 ioctl!(readwrite pf_change_rule with b'D', 26; pfvar::pfioc_rule);
 // DIOCBEGINADDRS
 ioctl!(readwrite pf_begin_addrs with b'D', 51; pfvar::pfioc_pooladdr);
+// DIOCXBEGIN
+ioctl!(readwrite pf_begin_trans with b'D', 81; pfvar::pfioc_trans);
+// DIOCXCOMMIT
+ioctl!(readwrite pf_commit_trans with b'D', 82; pfvar::pfioc_trans);

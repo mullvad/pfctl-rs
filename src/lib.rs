@@ -27,6 +27,9 @@ pub use pooladdr::*;
 mod anchor;
 pub use anchor::*;
 
+mod ruleset;
+pub use ruleset::*;
+
 /// The path to the PF device file this library will use to communicate with PF.
 pub const PF_DEV_PATH: &'static str = "/dev/pf";
 
@@ -148,6 +151,23 @@ impl PfCtl {
 
         pfioc_rule.action = ffi::pfvar::PF_CHANGE_ADD_TAIL as u32;
         ioctl_guard!(ffi::pf_change_rule(self.fd(), &mut pfioc_rule))?;
+        Ok(())
+    }
+
+    pub fn flush_rules<S: AsRef<str>>(&mut self, anchor: S, kind: RulesetKind) -> Result<()> {
+        let mut pfioc_trans_e = unsafe { mem::zeroed::<ffi::pfvar::pfioc_trans_e>() };
+        pfioc_trans_e.rs_num = kind.into();
+        anchor.copy_to(&mut pfioc_trans_e.anchor[..])
+            .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
+
+        let mut pfioc_trans = unsafe { mem::zeroed::<ffi::pfvar::pfioc_trans>() };
+        pfioc_trans.size = 1;
+        pfioc_trans.esize = mem::size_of_val(&pfioc_trans_e) as i32;
+        pfioc_trans.array = &mut pfioc_trans_e;
+
+        ioctl_guard!(ffi::pf_begin_trans(self.fd(), &mut pfioc_trans))?;
+        ioctl_guard!(ffi::pf_commit_trans(self.fd(), &mut pfioc_trans))?;
+
         Ok(())
     }
 
