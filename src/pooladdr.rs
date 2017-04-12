@@ -1,8 +1,7 @@
-use conversion::{CopyToFfi, ToFfi};
+use conversion::CopyTo;
 use ffi;
 use rule::Ip;
 use std::mem;
-use std::net::Ipv4Addr;
 
 use std::ptr;
 use std::vec::Vec;
@@ -13,31 +12,29 @@ pub struct PoolAddrList {
 }
 
 impl PoolAddrList {
-    pub fn new(ips: &[Ip]) -> ::Result<Self> {
-        let mut pool = Self::init_pool(ips)?;
+    pub fn new(ips: &[Ip]) -> Self {
+        let mut pool = Self::init_pool(ips);
         Self::link_elements(&mut pool);
         let list = Self::create_palist(&mut pool);
 
-        let palist = PoolAddrList {
+        PoolAddrList {
             list: list,
             pool: pool.into_boxed_slice(),
-        };
-
-        Ok(palist)
+        }
     }
 
     pub fn to_palist(&self) -> ffi::pfvar::pf_palist {
         self.list
     }
 
-    fn init_pool(ips: &[Ip]) -> ::Result<Vec<ffi::pfvar::pf_pooladdr>> {
+    fn init_pool(ips: &[Ip]) -> Vec<ffi::pfvar::pf_pooladdr> {
         let mut pool = Vec::with_capacity(ips.len());
         for ip in ips {
             let mut pooladdr = unsafe { mem::zeroed::<ffi::pfvar::pf_pooladdr>() };
-            ip.copy_to(&mut pooladdr.addr)?;
+            ip.copy_to(&mut pooladdr.addr);
             pool.push(pooladdr);
         }
-        Ok(pool)
+        pool
     }
 
     fn link_elements(pool: &mut Vec<ffi::pfvar::pf_pooladdr>) {
