@@ -58,7 +58,7 @@ impl TryCopyTo<ffi::pfvar::pf_rule> for FilterRule {
         pf_rule.quick = self.quick as u8;
         self.interface
             .copy_to(&mut pf_rule.ifname)
-            .chain_err(|| ::ErrorKind::InvalidArgument("Incompatible interface name"))?;
+            .chain_err(|| ::ErrorKind::InvalidArgument("Incompatible interface name"),)?;
         pf_rule.proto = self.proto.into();
         pf_rule.af = self.get_af()?.into();
         self.from.copy_to(&mut pf_rule.src)?;
@@ -86,11 +86,13 @@ mod filter_rule_tests {
     fn af_incompatible_from_to() {
         let mut testee = FilterRuleBuilder::default();
         testee.action(RuleAction::Pass);
-        let from4to6 = testee.from(*IPV4)
+        let from4to6 = testee
+            .from(*IPV4)
             .to(*IPV6)
             .build()
             .unwrap();
-        let from6to4 = testee.from(*IPV6)
+        let from6to4 = testee
+            .from(*IPV6)
             .to(*IPV4)
             .build()
             .unwrap();
@@ -102,46 +104,64 @@ mod filter_rule_tests {
     fn af_compatibility_ipv4() {
         let mut testee = FilterRuleBuilder::default();
         testee.action(RuleAction::Pass).from(*IPV4);
-        assert_eq!(AddrFamily::Ipv4,
-                   testee.af(AddrFamily::Any)
-                       .build()
-                       .unwrap()
-                       .get_af()
-                       .unwrap());
-        assert_eq!(AddrFamily::Ipv4,
-                   testee.af(AddrFamily::Ipv4)
-                       .build()
-                       .unwrap()
-                       .get_af()
-                       .unwrap());
-        assert!(testee.af(AddrFamily::Ipv6)
-            .build()
-            .unwrap()
-            .get_af()
-            .is_err());
+        assert_eq!(
+            AddrFamily::Ipv4,
+            testee
+                .af(AddrFamily::Any)
+                .build()
+                .unwrap()
+                .get_af()
+                .unwrap()
+        );
+        assert_eq!(
+            AddrFamily::Ipv4,
+            testee
+                .af(AddrFamily::Ipv4)
+                .build()
+                .unwrap()
+                .get_af()
+                .unwrap()
+        );
+        assert!(
+            testee
+                .af(AddrFamily::Ipv6)
+                .build()
+                .unwrap()
+                .get_af()
+                .is_err()
+        );
     }
 
     #[test]
     fn af_compatibility_ipv6() {
         let mut testee = FilterRuleBuilder::default();
         testee.action(RuleAction::Pass).to(*IPV6);
-        assert_eq!(AddrFamily::Ipv6,
-                   testee.af(AddrFamily::Any)
-                       .build()
-                       .unwrap()
-                       .get_af()
-                       .unwrap());
-        assert_eq!(AddrFamily::Ipv6,
-                   testee.af(AddrFamily::Ipv6)
-                       .build()
-                       .unwrap()
-                       .get_af()
-                       .unwrap());
-        assert!(testee.af(AddrFamily::Ipv4)
-            .build()
-            .unwrap()
-            .get_af()
-            .is_err());
+        assert_eq!(
+            AddrFamily::Ipv6,
+            testee
+                .af(AddrFamily::Any)
+                .build()
+                .unwrap()
+                .get_af()
+                .unwrap()
+        );
+        assert_eq!(
+            AddrFamily::Ipv6,
+            testee
+                .af(AddrFamily::Ipv6)
+                .build()
+                .unwrap()
+                .get_af()
+                .unwrap()
+        );
+        assert!(
+            testee
+                .af(AddrFamily::Ipv4)
+                .build()
+                .unwrap()
+                .get_af()
+                .is_err()
+        );
     }
 }
 
@@ -205,7 +225,7 @@ impl Ip {
 
     /// Returns `Ip::Any` represented an as an `IpNetwork`, used for ffi.
     fn any_ffi_repr() -> IpNetwork {
-        IpNetwork::V6(Ipv6Network::new(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0), 0).unwrap())
+        IpNetwork::V6(Ipv6Network::new(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0), 0).unwrap(),)
     }
 }
 
@@ -377,8 +397,10 @@ impl TryCopyTo<ffi::pfvar::pf_port_range> for Port {
                 pf_port_range.port[1] = 0;
             }
             Port::Range(start_port, end_port, modifier) => {
-                ensure!(start_port <= end_port,
-                        ::ErrorKind::InvalidArgument("Lower port is greater than upper port."));
+                ensure!(
+                    start_port <= end_port,
+                    ::ErrorKind::InvalidArgument("Lower port is greater than upper port.")
+                );
                 pf_port_range.op = modifier.into();
                 // convert port range to network byte order
                 pf_port_range.port[0] = start_port.to_be();
@@ -403,8 +425,10 @@ impl TryCopyTo<ffi::pfvar::pf_pool> for Port {
                 pf_pool.proxy_port[1] = 0;
             }
             Port::Range(start_port, end_port, modifier) => {
-                ensure!(start_port <= end_port,
-                        ::ErrorKind::InvalidArgument("Lower port is greater than upper port."));
+                ensure!(
+                    start_port <= end_port,
+                    ::ErrorKind::InvalidArgument("Lower port is greater than upper port.")
+                );
                 pf_pool.port_op = modifier.into();
                 pf_pool.proxy_port[0] = start_port;
                 pf_pool.proxy_port[1] = end_port;
@@ -527,10 +551,14 @@ impl<T: AsRef<str>> TryCopyTo<[i8]> for T {
     fn copy_to(&self, dst: &mut [i8]) -> ::Result<()> {
         let src_i8: &[i8] = unsafe { mem::transmute(self.as_ref().as_bytes()) };
 
-        ensure!(src_i8.len() < dst.len(),
-                ::ErrorKind::InvalidArgument("String does not fit destination"));
-        ensure!(!src_i8.contains(&0),
-                ::ErrorKind::InvalidArgument("String has null byte"));
+        ensure!(
+            src_i8.len() < dst.len(),
+            ::ErrorKind::InvalidArgument("String does not fit destination")
+        );
+        ensure!(
+            !src_i8.contains(&0),
+            ::ErrorKind::InvalidArgument("String has null byte")
+        );
 
         dst[..src_i8.len()].copy_from_slice(src_i8);
         // Terminate ffi string with null byte
