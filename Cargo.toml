@@ -24,6 +24,8 @@ ipnetwork = "0.12"
 
 [dev-dependencies]
 lazy_static = "0.2"
+pfctl_test = { path = "tests/pfctl_test" }
+assert_matches = "1.1.0"
 
 [build-dependencies]
 bindgen = "0.22"
