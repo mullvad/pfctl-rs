@@ -24,6 +24,7 @@ ipnetwork = "0.12"
 
 [dev-dependencies]
 lazy_static = "0.2"
+scopeguard = "0.3.2"
 
 [build-dependencies]
 bindgen = "0.22"
