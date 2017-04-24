@@ -11,6 +11,7 @@ extern crate ipnetwork;
 #[macro_use]
 extern crate lazy_static;
 
+use std::ffi::CStr;
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::io;
@@ -51,6 +52,9 @@ mod errors {
             InvalidRuleCombination(s: String) {
                 description("Rule contains incompatible values")
                 display("Incompatible values in rule: {}", s)
+            }
+            AnchorDoesNotExist {
+                display("Anchor does not exist")
             }
         }
         foreign_links {
@@ -140,6 +144,25 @@ impl PfCtl {
         Ok(())
     }
 
+    pub fn remove_anchor<S: AsRef<str>>(&mut self, name: S, kind: AnchorKind) -> Result<()> {
+        let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
+        pfioc_rule.rule.action = kind.into();
+        ioctl_guard!(ffi::pf_get_rules(self.fd(), &mut pfioc_rule))?;
+
+        pfioc_rule.action = ffi::pfvar::PF_GET_NONE as u32;
+        for i in 0..pfioc_rule.nr {
+            pfioc_rule.nr = i;
+            ioctl_guard!(ffi::pf_get_rule(self.fd(), &mut pfioc_rule))?;
+
+            if self.compare_cstr_safe(name.as_ref(), &pfioc_rule.anchor_call)? {
+                ioctl_guard!(ffi::pf_delete_rule(self.fd(), &mut pfioc_rule))?;
+                return Ok(());
+            }
+        }
+
+        bail!(ErrorKind::AnchorDoesNotExist);
+    }
+
     // TODO(linus): Make more generic. No hardcoded ADD_TAIL etc.
     pub fn add_rule<S: AsRef<str>>(&mut self, anchor: S, rule: &FilterRule) -> Result<()> {
         let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
@@ -192,6 +215,13 @@ impl PfCtl {
             .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
         ioctl_guard!(ffi::pf_change_rule(self.fd(), &mut pfioc_rule))?;
         Ok(pfioc_rule.ticket)
+    }
+
+    /// Internal function to safely compare Rust string with raw C string slice
+    fn compare_cstr_safe(&self, s: &str, cchars: &[std::os::raw::c_char]) -> Result<bool> {
+        ensure!(cchars.iter().any(|&c| c == 0), "Not null terminated");
+        let cs = unsafe { CStr::from_ptr(cchars.as_ptr()) };
+        Ok(s.as_bytes() == cs.to_bytes())
     }
 
     /// Internal function for getting the raw file descriptor to PF.

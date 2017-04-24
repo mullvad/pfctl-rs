@@ -58,26 +58,71 @@ pub fn disable_firewall() -> Result<()> {
     Ok(())
 }
 
-pub fn get_rules<S: AsRef<OsStr>>(anchor_name: S) -> Result<String> {
+pub fn get_anchors() -> Result<Vec<String>> {
+    let output = get_command()
+        .arg("-s")
+        .arg("Anchors")
+        .output()
+        .chain_err(|| "Failed to run pfctl")?;
+    let output = str_from_stdout(&output.stdout)?;
+    let names = output
+        .lines()
+        .map(|x| x.trim().to_owned())
+        .collect();
+    Ok(names)
+}
+
+pub fn get_rules<S: AsRef<OsStr>>(anchor_name: S) -> Result<Vec<String>> {
     let output = get_command()
         .arg("-a")
-        .arg(anchor_name)
+        .arg(anchor_name.as_ref())
         .arg("-sr")
         .output()
         .chain_err(|| "Failed to run pfctl")?;
-    str_from_stdout(&output.stdout)
+    let output = str_from_stdout(&output.stdout)?;
+    let rules = output
+        .lines()
+        .map(|x| x.trim().to_owned())
+        .collect();
+    Ok(rules)
 }
 
-pub fn flush_rules<S: AsRef<OsStr>>(anchor_name: S) -> Result<()> {
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum FlushOptions {
+    All,
+    Rules,
+    Nat,
+}
+
+impl From<FlushOptions> for &'static str {
+    fn from(option: FlushOptions) -> &'static str {
+        match option {
+            FlushOptions::All => "all",
+            FlushOptions::Rules => "rules",
+            FlushOptions::Nat => "nat",
+        }
+    }
+}
+
+pub fn flush_rules<S: AsRef<OsStr>>(anchor_name: S, options: FlushOptions) -> Result<()> {
+    let flush_arg: &'static str = options.into();
     let output = get_command()
         .arg("-a")
-        .arg(anchor_name)
+        .arg(anchor_name.as_ref())
         .arg("-F")
-        .arg("all")
+        .arg(flush_arg)
         .output()
         .chain_err(|| "Failed to run pfctl")?;
-    let str = str_from_stdout(&output.stderr)?;
-    ensure!(str.contains("rules cleared"), "Invalid response.");
+    let output = str_from_stdout(&output.stderr)?;
+
+    match options {
+        FlushOptions::All | FlushOptions::Rules => {
+            ensure!(output.contains("rules cleared"), "Invalid response.")
+        }
+        FlushOptions::Nat => ensure!(output.contains("nat cleared"), "Invalid response."),
+    }
+
     Ok(())
 }
 
