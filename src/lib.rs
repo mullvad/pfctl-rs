@@ -52,6 +52,9 @@ mod errors {
                 description("Rule contains incompatible values")
                 display("Incompatible values in rule: {}", s)
             }
+            AnchorDoesNotExist {
+                display("Anchor does not exist")
+            }
         }
         foreign_links {
             IoctlError(::std::io::Error);
@@ -138,6 +141,28 @@ impl PfCtl {
 
         ioctl_guard!(ffi::pf_insert_rule(self.fd(), &mut pfioc_rule))?;
         Ok(())
+    }
+
+    pub fn remove_anchor<S: AsRef<str>>(&mut self, name: S, kind: AnchorKind) -> Result<()> {
+        let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
+        pfioc_rule.rule.action = kind.into();
+        ioctl_guard!(ffi::pf_get_rules(self.fd(), &mut pfioc_rule))?;
+
+        let mut name_slice: [i8; 1024] = [0; 1024];
+        name.copy_to(&mut name_slice)?;
+
+        for i in 0..pfioc_rule.nr {
+            pfioc_rule.action = ffi::pfvar::PF_GET_NONE as u32;
+            pfioc_rule.nr = i;
+
+            ioctl_guard!(ffi::pf_get_rule(self.fd(), &mut pfioc_rule))?;
+            if pfioc_rule.anchor_call[..] == name_slice[..] {
+                ioctl_guard!(ffi::pf_delete_rule(self.fd(), &mut pfioc_rule))?;
+                return Ok(());
+            }
+        }
+
+        bail!(ErrorKind::AnchorDoesNotExist);
     }
 
     // TODO(linus): Make more generic. No hardcoded ADD_TAIL etc.
