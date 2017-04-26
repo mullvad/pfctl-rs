@@ -1,13 +1,8 @@
-#[macro_use(defer)]
-extern crate scopeguard;
 extern crate pfctl;
 
 #[macro_use]
-extern crate error_chain;
-
-#[macro_use]
-mod common;
-use common::*;
+extern crate pfctl_test;
+use pfctl_test::PfCli;
 
 fn before_each() {}
 fn after_each() {}

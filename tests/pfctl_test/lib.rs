@@ -1,3 +1,10 @@
+pub extern crate scopeguard;
+
+#[macro_use]
+extern crate error_chain;
+
+extern crate pfctl;
+
 mod pfcli;
 pub use self::pfcli::PfCli;
 
@@ -33,14 +40,17 @@ impl PfState {
     }
 }
 
+#[macro_export]
 macro_rules! test {
     ($name:ident $expr:expr) => (
         #[test]
         fn $name() {
-            let mut pf_state = PfState::new();
+            let mut pf_state = $crate::PfState::new();
             pf_state.save().unwrap();
-            defer!(pf_state.restore().unwrap());
-            defer!(after_each());
+
+            let _guard1 = $crate::scopeguard::guard((), |_| pf_state.restore().unwrap());
+            let _guard2 = $crate::scopeguard::guard((), |_| after_each());
+
             before_each();
             $expr;
         }
