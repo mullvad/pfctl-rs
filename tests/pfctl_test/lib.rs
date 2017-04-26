@@ -5,8 +5,8 @@ extern crate error_chain;
 
 extern crate pfctl;
 
-mod pfcli;
-pub use self::pfcli::PfCli;
+pub mod pfcli;
+pub use pfcli::*;
 
 mod errors {
     error_chain!{}
@@ -24,17 +24,16 @@ impl PfState {
     }
 
     pub fn save(&mut self) -> Result<()> {
-        self.pf_enabled = PfCli.is_enabled().chain_err(|| "Cannot query pf state")?;
+        self.pf_enabled = pfcli::is_enabled().chain_err(|| "Cannot query pf state")?;
         Ok(())
     }
 
     pub fn restore(&mut self) -> Result<()> {
-        let pfcli = PfCli;
-        let is_enabled = pfcli.is_enabled().chain_err(|| "Cannot query pf state")?;
+        let is_enabled = pfcli::is_enabled().chain_err(|| "Cannot query pf state")?;
 
         match (self.pf_enabled, is_enabled) {
-            (false, true) => pfcli.disable_firewall().chain_err(|| "Cannot disable firewall"),
-            (true, false) => pfcli.enable_firewall().chain_err(|| "Cannot enable firewall"),
+            (false, true) => pfcli::disable_firewall().chain_err(|| "Cannot disable firewall"),
+            (true, false) => pfcli::enable_firewall().chain_err(|| "Cannot enable firewall"),
             _ => Ok(()),
         }
     }

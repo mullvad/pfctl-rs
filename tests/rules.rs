@@ -2,7 +2,7 @@ extern crate pfctl;
 
 #[macro_use]
 extern crate pfctl_test;
-use pfctl_test::PfCli;
+use pfctl_test::pfcli;
 
 static ANCHOR_NAME: &'static str = "pfctl-rs.integration.testing";
 
@@ -17,14 +17,11 @@ fn add_anchor(pf: &mut pfctl::PfCtl) {
 }
 
 fn before_each() {
-    let pfcli = PfCli;
-    if !pfcli.is_enabled().unwrap() {
-        assert!(pfcli.enable_firewall().is_ok());
-    }
+    assert!(pfcli::enable_firewall().is_ok());
 }
 
 fn after_each() {
-    PfCli.flush_rules(ANCHOR_NAME).unwrap();
+    pfcli::flush_rules(ANCHOR_NAME).unwrap();
 }
 
 test!(add_basic_drop_rule {
@@ -38,5 +35,5 @@ test!(add_basic_drop_rule {
         .unwrap();
 
     assert!(pf.add_rule(ANCHOR_NAME, &rule).is_ok());
-    assert_eq!(PfCli.get_rules(ANCHOR_NAME).unwrap(), "block drop proto tcp all");
+    assert_eq!(pfcli::get_rules(ANCHOR_NAME).unwrap(), "block drop proto tcp all");
 });
