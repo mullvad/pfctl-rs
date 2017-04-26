@@ -13,15 +13,15 @@ fn after_each() {}
 test!(enable_pf {
     let mut pf = pfctl::PfCtl::new().unwrap();
 
-    assert!(pfcli::disable_firewall().is_ok());
-    assert!(pf.enable().is_ok());
+    assert_matches!(pfcli::disable_firewall(), Ok(()));
+    assert_matches!(pf.enable(), Ok(()));
     assert_matches!(pfcli::is_enabled(), Ok(true));
 });
 
 test!(disable_pf {
     let mut pf = pfctl::PfCtl::new().unwrap();
 
-    assert!(pfcli::enable_firewall().is_ok());
-    assert!(pf.disable().is_ok());
+    assert_matches!(pfcli::enable_firewall(), Ok(()));
+    assert_matches!(pf.disable(), Ok(()));
     assert_matches!(pfcli::is_enabled(), Ok(false));
 });

@@ -1,23 +1,24 @@
 extern crate pfctl;
 
 #[macro_use]
+extern crate assert_matches;
+
+#[macro_use]
 extern crate pfctl_test;
 use pfctl_test::pfcli;
 
 static ANCHOR_NAME: &'static str = "pfctl-rs.integration.testing";
 
 fn add_anchor(pf: &mut pfctl::PfCtl) {
-    assert!(
-        match pf.add_anchor(ANCHOR_NAME, pfctl::AnchorKind::Filter) {
-            Ok(_) => true,
-            Err(pfctl::Error(pfctl::ErrorKind::StateAlreadyActive, _)) => true,
-            _ => false,
-        }
-    );
+    match pf.add_anchor(ANCHOR_NAME, pfctl::AnchorKind::Filter) {
+        Ok(_) => (),
+        Err(pfctl::Error(pfctl::ErrorKind::StateAlreadyActive, _)) => (),
+        Err(e) => panic!("Unable to add anchor: {}", e),
+    }
 }
 
 fn before_each() {
-    assert!(pfcli::enable_firewall().is_ok());
+    pfcli::enable_firewall().unwrap();
 }
 
 fn after_each() {
@@ -34,6 +35,8 @@ test!(add_basic_drop_rule {
         .build()
         .unwrap();
 
-    assert!(pf.add_rule(ANCHOR_NAME, &rule).is_ok());
-    assert_eq!(pfcli::get_rules(ANCHOR_NAME).unwrap(), "block drop proto tcp all");
+    let expected = String::from("block drop proto tcp all");
+
+    assert_matches!(pf.add_rule(ANCHOR_NAME, &rule), Ok(()));
+    assert_matches!(pfcli::get_rules(ANCHOR_NAME), Ok(expected));
 });
