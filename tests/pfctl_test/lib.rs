@@ -41,7 +41,7 @@ impl PfState {
 
 #[macro_export]
 macro_rules! test {
-    ($name:ident $expr:expr) => (
+    ($name:ident $block:block) => (
         #[test]
         fn $name() {
             let mut pf_state = $crate::PfState::new();
@@ -51,7 +51,7 @@ macro_rules! test {
             let _guard2 = $crate::scopeguard::guard((), |_| after_each());
 
             before_each();
-            $expr;
+            $block;
         }
     )
 }
