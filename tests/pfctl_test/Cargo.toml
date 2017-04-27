@@ -7,6 +7,5 @@ authors = ["Mullvad VPN", "Andrej Mihajlov <and@mullvad.net>"]
 path = "lib.rs"
 
 [dependencies]
-pfctl = { path = "../.." }
 error-chain = "0.10"
 scopeguard = "0.3.2"

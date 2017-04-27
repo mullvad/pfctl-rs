@@ -3,8 +3,6 @@ pub extern crate scopeguard;
 #[macro_use]
 extern crate error_chain;
 
-extern crate pfctl;
-
 pub mod pfcli;
 pub use pfcli::*;
 
