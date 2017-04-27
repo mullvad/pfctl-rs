@@ -19,6 +19,9 @@ fn add_anchor(pf: &mut pfctl::PfCtl) {
 
 fn before_each() {
     pfcli::enable_firewall().unwrap();
+
+    let mut pf = pfctl::PfCtl::new().unwrap();
+    add_anchor(&mut pf);
 }
 
 fn after_each() {
@@ -27,8 +30,6 @@ fn after_each() {
 
 test!(add_basic_drop_rule {
     let mut pf = pfctl::PfCtl::new().unwrap();
-
-    add_anchor(&mut pf);
     let rule = pfctl::FilterRuleBuilder::default()
         .action(pfctl::RuleAction::Drop)
         .proto(pfctl::Proto::Tcp)
