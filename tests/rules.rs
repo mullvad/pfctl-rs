@@ -35,8 +35,6 @@ test!(add_basic_drop_rule {
         .build()
         .unwrap();
 
-    let expected = String::from("block drop proto tcp all");
-
     assert_matches!(pf.add_rule(ANCHOR_NAME, &rule), Ok(()));
-    assert_matches!(pfcli::get_rules(ANCHOR_NAME), Ok(expected));
+    assert_matches!(pfcli::get_rules(ANCHOR_NAME), Ok(ref v) if v == "block drop proto tcp all");
 });
