@@ -14,7 +14,7 @@ before_script:
 
 script:
   - cargo build --verbose
-  - cargo test --verbose
+  - sudo cargo test --verbose -- --test-threads=1
   - ./format.sh --write-mode=diff
 
 notifications:
