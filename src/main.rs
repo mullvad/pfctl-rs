@@ -6,7 +6,7 @@ extern crate ipnetwork;
 
 use ipnetwork::IpNetwork;
 
-use std::net::Ipv6Addr;
+use std::net::{Ipv4Addr, Ipv6Addr};
 use std::str::FromStr;
 
 mod errors {
@@ -86,5 +86,19 @@ fn run() -> Result<()> {
         .build()
         .unwrap();
     pf.add_rule(anchor_name, &from_ipv6_rule).chain_err(|| "Unable to add IPv6 rule")?;
+
+    let trans_rule1 = pfctl::FilterRuleBuilder::default()
+        .action(pfctl::RuleAction::Drop)
+        .from(Ipv4Addr::new(192, 168, 1, 1))
+        .build()
+        .unwrap();
+    let trans_rule2 = pfctl::FilterRuleBuilder::default()
+        .action(pfctl::RuleAction::Drop)
+        .from(Ipv4Addr::new(192, 168, 2, 1))
+        .to(pfctl::Port::from(80))
+        .build()
+        .unwrap();
+    pf.set_rules(anchor_name, &[trans_rule1, trans_rule2]).chain_err(|| "Unable to set rules")?;
+
     Ok(())
 }
