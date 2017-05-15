@@ -192,22 +192,17 @@ impl PfCtl {
         Ok(())
     }
 
-    pub fn flush_rules<S: AsRef<str>>(&mut self, anchor: S, kind: RulesetKind) -> Result<()> {
-        let mut pfioc_trans_e = unsafe { mem::zeroed::<ffi::pfvar::pfioc_trans_e>() };
-        pfioc_trans_e.rs_num = kind.into();
-        anchor
-            .copy_to(&mut pfioc_trans_e.anchor[..])
-            .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
+    pub fn set_rules(&mut self, anchor: &str, rules: &[FilterRule]) -> Result<()> {
+        let trans = self.begin_trans(&anchor, RulesetKind::Filter)?;
+        let pool_ticket = self.get_pool_ticket(&anchor)?;
 
-        let mut pfioc_trans = unsafe { mem::zeroed::<ffi::pfvar::pfioc_trans>() };
-        pfioc_trans.size = 1;
-        pfioc_trans.esize = mem::size_of_val(&pfioc_trans_e) as i32;
-        pfioc_trans.array = &mut pfioc_trans_e;
+        self.add_batch_rules(&trans, pool_ticket, rules)?;
+        self.commit_trans(&trans)
+    }
 
-        ioctl_guard!(ffi::pf_begin_trans(self.fd(), &mut pfioc_trans))?;
-        ioctl_guard!(ffi::pf_commit_trans(self.fd(), &mut pfioc_trans))?;
-
-        Ok(())
+    pub fn flush_rules(&mut self, anchor: &str, kind: RulesetKind) -> Result<()> {
+        let trans = self.begin_trans(&anchor, kind)?;
+        self.commit_trans(&trans)
     }
 
     fn get_pool_ticket<S: AsRef<str>>(&self, anchor: S) -> Result<u32> {
@@ -234,6 +229,126 @@ impl PfCtl {
     fn fd(&self) -> ::std::os::unix::io::RawFd {
         use std::os::unix::io::AsRawFd;
         self.file.as_raw_fd()
+    }
+}
+
+
+// Rules batching
+
+impl PfCtl {
+    /// Add batch of rules associated with transaction
+    fn add_batch_rules(&mut self,
+                       trans: &Transaction,
+                       pool_ticket: u32,
+                       rules: &[FilterRule])
+                       -> Result<()> {
+        for rule in rules.iter() {
+            self.add_batch_rule(&trans, pool_ticket, &rule)?;
+        }
+        Ok(())
+    }
+
+    /// Add single rule within a batch associated with transaction
+    fn add_batch_rule(&mut self,
+                      trans: &Transaction,
+                      pool_ticket: u32,
+                      rule: &FilterRule)
+                      -> Result<()> {
+        let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
+
+        pfioc_rule.action = ffi::pfvar::PF_CHANGE_NONE as u32;
+        pfioc_rule.pool_ticket = pool_ticket;
+        rule.copy_to(&mut pfioc_rule.rule)?;
+        trans.copy_to(&mut pfioc_rule)?;
+
+        ioctl_guard!(ffi::pf_add_rule(self.fd(), &mut pfioc_rule))?;
+
+        Ok(())
+    }
+}
+
+// Transactions
+
+#[derive(Debug)]
+struct Transaction {
+    ticket: u32,
+    kind: RulesetKind,
+    anchor: String,
+}
+
+impl Transaction {
+    /// Internal function to wire up pfioc_trans and pfioc_trans_e
+    fn setup_trans(pfioc_trans: &mut ffi::pfvar::pfioc_trans,
+                   pfioc_trans_elms: &mut [ffi::pfvar::pfioc_trans_e]) {
+        pfioc_trans.size = pfioc_trans_elms.len() as i32;
+        pfioc_trans.esize = mem::size_of::<ffi::pfvar::pfioc_trans_e>() as i32;
+        pfioc_trans.array = pfioc_trans_elms.as_mut_ptr();
+    }
+
+    /// Internal function to initialize pfioc_trans_e
+    fn setup_trans_elm(anchor: &str,
+                       kind: RulesetKind,
+                       pfioc_trans_e: &mut ffi::pfvar::pfioc_trans_e)
+                       -> Result<()> {
+        pfioc_trans_e.rs_num = kind.into();
+        anchor
+            .copy_to(&mut pfioc_trans_e.anchor[..])
+            .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
+        Ok(())
+    }
+}
+
+impl TryCopyTo<ffi::pfvar::pfioc_trans_e> for Transaction {
+    fn copy_to(&self, pfioc_trans_e: &mut ffi::pfvar::pfioc_trans_e) -> Result<()> {
+        Transaction::setup_trans_elm(&self.anchor, self.kind, pfioc_trans_e)?;
+        pfioc_trans_e.ticket = self.ticket;
+        Ok(())
+    }
+}
+
+impl TryCopyTo<ffi::pfvar::pfioc_rule> for Transaction {
+    fn copy_to(&self, pfioc_rule: &mut ffi::pfvar::pfioc_rule) -> Result<()> {
+        pfioc_rule.ticket = self.ticket;
+        self.anchor
+            .copy_to(&mut pfioc_rule.anchor[..])
+            .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
+        Ok(())
+    }
+}
+
+impl PfCtl {
+    /// Returns transaction that can be used to batch updates to rules
+    fn begin_trans(&self, anchor: &str, kind: RulesetKind) -> Result<Transaction> {
+        let mut pfioc_trans_e = unsafe { mem::zeroed::<ffi::pfvar::pfioc_trans_e>() };
+        Transaction::setup_trans_elm(&anchor, kind, &mut pfioc_trans_e)?;
+
+        let mut trans_elms = [pfioc_trans_e];
+        let mut pfioc_trans = unsafe { mem::zeroed::<ffi::pfvar::pfioc_trans>() };
+        Transaction::setup_trans(&mut pfioc_trans, &mut trans_elms);
+
+        ioctl_guard!(ffi::pf_begin_trans(self.fd(), &mut pfioc_trans))?;
+
+        Ok(
+            Transaction {
+                ticket: trans_elms[0].ticket,
+                kind: kind,
+                anchor: anchor.to_owned(),
+            },
+        )
+    }
+
+    /// Commit transaction
+    fn commit_trans(&self, trans: &Transaction) -> Result<()> {
+        let mut pfioc_trans_e = unsafe { mem::zeroed::<ffi::pfvar::pfioc_trans_e>() };
+        trans.copy_to(&mut pfioc_trans_e)?;
+
+        let mut trans_elms = [pfioc_trans_e];
+        let mut pfioc_trans = unsafe { mem::zeroed::<ffi::pfvar::pfioc_trans>() };
+        Transaction::setup_trans(&mut pfioc_trans, &mut trans_elms);
+
+        ioctl_guard!(ffi::pf_commit_trans(self.fd(), &mut pfioc_trans))?;
+
+        Ok(())
     }
 }
 
