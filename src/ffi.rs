@@ -11,6 +11,8 @@ pub mod pfvar {
 ioctl!(none pf_start with b'D', 1);
 // DIOCSTOP
 ioctl!(none pf_stop with b'D', 2);
+// DIOCADDRULE
+ioctl!(readwrite pf_add_rule with b'D', 4; pfvar::pfioc_rule);
 // DIOCGETRULES
 ioctl!(readwrite pf_get_rules with b'D', 6; pfvar::pfioc_rule);
 // DIOCGETRULE
