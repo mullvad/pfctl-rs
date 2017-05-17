@@ -144,3 +144,25 @@ test!(flush_filter_rules {
         Ok(ref v) if v.len() == 0
     );
 });
+
+test!(set_filter_rules_with_transaction {
+    let mut pf = pfctl::PfCtl::new().unwrap();
+    let rule1 = pfctl::FilterRuleBuilder::default()
+        .action(pfctl::RuleAction::Drop)
+        .from(Ipv4Addr::new(192, 168, 1, 1))
+        .build()
+        .unwrap();
+    let rule2 = pfctl::FilterRuleBuilder::default()
+        .action(pfctl::RuleAction::Drop)
+        .from(Ipv4Addr::new(192, 168, 2, 1))
+        .to(pfctl::Port::from(80))
+        .build()
+        .unwrap();
+
+    assert_matches!(pf.set_rules(ANCHOR_NAME, &[rule1, rule2]), Ok(()));
+    assert_matches!(
+        pfcli::get_rules(ANCHOR_NAME),
+        Ok(ref v) if v == &["block drop inet from 192.168.1.1 to any",
+                            "block drop inet from 192.168.2.1 to any port = 80"]
+    );
+});
