@@ -9,7 +9,8 @@ use pfctl_test::pfcli;
 
 static ANCHOR_NAME: &'static str = "pfctl-rs.integration.testing";
 
-fn add_anchor(pf: &mut pfctl::PfCtl) {
+fn before_each() {
+    let mut pf = pfctl::PfCtl::new().unwrap();
     match pf.add_anchor(ANCHOR_NAME, pfctl::AnchorKind::Filter) {
         Ok(_) => (),
         Err(pfctl::Error(pfctl::ErrorKind::StateAlreadyActive, _)) => (),
@@ -17,15 +18,8 @@ fn add_anchor(pf: &mut pfctl::PfCtl) {
     }
 }
 
-fn before_each() {
-    pfcli::enable_firewall().unwrap();
-
-    let mut pf = pfctl::PfCtl::new().unwrap();
-    add_anchor(&mut pf);
-}
-
 fn after_each() {
-    pfcli::flush_rules(ANCHOR_NAME).unwrap();
+    pfcli::flush_rules(ANCHOR_NAME, pfcli::FlushOptions::All).unwrap();
 }
 
 test!(add_basic_drop_rule {
@@ -35,7 +29,9 @@ test!(add_basic_drop_rule {
         .proto(pfctl::Proto::Tcp)
         .build()
         .unwrap();
-
     assert_matches!(pf.add_rule(ANCHOR_NAME, &rule), Ok(()));
-    assert_matches!(pfcli::get_rules(ANCHOR_NAME), Ok(ref v) if v == "block drop proto tcp all");
+    assert_matches!(
+        pfcli::get_rules(ANCHOR_NAME),
+        Ok(ref v) if v.len() == 1 && v[0] == "block drop proto tcp all"
+    );
 });

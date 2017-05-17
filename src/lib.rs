@@ -7,10 +7,16 @@ extern crate errno;
 extern crate derive_builder;
 extern crate libc;
 extern crate ipnetwork;
+
+#[cfg(test)]
+#[macro_use]
+extern crate assert_matches;
+
 #[cfg(test)]
 #[macro_use]
 extern crate lazy_static;
 
+use std::ffi::{CStr, CString};
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::io;
@@ -52,6 +58,9 @@ mod errors {
                 description("Rule contains incompatible values")
                 display("Incompatible values in rule: {}", s)
             }
+            AnchorDoesNotExist {
+                display("Anchor does not exist")
+            }
         }
         foreign_links {
             IoctlError(::std::io::Error);
@@ -92,6 +101,14 @@ mod conversion {
     }
 }
 use conversion::*;
+
+
+/// Internal function to safely compare Rust string with raw C string slice
+fn compare_cstr_safe(s: &str, cchars: &[std::os::raw::c_char]) -> Result<bool> {
+    ensure!(cchars.iter().any(|&c| c == 0), "Not null terminated");
+    let cs = unsafe { CStr::from_ptr(cchars.as_ptr()) };
+    Ok(s.as_bytes() == cs.to_bytes())
+}
 
 
 /// Struct communicating with the PF firewall.
@@ -138,6 +155,25 @@ impl PfCtl {
 
         ioctl_guard!(ffi::pf_insert_rule(self.fd(), &mut pfioc_rule))?;
         Ok(())
+    }
+
+    pub fn remove_anchor<S: AsRef<str>>(&mut self, name: S, kind: AnchorKind) -> Result<()> {
+        let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
+        pfioc_rule.rule.action = kind.into();
+        ioctl_guard!(ffi::pf_get_rules(self.fd(), &mut pfioc_rule))?;
+
+        pfioc_rule.action = ffi::pfvar::PF_GET_NONE as u32;
+        for i in 0..pfioc_rule.nr {
+            pfioc_rule.nr = i;
+            ioctl_guard!(ffi::pf_get_rule(self.fd(), &mut pfioc_rule))?;
+
+            if compare_cstr_safe(name.as_ref(), &pfioc_rule.anchor_call)? {
+                ioctl_guard!(ffi::pf_delete_rule(self.fd(), &mut pfioc_rule))?;
+                return Ok(());
+            }
+        }
+
+        bail!(ErrorKind::AnchorDoesNotExist);
     }
 
     // TODO(linus): Make more generic. No hardcoded ADD_TAIL etc.
@@ -198,5 +234,49 @@ impl PfCtl {
     fn fd(&self) -> ::std::os::unix::io::RawFd {
         use std::os::unix::io::AsRawFd;
         self.file.as_raw_fd()
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn compare_cstr_without_nul() {
+        let cstr = CString::new("Hello").unwrap();
+        let cchars: &[i8] = unsafe { mem::transmute(cstr.as_bytes()) };
+        assert_matches!(
+            compare_cstr_safe("Hello", cchars),
+            Err(ref e) if e.description() == "Not null terminated"
+        );
+    }
+
+    #[test]
+    fn compare_same_strings() {
+        let cstr = CString::new("Hello").unwrap();
+        let cchars: &[i8] = unsafe { mem::transmute(cstr.as_bytes_with_nul()) };
+        assert_matches!(compare_cstr_safe("Hello", cchars), Ok(true));
+    }
+
+    #[test]
+    fn compare_different_strings() {
+        let cstr = CString::new("Hello").unwrap();
+        let cchars: &[i8] = unsafe { mem::transmute(cstr.as_bytes_with_nul()) };
+        assert_matches!(compare_cstr_safe("olleH", cchars), Ok(false));
+    }
+
+    #[test]
+    fn compare_long_short_strings() {
+        let cstr = CString::new("veryverylong").unwrap();
+        let cchars: &[i8] = unsafe { mem::transmute(cstr.as_bytes_with_nul()) };
+        assert_matches!(compare_cstr_safe("short", cchars), Ok(false));
+    }
+
+    #[test]
+    fn compare_short_long_strings() {
+        let cstr = CString::new("short").unwrap();
+        let cchars: &[i8] = unsafe { mem::transmute(cstr.as_bytes_with_nul()) };
+        assert_matches!(compare_cstr_safe("veryverylong", cchars), Ok(false));
     }
 }

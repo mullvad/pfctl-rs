@@ -11,10 +11,16 @@ pub mod pfvar {
 ioctl!(none pf_start with b'D', 1);
 // DIOCSTOP
 ioctl!(none pf_stop with b'D', 2);
+// DIOCGETRULES
+ioctl!(readwrite pf_get_rules with b'D', 6; pfvar::pfioc_rule);
+// DIOCGETRULE
+ioctl!(readwrite pf_get_rule with b'D', 7; pfvar::pfioc_rule);
 // DIOCGETSTATUS
 ioctl!(readwrite pf_get_status with b'D', 21; pfvar::pf_status);
 // DIOCINSERTRULE
 ioctl!(readwrite pf_insert_rule with b'D', 27; pfvar::pfioc_rule);
+// DIOCDELETERULE
+ioctl!(readwrite pf_delete_rule with b'D', 28; pfvar::pfioc_rule);
 // DIOCCHANGERULE
 ioctl!(readwrite pf_change_rule with b'D', 26; pfvar::pfioc_rule);
 // DIOCBEGINADDRS
