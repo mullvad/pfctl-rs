@@ -253,6 +253,15 @@ impl From<Ipv6Addr> for Ip {
     }
 }
 
+impl From<IpAddr> for Ip {
+    fn from(ip: IpAddr) -> Self {
+        match ip {
+            IpAddr::V4(addr) => Ip::from(addr),
+            IpAddr::V6(addr) => Ip::from(addr),
+        }
+    }
+}
+
 impl CopyTo<ffi::pfvar::pf_addr_wrap> for Ip {
     fn copy_to(&self, pf_addr_wrap: &mut ffi::pfvar::pf_addr_wrap) {
         match *self {
