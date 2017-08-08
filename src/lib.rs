@@ -262,7 +262,7 @@ impl Transaction {
 
     /// Commit transaction
     pub fn commit(&self) -> Result<()> {
-        let mut pfioc_trans_e = unsafe { mem::zeroed::<ffi::pfvar::pfioc_trans_e>() };
+        let mut pfioc_trans_e = unsafe { mem::zeroed::<ffi::pfvar::pfioc_trans_pfioc_trans_e>() };
         self.copy_to(&mut pfioc_trans_e)?;
 
         let mut trans_elements = [pfioc_trans_e];
@@ -294,7 +294,7 @@ impl Transaction {
 
     /// Internal function to obtain transaction ticket
     fn get_ticket(fd: RawFd, anchor: &str, kind: RulesetKind) -> Result<u32> {
-        let mut pfioc_trans_e = unsafe { mem::zeroed::<ffi::pfvar::pfioc_trans_e>() };
+        let mut pfioc_trans_e = unsafe { mem::zeroed::<ffi::pfvar::pfioc_trans_pfioc_trans_e>() };
         Self::setup_trans_element(&anchor, kind, &mut pfioc_trans_e)?;
 
         let mut trans_elements = [pfioc_trans_e];
@@ -308,16 +308,16 @@ impl Transaction {
 
     /// Internal function to wire up pfioc_trans and pfioc_trans_e
     fn setup_trans(pfioc_trans: &mut ffi::pfvar::pfioc_trans,
-                   pfioc_trans_elements: &mut [ffi::pfvar::pfioc_trans_e]) {
+                   pfioc_trans_elements: &mut [ffi::pfvar::pfioc_trans_pfioc_trans_e]) {
         pfioc_trans.size = pfioc_trans_elements.len() as i32;
-        pfioc_trans.esize = mem::size_of::<ffi::pfvar::pfioc_trans_e>() as i32;
+        pfioc_trans.esize = mem::size_of::<ffi::pfvar::pfioc_trans_pfioc_trans_e>() as i32;
         pfioc_trans.array = pfioc_trans_elements.as_mut_ptr();
     }
 
     /// Internal function to initialize pfioc_trans_e
     fn setup_trans_element(anchor: &str,
                            kind: RulesetKind,
-                           pfioc_trans_e: &mut ffi::pfvar::pfioc_trans_e)
+                           pfioc_trans_e: &mut ffi::pfvar::pfioc_trans_pfioc_trans_e)
                            -> Result<()> {
         pfioc_trans_e.rs_num = kind.into();
         anchor
@@ -330,8 +330,8 @@ impl Transaction {
     }
 }
 
-impl TryCopyTo<ffi::pfvar::pfioc_trans_e> for Transaction {
-    fn copy_to(&self, pfioc_trans_e: &mut ffi::pfvar::pfioc_trans_e) -> Result<()> {
+impl TryCopyTo<ffi::pfvar::pfioc_trans_pfioc_trans_e> for Transaction {
+    fn copy_to(&self, pfioc_trans_e: &mut ffi::pfvar::pfioc_trans_pfioc_trans_e) -> Result<()> {
         pfioc_trans_e.ticket = self.ticket;
         Self::setup_trans_element(&self.anchor, self.kind, pfioc_trans_e)
     }
