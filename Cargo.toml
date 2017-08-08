@@ -29,4 +29,4 @@ assert_matches = "1.1.0"
 uuid = { version = "0.5", features = ["v4"] }
 
 [build-dependencies]
-bindgen = "0.22"
+bindgen = "0.29"
