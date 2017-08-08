@@ -166,3 +166,43 @@ test!(set_filter_rules_with_transaction {
                             "block drop inet from 192.168.2.1 to any port = 80"]
     );
 });
+
+test!(all_state_policies {
+    let mut pf = pfctl::PfCtl::new().unwrap();
+    let rule1 = pfctl::FilterRuleBuilder::default()
+        .action(pfctl::RuleAction::Pass)
+        .from(Ipv4Addr::new(192, 168, 1, 1))
+        .keep_state(pfctl::StatePolicy::None)
+        .build()
+        .unwrap();
+    let rule2 = pfctl::FilterRuleBuilder::default()
+        .action(pfctl::RuleAction::Pass)
+        .from(Ipv4Addr::new(192, 168, 1, 2))
+        .proto(pfctl::Proto::Tcp)
+        .keep_state(pfctl::StatePolicy::Keep)
+        .build()
+        .unwrap();
+    let rule3 = pfctl::FilterRuleBuilder::default()
+        .action(pfctl::RuleAction::Pass)
+        .from(Ipv4Addr::new(192, 168, 1, 3))
+        .proto(pfctl::Proto::Tcp)
+        .keep_state(pfctl::StatePolicy::Modulate)
+        .build()
+        .unwrap();
+    let rule4 = pfctl::FilterRuleBuilder::default()
+        .action(pfctl::RuleAction::Pass)
+        .from(Ipv4Addr::new(192, 168, 1, 4))
+        .proto(pfctl::Proto::Tcp)
+        .keep_state(pfctl::StatePolicy::SynProxy)
+        .build()
+        .unwrap();
+
+    assert_matches!(pf.set_rules(ANCHOR_NAME, &[rule1, rule2, rule3, rule4]), Ok(()));
+    assert_matches!(
+        pfcli::get_rules(ANCHOR_NAME),
+        Ok(ref v) if v == &["pass inet from 192.168.1.1 to any no state",
+                            "pass inet proto tcp from 192.168.1.2 to any flags any keep state",
+                            "pass inet proto tcp from 192.168.1.3 to any flags any modulate state",
+                            "pass inet proto tcp from 192.168.1.4 to any flags any synproxy state"]
+    );
+});
