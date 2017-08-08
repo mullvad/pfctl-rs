@@ -13,7 +13,7 @@ fn main() {
 
     let _ = bindgen::builder()
         .header("ffi/pfvar.h")
-        .no_unstable_rust()
+        .unstable_rust(false)
         .clang_arg("-DPRIVATE")
         .clang_arg(format!("-I{}/usr/include", sdk_path))
         .clang_arg(
@@ -26,6 +26,7 @@ fn main() {
         .whitelisted_type("pfioc_rule")
         .whitelisted_type("pfioc_pooladdr")
         .whitelisted_type("pfioc_trans")
+        .raw_line("pub type pfioc_trans_e = pfioc_trans_pfioc_trans_e;")
         .whitelisted_var("PF_.*")
         .generate()
         .expect("Unable to generate bindings for pfvar.h")
