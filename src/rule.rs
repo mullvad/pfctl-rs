@@ -19,6 +19,8 @@ pub struct FilterRule {
     #[builder(default)]
     quick: bool,
     #[builder(default)]
+    keep_state: StatePolicy,
+    #[builder(default)]
     interface: Interface,
     #[builder(default)]
     proto: Proto,
@@ -49,6 +51,24 @@ impl FilterRule {
             }
         }
     }
+
+    /// Validates the combination of StatePolicy and Proto.
+    fn validate_state_policy(&self) -> ::Result<StatePolicy> {
+        match (self.keep_state, self.proto) {
+            (StatePolicy::None, _) |
+            (StatePolicy::Keep, _) |
+            (StatePolicy::Modulate, Proto::Tcp) |
+            (StatePolicy::SynProxy, Proto::Tcp) => Ok(self.keep_state),
+            (state_policy, proto) => {
+                let msg = format!(
+                    "StatePolicy {:?} and protocol {:?} are incompatible",
+                    state_policy,
+                    proto
+                );
+                bail!(::ErrorKind::InvalidRuleCombination(msg));
+            }
+        }
+    }
 }
 
 impl TryCopyTo<ffi::pfvar::pf_rule> for FilterRule {
@@ -56,6 +76,7 @@ impl TryCopyTo<ffi::pfvar::pf_rule> for FilterRule {
         pf_rule.action = self.action.into();
         pf_rule.direction = self.direction.into();
         pf_rule.quick = self.quick as u8;
+        pf_rule.keep_state = self.validate_state_policy()?.into();
         self.interface
             .copy_to(&mut pf_rule.ifname)
             .chain_err(|| ::ErrorKind::InvalidArgument("Incompatible interface name"),)?;
@@ -160,6 +181,107 @@ mod filter_rule_tests {
                 .build()
                 .unwrap()
                 .get_af()
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn state_policy_correct_default() {
+        assert_eq!(
+            StatePolicy::None,
+            FilterRuleBuilder::default()
+                .action(RuleAction::Pass)
+                .build()
+                .unwrap()
+                .validate_state_policy()
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn state_policy_none() {
+        assert_eq!(
+            StatePolicy::None,
+            FilterRuleBuilder::default()
+                .action(RuleAction::Pass)
+                .keep_state(StatePolicy::None)
+                .proto(Proto::Tcp)
+                .build()
+                .unwrap()
+                .validate_state_policy()
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn state_policy_keep() {
+        assert_eq!(
+            StatePolicy::Keep,
+            FilterRuleBuilder::default()
+                .action(RuleAction::Pass)
+                .keep_state(StatePolicy::Keep)
+                .proto(Proto::Tcp)
+                .build()
+                .unwrap()
+                .validate_state_policy()
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn state_policy_modulate() {
+        assert_eq!(
+            StatePolicy::Modulate,
+            FilterRuleBuilder::default()
+                .action(RuleAction::Pass)
+                .keep_state(StatePolicy::Modulate)
+                .proto(Proto::Tcp)
+                .build()
+                .unwrap()
+                .validate_state_policy()
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn state_policy_incompatible_modulate() {
+        assert!(
+            FilterRuleBuilder::default()
+                .action(RuleAction::Pass)
+                .keep_state(StatePolicy::Modulate)
+                .proto(Proto::Udp)
+                .build()
+                .unwrap()
+                .validate_state_policy()
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn state_policy_synproxy() {
+        assert_eq!(
+            StatePolicy::SynProxy,
+            FilterRuleBuilder::default()
+                .action(RuleAction::Pass)
+                .keep_state(StatePolicy::SynProxy)
+                .proto(Proto::Tcp)
+                .build()
+                .unwrap()
+                .validate_state_policy()
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn state_policy_incompatible_synproxy() {
+        assert!(
+            FilterRuleBuilder::default()
+                .action(RuleAction::Pass)
+                .keep_state(StatePolicy::SynProxy)
+                .proto(Proto::Udp)
+                .build()
+                .unwrap()
+                .validate_state_policy()
                 .is_err()
         );
     }
@@ -319,6 +441,8 @@ impl From<Direction> for u8 {
 pub enum Proto {
     Any,
     Tcp,
+    Udp,
+    Icmp,
 }
 
 impl Default for Proto {
@@ -332,6 +456,8 @@ impl From<Proto> for u8 {
         match proto {
             Proto::Any => libc::IPPROTO_IP as u8,
             Proto::Tcp => libc::IPPROTO_TCP as u8,
+            Proto::Udp => libc::IPPROTO_UDP as u8,
+            Proto::Icmp => libc::IPPROTO_ICMP as u8,
         }
     }
 }
@@ -514,6 +640,32 @@ impl TryCopyTo<[i8]> for Interface {
                 Interface::Name(ref name) => &name[..],
             }
             .copy_to(dst)
+    }
+}
+
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum StatePolicy {
+    None,
+    Keep,
+    Modulate,
+    SynProxy,
+}
+
+impl Default for StatePolicy {
+    fn default() -> Self {
+        StatePolicy::None
+    }
+}
+
+impl From<StatePolicy> for u8 {
+    fn from(state_policy: StatePolicy) -> Self {
+        match state_policy {
+            StatePolicy::None => 0,
+            StatePolicy::Keep => ffi::pfvar::PF_STATE_NORMAL as u8,
+            StatePolicy::Modulate => ffi::pfvar::PF_STATE_MODULATE as u8,
+            StatePolicy::SynProxy => ffi::pfvar::PF_STATE_SYNPROXY as u8,
+        }
     }
 }
 
