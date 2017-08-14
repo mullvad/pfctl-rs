@@ -8,6 +8,7 @@ use libc;
 use std::fmt;
 use std::mem;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+use std::vec::Vec;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[derive(Builder)]
@@ -18,6 +19,8 @@ pub struct FilterRule {
     direction: Direction,
     #[builder(default)]
     quick: bool,
+    #[builder(default)]
+    log: RuleLogSet,
     #[builder(default)]
     keep_state: StatePolicy,
     #[builder(default)]
@@ -76,6 +79,7 @@ impl TryCopyTo<ffi::pfvar::pf_rule> for FilterRule {
         pf_rule.action = self.action.into();
         pf_rule.direction = self.direction.into();
         pf_rule.quick = self.quick as u8;
+        pf_rule.log = self.log.clone().into();
         pf_rule.keep_state = self.validate_state_policy()?.into();
         self.interface
             .copy_to(&mut pf_rule.ifname)
@@ -666,6 +670,52 @@ impl From<StatePolicy> for u8 {
             StatePolicy::Modulate => ffi::pfvar::PF_STATE_MODULATE as u8,
             StatePolicy::SynProxy => ffi::pfvar::PF_STATE_SYNPROXY as u8,
         }
+    }
+}
+
+
+/// Enum describing logging options
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum RuleLog {
+    /// Log all packets, but only initial packet for connections with state
+    /// Can be omitted if IncludeMatchingState set
+    ExcludeMatchingState,
+    /// Log all packets including ones matching state
+    IncludeMatchingState,
+    /// Log user id and group id that owns the local socket
+    SocketOwner,
+}
+
+impl From<RuleLog> for u8 {
+    fn from(rule_log: RuleLog) -> Self {
+        match rule_log {
+            RuleLog::ExcludeMatchingState => ffi::pfvar::PF_LOG as u8,
+            RuleLog::IncludeMatchingState => ffi::pfvar::PF_LOG_ALL as u8,
+            RuleLog::SocketOwner => ffi::pfvar::PF_LOG_SOCKET_LOOKUP as u8,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct RuleLogSet(Vec<RuleLog>);
+
+impl RuleLogSet {
+    pub fn new(set: &[RuleLog]) -> Self {
+        RuleLogSet(set.to_vec())
+    }
+}
+
+impl Default for RuleLogSet {
+    fn default() -> Self {
+        RuleLogSet(Vec::new())
+    }
+}
+
+impl From<RuleLogSet> for u8 {
+    fn from(set: RuleLogSet) -> Self {
+        set.0
+            .iter()
+            .fold(0, |acc, &x| (acc | u8::from(x)))
     }
 }
 
