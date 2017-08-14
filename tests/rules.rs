@@ -206,3 +206,21 @@ test!(all_state_policies {
                             "pass inet proto tcp from 192.168.1.4 to any flags any synproxy state"]
     );
 });
+
+test!(logging {
+    let mut pf = pfctl::PfCtl::new().unwrap();
+    let rule = pfctl::FilterRuleBuilder::default()
+        .action(pfctl::RuleAction::Drop)
+        .log(pfctl::RuleLogSet::new(&[
+            pfctl::RuleLog::ExcludeMatchingState,
+            pfctl::RuleLog::IncludeMatchingState,
+            pfctl::RuleLog::SocketOwner,
+        ]))
+        .build()
+        .unwrap();
+    assert_matches!(pf.add_rule(ANCHOR_NAME, &rule), Ok(()));
+    assert_matches!(
+        pfcli::get_rules(ANCHOR_NAME),
+        Ok(ref v) if v == &["block drop log (all, user) all"]
+    );
+});
