@@ -169,7 +169,7 @@ impl PfCtl {
         ioctl_guard!(ffi::pf_start(self.fd()))
     }
 
-    /// Same as ´enable´, but wrapped in ´pfctl::ignore_already_active´ to not return an error
+    /// Same as `enable`, but wrapped in `pfctl::ignore_already_active` to not return an error
     /// if PF was already enabled.
     pub fn try_enable(&mut self) -> Result<()> {
         ignore_already_active(self.enable())
@@ -181,7 +181,7 @@ impl PfCtl {
         ioctl_guard!(ffi::pf_stop(self.fd()), libc::ENOENT)
     }
 
-    /// Same as ´disable´, but wrapped in ´pfctl::ignore_already_active´ to not return an error
+    /// Same as `disable`, but wrapped in `pfctl::ignore_already_active` to not return an error
     /// if PF was already disabled.
     pub fn try_disable(&mut self) -> Result<()> {
         ignore_already_active(self.enable())
