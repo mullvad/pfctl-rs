@@ -53,25 +53,25 @@ impl FilterRuleBuilder {
 impl FilterRule {
     /// Returns the `AddrFamily` this rule matches against. Returns an `InvalidRuleCombination`
     /// error if this rule has an invalid combination of address families.
-    fn get_af(&self) -> ::Result<AddrFamily> {
+    fn get_af(&self) -> Result<AddrFamily> {
         let endpoint_af = Self::compatible_af(self.from.get_af(), self.to.get_af())?;
         Self::compatible_af(self.af, endpoint_af)
     }
 
-    fn compatible_af(af1: AddrFamily, af2: AddrFamily) -> ::Result<AddrFamily> {
+    fn compatible_af(af1: AddrFamily, af2: AddrFamily) -> Result<AddrFamily> {
         match (af1, af2) {
             (af1, af2) if af1 == af2 => Ok(af1),
             (af, AddrFamily::Any) => Ok(af),
             (AddrFamily::Any, af) => Ok(af),
             (af1, af2) => {
                 let msg = format!("AddrFamily {} and {} are incompatible", af1, af2);
-                bail!(::ErrorKind::InvalidRuleCombination(msg));
+                bail!(ErrorKind::InvalidRuleCombination(msg));
             }
         }
     }
 
     /// Validates the combination of StatePolicy and Proto.
-    fn validate_state_policy(&self) -> ::Result<StatePolicy> {
+    fn validate_state_policy(&self) -> Result<StatePolicy> {
         match (self.keep_state, self.proto) {
             (StatePolicy::None, _) |
             (StatePolicy::Keep, _) |
@@ -83,14 +83,14 @@ impl FilterRule {
                     state_policy,
                     proto
                 );
-                bail!(::ErrorKind::InvalidRuleCombination(msg));
+                bail!(ErrorKind::InvalidRuleCombination(msg));
             }
         }
     }
 }
 
 impl TryCopyTo<ffi::pfvar::pf_rule> for FilterRule {
-    fn copy_to(&self, pf_rule: &mut ffi::pfvar::pf_rule) -> ::Result<()> {
+    fn copy_to(&self, pf_rule: &mut ffi::pfvar::pf_rule) -> Result<()> {
         pf_rule.action = self.action.into();
         pf_rule.direction = self.direction.into();
         pf_rule.quick = self.quick as u8;
@@ -98,7 +98,7 @@ impl TryCopyTo<ffi::pfvar::pf_rule> for FilterRule {
         pf_rule.keep_state = self.validate_state_policy()?.into();
         self.interface
             .copy_to(&mut pf_rule.ifname)
-            .chain_err(|| ::ErrorKind::InvalidArgument("Incompatible interface name"),)?;
+            .chain_err(|| ErrorKind::InvalidArgument("Incompatible interface name"))?;
         pf_rule.proto = self.proto.into();
         pf_rule.af = self.get_af()?.into();
         self.from.copy_to(&mut pf_rule.src)?;
@@ -340,7 +340,7 @@ impl From<Ipv6Addr> for Endpoint {
 }
 
 impl TryCopyTo<ffi::pfvar::pf_rule_addr> for Endpoint {
-    fn copy_to(&self, pf_rule_addr: &mut ffi::pfvar::pf_rule_addr) -> ::Result<()> {
+    fn copy_to(&self, pf_rule_addr: &mut ffi::pfvar::pf_rule_addr) -> Result<()> {
         let Endpoint(ref ip, ref port) = *self;
         ip.copy_to(&mut pf_rule_addr.addr);
         port.copy_to(unsafe { pf_rule_addr.xport.range.as_mut() })?;
@@ -537,7 +537,7 @@ impl From<u16> for Port {
 }
 
 impl TryCopyTo<ffi::pfvar::pf_port_range> for Port {
-    fn copy_to(&self, pf_port_range: &mut ffi::pfvar::pf_port_range) -> ::Result<()> {
+    fn copy_to(&self, pf_port_range: &mut ffi::pfvar::pf_port_range) -> Result<()> {
         match *self {
             Port::Any => {
                 pf_port_range.op = ffi::pfvar::PF_OP_NONE as u8;
@@ -553,7 +553,7 @@ impl TryCopyTo<ffi::pfvar::pf_port_range> for Port {
             Port::Range(start_port, end_port, modifier) => {
                 ensure!(
                     start_port <= end_port,
-                    ::ErrorKind::InvalidArgument("Lower port is greater than upper port.")
+                    ErrorKind::InvalidArgument("Lower port is greater than upper port.")
                 );
                 pf_port_range.op = modifier.into();
                 // convert port range to network byte order
@@ -566,7 +566,7 @@ impl TryCopyTo<ffi::pfvar::pf_port_range> for Port {
 }
 
 impl TryCopyTo<ffi::pfvar::pf_pool> for Port {
-    fn copy_to(&self, pf_pool: &mut ffi::pfvar::pf_pool) -> ::Result<()> {
+    fn copy_to(&self, pf_pool: &mut ffi::pfvar::pf_pool) -> Result<()> {
         match *self {
             Port::Any => {
                 pf_pool.port_op = ffi::pfvar::PF_OP_NONE as u8;
@@ -581,7 +581,7 @@ impl TryCopyTo<ffi::pfvar::pf_pool> for Port {
             Port::Range(start_port, end_port, modifier) => {
                 ensure!(
                     start_port <= end_port,
-                    ::ErrorKind::InvalidArgument("Lower port is greater than upper port.")
+                    ErrorKind::InvalidArgument("Lower port is greater than upper port.")
                 );
                 pf_pool.port_op = modifier.into();
                 pf_pool.proxy_port[0] = start_port;
@@ -653,7 +653,7 @@ impl<T: AsRef<str>> From<T> for Interface {
 }
 
 impl TryCopyTo<[i8]> for Interface {
-    fn copy_to(&self, dst: &mut [i8]) -> ::Result<()> {
+    fn copy_to(&self, dst: &mut [i8]) -> Result<()> {
         match *self {
                 Interface::Any => "",
                 Interface::Name(ref name) => &name[..],
@@ -774,16 +774,16 @@ impl CopyTo<ffi::pfvar::in6_addr> for Ipv6Addr {
 impl<T: AsRef<str>> TryCopyTo<[i8]> for T {
     /// Safely copy a Rust string into a raw buffer. Returning an error if the string could not be
     /// copied to the buffer.
-    fn copy_to(&self, dst: &mut [i8]) -> ::Result<()> {
+    fn copy_to(&self, dst: &mut [i8]) -> Result<()> {
         let src_i8: &[i8] = unsafe { mem::transmute(self.as_ref().as_bytes()) };
 
         ensure!(
             src_i8.len() < dst.len(),
-            ::ErrorKind::InvalidArgument("String does not fit destination")
+            ErrorKind::InvalidArgument("String does not fit destination")
         );
         ensure!(
             !src_i8.contains(&0),
-            ::ErrorKind::InvalidArgument("String has null byte")
+            ErrorKind::InvalidArgument("String has null byte")
         );
 
         dst[..src_i8.len()].copy_from_slice(src_i8);
