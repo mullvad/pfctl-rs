@@ -99,10 +99,12 @@ macro_rules! ioctl_guard {
 
 /// Returns the given input result, except if it is an `Err` matching the given `ErrorKind`,
 /// then it returns `Ok(())` instead, so the error is ignored.
-pub fn ignore_error_kind(result: Result<()>, error: ErrorKind) -> Result<()> {
-    match result {
-        Err(Error(error, _)) => Ok(()),
-        result => result,
+macro_rules! ignore_error_kind {
+    ($result:expr, $kind:pat) => {
+        match $result {
+            Err($crate::Error($kind, _)) => Ok(()),
+            result => result,
+        }
     }
 }
 
@@ -171,7 +173,7 @@ impl PfCtl {
 
     /// Same as `enable`, but `StateAlreadyActive` errors are supressed and exchanged for `Ok(())`.
     pub fn try_enable(&mut self) -> Result<()> {
-        ignore_error_kind(self.enable(), ErrorKind::StateAlreadyActive)
+        ignore_error_kind!(self.enable(), ErrorKind::StateAlreadyActive)
     }
 
     /// Tries to disable PF. If the firewall is already disabled it will return an
@@ -182,7 +184,7 @@ impl PfCtl {
 
     /// Same as `disable`, but `StateAlreadyActive` errors are supressed and exchanged for `Ok(())`.
     pub fn try_disable(&mut self) -> Result<()> {
-        ignore_error_kind(self.disable(), ErrorKind::StateAlreadyActive)
+        ignore_error_kind!(self.disable(), ErrorKind::StateAlreadyActive)
     }
 
     /// Tries to determine if PF is enabled or not.
@@ -206,7 +208,7 @@ impl PfCtl {
     /// Same as `add_anchor`, but `StateAlreadyActive` errors are supressed and exchanged for
     /// `Ok(())`.
     pub fn try_add_anchor<S: AsRef<str>>(&mut self, name: S, kind: AnchorKind) -> Result<()> {
-        ignore_error_kind(self.add_anchor(name, kind), ErrorKind::StateAlreadyActive)
+        ignore_error_kind!(self.add_anchor(name, kind), ErrorKind::StateAlreadyActive)
     }
 
     pub fn remove_anchor<S: AsRef<str>>(&mut self, name: S, kind: AnchorKind) -> Result<()> {
@@ -231,9 +233,9 @@ impl PfCtl {
     /// Same as `remove_anchor`, but `AnchorDoesNotExist` errors are supressed and exchanged for
     /// `Ok(())`.
     pub fn try_remove_anchor<S: AsRef<str>>(&mut self, name: S, kind: AnchorKind) -> Result<()> {
-        ignore_error_kind(
+        ignore_error_kind!(
             self.remove_anchor(name, kind),
-            ErrorKind::AnchorDoesNotExist,
+            ErrorKind::AnchorDoesNotExist
         )
     }
 
