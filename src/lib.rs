@@ -81,12 +81,13 @@ pub use errors::*;
 
 /// Macro for taking an expression with an ioctl call, perform it and return a Rust ´Result´.
 macro_rules! ioctl_guard {
-    ($func:expr) => {
+    ($func:expr) => (ioctl_guard!($func, libc::EEXIST));
+    ($func:expr, $already_active:expr) => {
         if unsafe { $func } == IOCTL_ERROR {
             let errno::Errno(error_code) = errno::errno();
             let io_error = io::Error::from_raw_os_error(error_code);
             let mut err = Err(ErrorKind::IoctlError(io_error).into());
-            if error_code == libc::EEXIST {
+            if error_code == $already_active {
                 err = err.chain_err(|| ErrorKind::StateAlreadyActive);
             }
             err
@@ -177,7 +178,13 @@ impl PfCtl {
     /// Tries to disable PF. If the firewall is already disabled it will return an
     /// `StateAlreadyActive` error. If there is some other error it will return an `IoctlError`.
     pub fn disable(&mut self) -> Result<()> {
-        ioctl_guard!(ffi::pf_stop(self.fd()))
+        ioctl_guard!(ffi::pf_stop(self.fd()), libc::ENOENT)
+    }
+
+    /// Same as ´disable´, but wrapped in ´pfctl::ignore_already_active´ to not return an error
+    /// if PF was already disabled.
+    pub fn try_disable(&mut self) -> Result<()> {
+        ignore_already_active(self.enable())
     }
 
     /// Tries to determine if PF is enabled or not.

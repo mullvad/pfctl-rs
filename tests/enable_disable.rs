@@ -15,9 +15,9 @@ test!(enable_pf {
 
     assert_matches!(pfcli::disable_firewall(), Ok(()));
     assert_matches!(pf.enable(), Ok(()));
+    assert_matches!(pfcli::is_enabled(), Ok(true));
     assert_matches!(pf.enable(), Err(pfctl::Error(pfctl::ErrorKind::StateAlreadyActive, _)));
     assert_matches!(pf.try_enable(), Ok(()));
-    assert_matches!(pfcli::is_enabled(), Ok(true));
 });
 
 test!(disable_pf {
@@ -26,4 +26,6 @@ test!(disable_pf {
     assert_matches!(pfcli::enable_firewall(), Ok(()));
     assert_matches!(pf.disable(), Ok(()));
     assert_matches!(pfcli::is_enabled(), Ok(false));
+    assert_matches!(pf.disable(), Err(pfctl::Error(pfctl::ErrorKind::StateAlreadyActive, _)));
+    assert_matches!(pf.try_disable(), Ok(()));
 });
