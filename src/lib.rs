@@ -96,6 +96,15 @@ macro_rules! ioctl_guard {
     }
 }
 
+/// Takes a ´Result´ and if it's an ´StateAlreadyActive´ error it transforms that into an
+/// ´Ok(())´, otherwise just return the same input result.
+pub fn ignore_already_active(result: Result<()>) -> Result<()> {
+    match result {
+        Err(Error(ErrorKind::StateAlreadyActive, _)) => Ok(()),
+        result => result,
+    }
+}
+
 /// Open PF virtual device
 fn open_pf() -> Result<File> {
     OpenOptions::new()
@@ -157,6 +166,12 @@ impl PfCtl {
     /// `StateAlreadyActive` error. If there is some other error it will return an `IoctlError`.
     pub fn enable(&mut self) -> Result<()> {
         ioctl_guard!(ffi::pf_start(self.fd()))
+    }
+
+    /// Same as ´enable´, but wrapped in ´pfctl::ignore_already_active´ to not return an error
+    /// if PF was already enabled.
+    pub fn try_enable(&mut self) -> Result<()> {
+        ignore_already_active(self.enable())
     }
 
     /// Tries to disable PF. If the firewall is already disabled it will return an

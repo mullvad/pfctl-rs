@@ -15,6 +15,8 @@ test!(enable_pf {
 
     assert_matches!(pfcli::disable_firewall(), Ok(()));
     assert_matches!(pf.enable(), Ok(()));
+    assert_matches!(pf.enable(), Err(pfctl::Error(pfctl::ErrorKind::StateAlreadyActive, _)));
+    assert_matches!(pf.try_enable(), Ok(()));
     assert_matches!(pfcli::is_enabled(), Ok(true));
 });
 
