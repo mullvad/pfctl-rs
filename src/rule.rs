@@ -6,7 +6,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use ResultExt;
+use {ErrorKind, Result, ResultExt};
 use conversion::{CopyTo, TryCopyTo};
 use ffi;
 use ipnetwork::{IpNetwork, Ipv4Network, Ipv6Network};
@@ -21,6 +21,7 @@ use std::vec::Vec;
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[derive(Builder)]
 #[builder(setter(into))]
+#[builder(build_fn(name = "build_internal"))]
 pub struct FilterRule {
     action: RuleAction,
     #[builder(default)]
@@ -41,6 +42,12 @@ pub struct FilterRule {
     from: Endpoint,
     #[builder(default)]
     to: Endpoint,
+}
+
+impl FilterRuleBuilder {
+    pub fn build(&self) -> Result<FilterRule> {
+        self.build_internal().map_err(|e| ErrorKind::InvalidRuleCombination(e).into())
+    }
 }
 
 impl FilterRule {
