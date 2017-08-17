@@ -20,7 +20,7 @@ errno = "0.2"
 error-chain = "0.10"
 ioctl-sys = "0.5.2"
 libc = "0.2.29"
-derive_builder = "0.4"
+derive_builder = "0.5"
 ipnetwork = "0.12"
 
 [dev-dependencies]
