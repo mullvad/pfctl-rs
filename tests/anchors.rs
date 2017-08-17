@@ -28,6 +28,12 @@ test!(add_filter_anchor {
 
     let anchors = pfcli::get_anchors().unwrap();
     assert!(anchors.contains(&anchor_name));
+
+    assert_matches!(
+        pf.add_anchor(&anchor_name, pfctl::AnchorKind::Filter),
+        Err(pfctl::Error(pfctl::ErrorKind::StateAlreadyActive, _))
+    );
+    assert_matches!(pf.try_add_anchor(&anchor_name, pfctl::AnchorKind::Filter), Ok(()));
 });
 
 test!(remove_filter_anchor {
@@ -39,4 +45,10 @@ test!(remove_filter_anchor {
 
     let anchors = pfcli::get_anchors().unwrap();
     assert!(!anchors.contains(&anchor_name));
+
+    assert_matches!(
+        pf.remove_anchor(&anchor_name, pfctl::AnchorKind::Filter),
+        Err(pfctl::Error(pfctl::ErrorKind::AnchorDoesNotExist, _))
+    );
+    assert_matches!(pf.try_remove_anchor(&anchor_name, pfctl::AnchorKind::Filter), Ok(()));
 });

@@ -97,11 +97,11 @@ macro_rules! ioctl_guard {
     }
 }
 
-/// Takes a ´Result´ and if it's an ´StateAlreadyActive´ error it transforms that into an
-/// ´Ok(())´, otherwise just return the same input result.
-pub fn ignore_already_active(result: Result<()>) -> Result<()> {
+/// Returns the given input result, except if it is an `Err` matching the given `ErrorKind`,
+/// then it returns `Ok(())` instead, so the error is ignored.
+pub fn ignore_error_kind(result: Result<()>, error: ErrorKind) -> Result<()> {
     match result {
-        Err(Error(ErrorKind::StateAlreadyActive, _)) => Ok(()),
+        Err(Error(error, _)) => Ok(()),
         result => result,
     }
 }
@@ -169,10 +169,9 @@ impl PfCtl {
         ioctl_guard!(ffi::pf_start(self.fd()))
     }
 
-    /// Same as `enable`, but wrapped in `pfctl::ignore_already_active` to not return an error
-    /// if PF was already enabled.
+    /// Same as `enable`, but `StateAlreadyActive` errors are supressed and exchanged for `Ok(())`.
     pub fn try_enable(&mut self) -> Result<()> {
-        ignore_already_active(self.enable())
+        ignore_error_kind(self.enable(), ErrorKind::StateAlreadyActive)
     }
 
     /// Tries to disable PF. If the firewall is already disabled it will return an
@@ -181,10 +180,9 @@ impl PfCtl {
         ioctl_guard!(ffi::pf_stop(self.fd()), libc::ENOENT)
     }
 
-    /// Same as `disable`, but wrapped in `pfctl::ignore_already_active` to not return an error
-    /// if PF was already disabled.
+    /// Same as `disable`, but `StateAlreadyActive` errors are supressed and exchanged for `Ok(())`.
     pub fn try_disable(&mut self) -> Result<()> {
-        ignore_already_active(self.enable())
+        ignore_error_kind(self.disable(), ErrorKind::StateAlreadyActive)
     }
 
     /// Tries to determine if PF is enabled or not.
@@ -205,10 +203,10 @@ impl PfCtl {
         Ok(())
     }
 
-    /// Same as `add_anchor`, but wrapped in `pfctl::ignore_already_active` to not return an error
-    /// if the anchor was already present.
+    /// Same as `add_anchor`, but `StateAlreadyActive` errors are supressed and exchanged for
+    /// `Ok(())`.
     pub fn try_add_anchor<S: AsRef<str>>(&mut self, name: S, kind: AnchorKind) -> Result<()> {
-        ignore_already_active(self.add_anchor(name, kind))
+        ignore_error_kind(self.add_anchor(name, kind), ErrorKind::StateAlreadyActive)
     }
 
     pub fn remove_anchor<S: AsRef<str>>(&mut self, name: S, kind: AnchorKind) -> Result<()> {
@@ -228,6 +226,15 @@ impl PfCtl {
         }
 
         bail!(ErrorKind::AnchorDoesNotExist);
+    }
+
+    /// Same as `remove_anchor`, but `AnchorDoesNotExist` errors are supressed and exchanged for
+    /// `Ok(())`.
+    pub fn try_remove_anchor<S: AsRef<str>>(&mut self, name: S, kind: AnchorKind) -> Result<()> {
+        ignore_error_kind(
+            self.remove_anchor(name, kind),
+            ErrorKind::AnchorDoesNotExist,
+        )
     }
 
     // TODO(linus): Make more generic. No hardcoded ADD_TAIL etc.
