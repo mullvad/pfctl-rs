@@ -101,7 +101,7 @@ macro_rules! ioctl_guard {
 /// then it returns `Ok(())` instead, so the error is ignored.
 pub fn ignore_error_kind(result: Result<()>, error: ErrorKind) -> Result<()> {
     match result {
-        Err(Error(error, _)) => Ok(()),
+        Err(Error(e, _)) if e == error => Ok(()),
         result => result,
     }
 }
