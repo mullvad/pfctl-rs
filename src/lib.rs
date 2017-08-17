@@ -81,17 +81,29 @@ pub use errors::*;
 
 /// Macro for taking an expression with an ioctl call, perform it and return a Rust ´Result´.
 macro_rules! ioctl_guard {
-    ($func:expr) => {
+    ($func:expr) => (ioctl_guard!($func, libc::EEXIST));
+    ($func:expr, $already_active:expr) => {
         if unsafe { $func } == IOCTL_ERROR {
             let errno::Errno(error_code) = errno::errno();
             let io_error = io::Error::from_raw_os_error(error_code);
             let mut err = Err(ErrorKind::IoctlError(io_error).into());
-            if error_code == libc::EEXIST {
+            if error_code == $already_active {
                 err = err.chain_err(|| ErrorKind::StateAlreadyActive);
             }
             err
         } else {
             Ok(()) as Result<()>
+        }
+    }
+}
+
+/// Returns the given input result, except if it is an `Err` matching the given `ErrorKind`,
+/// then it returns `Ok(())` instead, so the error is ignored.
+macro_rules! ignore_error_kind {
+    ($result:expr, $kind:pat) => {
+        match $result {
+            Err($crate::Error($kind, _)) => Ok(()),
+            result => result,
         }
     }
 }
@@ -159,10 +171,20 @@ impl PfCtl {
         ioctl_guard!(ffi::pf_start(self.fd()))
     }
 
+    /// Same as `enable`, but `StateAlreadyActive` errors are supressed and exchanged for `Ok(())`.
+    pub fn try_enable(&mut self) -> Result<()> {
+        ignore_error_kind!(self.enable(), ErrorKind::StateAlreadyActive)
+    }
+
     /// Tries to disable PF. If the firewall is already disabled it will return an
     /// `StateAlreadyActive` error. If there is some other error it will return an `IoctlError`.
     pub fn disable(&mut self) -> Result<()> {
-        ioctl_guard!(ffi::pf_stop(self.fd()))
+        ioctl_guard!(ffi::pf_stop(self.fd()), libc::ENOENT)
+    }
+
+    /// Same as `disable`, but `StateAlreadyActive` errors are supressed and exchanged for `Ok(())`.
+    pub fn try_disable(&mut self) -> Result<()> {
+        ignore_error_kind!(self.disable(), ErrorKind::StateAlreadyActive)
     }
 
     /// Tries to determine if PF is enabled or not.
@@ -183,6 +205,12 @@ impl PfCtl {
         Ok(())
     }
 
+    /// Same as `add_anchor`, but `StateAlreadyActive` errors are supressed and exchanged for
+    /// `Ok(())`.
+    pub fn try_add_anchor<S: AsRef<str>>(&mut self, name: S, kind: AnchorKind) -> Result<()> {
+        ignore_error_kind!(self.add_anchor(name, kind), ErrorKind::StateAlreadyActive)
+    }
+
     pub fn remove_anchor<S: AsRef<str>>(&mut self, name: S, kind: AnchorKind) -> Result<()> {
         let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
         pfioc_rule.rule.action = kind.into();
@@ -200,6 +228,15 @@ impl PfCtl {
         }
 
         bail!(ErrorKind::AnchorDoesNotExist);
+    }
+
+    /// Same as `remove_anchor`, but `AnchorDoesNotExist` errors are supressed and exchanged for
+    /// `Ok(())`.
+    pub fn try_remove_anchor<S: AsRef<str>>(&mut self, name: S, kind: AnchorKind) -> Result<()> {
+        ignore_error_kind!(
+            self.remove_anchor(name, kind),
+            ErrorKind::AnchorDoesNotExist
+        )
     }
 
     // TODO(linus): Make more generic. No hardcoded ADD_TAIL etc.
