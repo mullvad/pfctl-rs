@@ -205,6 +205,12 @@ impl PfCtl {
         Ok(())
     }
 
+    /// Same as `add_anchor`, but wrapped in `pfctl::ignore_already_active` to not return an error
+    /// if the anchor was already present.
+    pub fn try_add_anchor<S: AsRef<str>>(&mut self, name: S, kind: AnchorKind) -> Result<()> {
+        ignore_already_active(self.add_anchor(name, kind))
+    }
+
     pub fn remove_anchor<S: AsRef<str>>(&mut self, name: S, kind: AnchorKind) -> Result<()> {
         let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
         pfioc_rule.rule.action = kind.into();
