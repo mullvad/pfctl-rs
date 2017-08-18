@@ -20,7 +20,7 @@ fn before_each() {
 }
 
 fn after_each() {
-    pfcli::flush_rules(ANCHOR_NAME, pfcli::FlushOptions::All).unwrap();
+    pfcli::flush_rules(ANCHOR_NAME, pfcli::FlushOptions::Rules).unwrap();
 }
 
 test!(drop_all_rule {
