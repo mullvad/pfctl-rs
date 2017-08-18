@@ -8,15 +8,13 @@ extern crate pfctl_test;
 use pfctl_test::pfcli;
 use std::net::Ipv4Addr;
 
-static ANCHOR_NAME: &'static str = "pfctl-rs.integration.testing";
+static ANCHOR_NAME: &'static str = "pfctl-rs.integration.testing.rules";
 
 fn before_each() {
-    let mut pf = pfctl::PfCtl::new().unwrap();
-    match pf.add_anchor(ANCHOR_NAME, pfctl::AnchorKind::Filter) {
-        Ok(_) => (),
-        Err(pfctl::Error(pfctl::ErrorKind::StateAlreadyActive, _)) => (),
-        Err(e) => panic!("Unable to add anchor: {}", e),
-    }
+    pfctl::PfCtl::new()
+        .unwrap()
+        .try_add_anchor(ANCHOR_NAME, pfctl::AnchorKind::Filter)
+        .unwrap();
 }
 
 fn after_each() {
