@@ -39,3 +39,7 @@ ioctl!(readwrite pf_begin_addrs with b'D', 51; pfvar::pfioc_pooladdr);
 ioctl!(readwrite pf_begin_trans with b'D', 81; pfvar::pfioc_trans);
 // DIOCXCOMMIT
 ioctl!(readwrite pf_commit_trans with b'D', 82; pfvar::pfioc_trans);
+// DIOCGETSTATES
+ioctl!(readwrite pf_get_states with b'D', 25; pfvar::pfioc_states);
+// DIOCKILLSTATES
+ioctl!(readwrite pf_kill_states with b'D', 41; pfvar::pfioc_state_kill);
