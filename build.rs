@@ -26,6 +26,8 @@ fn main() {
         .whitelisted_type("pfioc_rule")
         .whitelisted_type("pfioc_pooladdr")
         .whitelisted_type("pfioc_trans")
+        .whitelisted_type("pfioc_states")
+        .whitelisted_type("pfioc_state_kill")
         .whitelisted_var("PF_.*")
         .generate()
         .expect("Unable to generate bindings for pfvar.h")
