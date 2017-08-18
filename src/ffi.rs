@@ -41,12 +41,16 @@ ioctl!(readwrite pf_get_rules with b'D', 6; pfvar::pfioc_rule);
 ioctl!(readwrite pf_get_rule with b'D', 7; pfvar::pfioc_rule);
 // DIOCGETSTATUS
 ioctl!(readwrite pf_get_status with b'D', 21; pfvar::pf_status);
+// DIOCGETSTATES
+ioctl!(readwrite pf_get_states with b'D', 25; pfvar::pfioc_states);
+// DIOCCHANGERULE
+ioctl!(readwrite pf_change_rule with b'D', 26; pfvar::pfioc_rule);
 // DIOCINSERTRULE
 ioctl!(readwrite pf_insert_rule with b'D', 27; pfvar::pfioc_rule);
 // DIOCDELETERULE
 ioctl!(readwrite pf_delete_rule with b'D', 28; pfvar::pfioc_rule);
-// DIOCCHANGERULE
-ioctl!(readwrite pf_change_rule with b'D', 26; pfvar::pfioc_rule);
+// DIOCKILLSTATES
+ioctl!(readwrite pf_kill_states with b'D', 41; pfvar::pfioc_state_kill);
 // DIOCBEGINADDRS
 ioctl!(readwrite pf_begin_addrs with b'D', 51; pfvar::pfioc_pooladdr);
 // DIOCXBEGIN
