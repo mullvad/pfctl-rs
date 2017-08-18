@@ -93,14 +93,16 @@ pub enum FlushOptions {
     All,
     Rules,
     Nat,
+    States,
 }
 
 impl From<FlushOptions> for &'static str {
     fn from(option: FlushOptions) -> &'static str {
         match option {
-            FlushOptions::All => "all",
+            FlushOptions::All => "all", // in practice it clears everything except states
             FlushOptions::Rules => "rules",
             FlushOptions::Nat => "nat",
+            FlushOptions::States => "states",
         }
     }
 }
@@ -116,11 +118,16 @@ pub fn flush_rules<S: AsRef<OsStr>>(anchor_name: S, options: FlushOptions) -> Re
         .chain_err(|| "Failed to run pfctl")?;
     let output = str_from_stdout(&output.stderr)?;
 
-    match options {
-        FlushOptions::All | FlushOptions::Rules => {
-            ensure!(output.contains("rules cleared"), "Invalid response.")
-        }
-        FlushOptions::Nat => ensure!(output.contains("nat cleared"), "Invalid response."),
+    if options == FlushOptions::All || options == FlushOptions::Rules {
+        ensure!(output.contains("rules cleared"), "Invalid response.");
+    }
+
+    if options == FlushOptions::All || options == FlushOptions::Nat {
+        ensure!(output.contains("nat cleared"), "Invalid response.");
+    }
+
+    if options == FlushOptions::States {
+        ensure!(output.contains("states cleared"), "Invalid response.");
     }
 
     Ok(())
