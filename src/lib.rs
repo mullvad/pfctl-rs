@@ -128,6 +128,34 @@ fn get_pool_ticket(fd: RawFd, anchor: &str) -> Result<u32> {
     Ok(pfioc_pooladdr.ticket)
 }
 
+/// Setup pfioc_states and fill pfsync_states with empty states
+fn setup_pfioc_states(pfioc_states: &mut ffi::pfvar::pfioc_states,
+                      pfsync_states: &mut Vec<ffi::pfvar::pfsync_state>,
+                      num_states: u32) {
+    let element_size = mem::size_of::<ffi::pfvar::pfsync_state>() as i32;
+    pfioc_states.ps_len = element_size * (num_states as i32);
+    let empty_states = (0..num_states)
+        .map(|_| unsafe { mem::zeroed::<ffi::pfvar::pfsync_state>() })
+        .collect::<Vec<_>>();
+    let _ = mem::replace(pfsync_states, empty_states);
+    unsafe {
+        *pfioc_states.ps_u.psu_states.as_mut() = pfsync_states.as_mut_ptr();
+    }
+}
+
+/// Setup pfioc_state_kill from pfsync_state
+fn setup_pfioc_state_kill(pfsync_state: &ffi::pfvar::pfsync_state,
+                          pfioc_state_kill: &mut ffi::pfvar::pfioc_state_kill) {
+    pfioc_state_kill.psk_af = pfsync_state.af_lan;
+    pfioc_state_kill.psk_proto = pfsync_state.proto;
+    pfioc_state_kill.psk_proto_variant = pfsync_state.proto_variant;
+    pfioc_state_kill.psk_ifname = pfsync_state.ifname;
+    unsafe {
+        pfioc_state_kill.psk_src.addr.v.a.as_mut().addr = pfsync_state.lan.addr;
+        pfioc_state_kill.psk_dst.addr.v.a.as_mut().addr = pfsync_state.ext_lan.addr;
+    }
+}
+
 
 /// Module for types and traits dealing with translating between Rust and FFI.
 mod conversion {
@@ -194,7 +222,7 @@ impl PfCtl {
         Ok(pf_status.running == 1)
     }
 
-    pub fn add_anchor<S: AsRef<str>>(&mut self, name: S, kind: AnchorKind) -> Result<()> {
+    pub fn add_anchor(&mut self, name: &str, kind: AnchorKind) -> Result<()> {
         let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
 
         pfioc_rule.rule.action = kind.into();
@@ -207,32 +235,21 @@ impl PfCtl {
 
     /// Same as `add_anchor`, but `StateAlreadyActive` errors are supressed and exchanged for
     /// `Ok(())`.
-    pub fn try_add_anchor<S: AsRef<str>>(&mut self, name: S, kind: AnchorKind) -> Result<()> {
+    pub fn try_add_anchor(&mut self, name: &str, kind: AnchorKind) -> Result<()> {
         ignore_error_kind!(self.add_anchor(name, kind), ErrorKind::StateAlreadyActive)
     }
 
-    pub fn remove_anchor<S: AsRef<str>>(&mut self, name: S, kind: AnchorKind) -> Result<()> {
-        let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
-        pfioc_rule.rule.action = kind.into();
-        ioctl_guard!(ffi::pf_get_rules(self.fd(), &mut pfioc_rule))?;
-
-        pfioc_rule.action = ffi::pfvar::PF_GET_NONE as u32;
-        for i in 0..pfioc_rule.nr {
-            pfioc_rule.nr = i;
-            ioctl_guard!(ffi::pf_get_rule(self.fd(), &mut pfioc_rule))?;
-
-            if compare_cstr_safe(name.as_ref(), &pfioc_rule.anchor_call)? {
-                ioctl_guard!(ffi::pf_delete_rule(self.fd(), &mut pfioc_rule))?;
-                return Ok(());
-            }
-        }
-
-        bail!(ErrorKind::AnchorDoesNotExist);
+    pub fn remove_anchor(&mut self, name: &str, kind: AnchorKind) -> Result<()> {
+        self.with_anchor_rule(
+            name,
+            kind,
+            |mut anchor_rule| ioctl_guard!(ffi::pf_delete_rule(self.fd(), &mut anchor_rule)),
+        )
     }
 
     /// Same as `remove_anchor`, but `AnchorDoesNotExist` errors are supressed and exchanged for
     /// `Ok(())`.
-    pub fn try_remove_anchor<S: AsRef<str>>(&mut self, name: S, kind: AnchorKind) -> Result<()> {
+    pub fn try_remove_anchor(&mut self, name: &str, kind: AnchorKind) -> Result<()> {
         ignore_error_kind!(
             self.remove_anchor(name, kind),
             ErrorKind::AnchorDoesNotExist
@@ -263,6 +280,62 @@ impl PfCtl {
 
     pub fn flush_rules(&mut self, anchor: &str, kind: RulesetKind) -> Result<()> {
         Transaction::new(&anchor, kind)?.commit()
+    }
+
+    /// Reset states created by anchor
+    pub fn reset_states(&mut self, anchor_name: &str, kind: AnchorKind) -> Result<u32> {
+        let num_states = self.get_num_states()?;
+        if num_states > 0 {
+            let mut pfsync_states = Vec::new();
+            let mut pfioc_states = unsafe { mem::zeroed::<ffi::pfvar::pfioc_states>() };
+            setup_pfioc_states(&mut pfioc_states, &mut pfsync_states, num_states);
+            ioctl_guard!(ffi::pf_get_states(self.fd(), &mut pfioc_states))?;
+            self.with_anchor_rule(
+                anchor_name, kind, |anchor_rule| {
+                    pfsync_states
+                    .iter()
+                    .filter(|pfsync_state| pfsync_state.anchor == anchor_rule.nr)
+                    .map(|pfsync_state| {
+                        let mut pfioc_state_kill =
+                            unsafe { mem::zeroed::<ffi::pfvar::pfioc_state_kill>() };
+                        setup_pfioc_state_kill(&pfsync_state, &mut pfioc_state_kill);
+                        ioctl_guard!(ffi::pf_kill_states(self.fd(), &mut pfioc_state_kill))?;
+                        // psk_af holds the number of killed states
+                        Ok(pfioc_state_kill.psk_af as u32)
+                    })
+                    .collect::<Result<Vec<_>>>()
+                    .map(|v| v.iter().sum())
+                }
+            )
+        } else {
+            Ok(0)
+        }
+    }
+
+    /// Get anchor rule by name
+    fn with_anchor_rule<F, R>(&self, name: &str, kind: AnchorKind, f: F) -> Result<R>
+        where F: FnOnce(ffi::pfvar::pfioc_rule) -> Result<R>
+    {
+        let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
+        pfioc_rule.rule.action = kind.into();
+        ioctl_guard!(ffi::pf_get_rules(self.fd(), &mut pfioc_rule))?;
+        pfioc_rule.action = ffi::pfvar::PF_GET_NONE as u32;
+        for i in 0..pfioc_rule.nr {
+            pfioc_rule.nr = i;
+            ioctl_guard!(ffi::pf_get_rule(self.fd(), &mut pfioc_rule))?;
+            if compare_cstr_safe(name, &pfioc_rule.anchor_call)? {
+                return f(pfioc_rule);
+            }
+        }
+        bail!(ErrorKind::AnchorDoesNotExist);
+    }
+
+    fn get_num_states(&self) -> Result<u32> {
+        let mut pfioc_states = unsafe { mem::zeroed::<ffi::pfvar::pfioc_states>() };
+        ioctl_guard!(ffi::pf_get_states(self.fd(), &mut pfioc_states))?;
+        let element_size = mem::size_of::<ffi::pfvar::pfsync_state>() as u32;
+        let buffer_size = pfioc_states.ps_len as u32;
+        Ok(buffer_size / element_size)
     }
 
     fn get_ticket(&self, anchor: &str) -> Result<u32> {
