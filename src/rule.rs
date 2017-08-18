@@ -462,6 +462,7 @@ pub enum Proto {
     Tcp,
     Udp,
     Icmp,
+    IcmpV6,
 }
 
 impl Default for Proto {
@@ -477,6 +478,7 @@ impl From<Proto> for u8 {
             Proto::Tcp => libc::IPPROTO_TCP as u8,
             Proto::Udp => libc::IPPROTO_UDP as u8,
             Proto::Icmp => libc::IPPROTO_ICMP as u8,
+            Proto::IcmpV6 => libc::IPPROTO_ICMPV6 as u8,
         }
     }
 }
