@@ -177,6 +177,12 @@ test!(all_state_policies {
         .action(pfctl::RuleAction::Pass)
         .from(Ipv4Addr::new(192, 168, 1, 2))
         .proto(pfctl::Proto::Tcp)
+        .tcp_flags(
+            (
+                [pfctl::TcpFlag::Syn],
+                [pfctl::TcpFlag::Syn, pfctl::TcpFlag::Ack, pfctl::TcpFlag::Fin, pfctl::TcpFlag::Rst]
+            )
+        )
         .keep_state(pfctl::StatePolicy::Keep)
         .build()
         .unwrap();
@@ -199,7 +205,7 @@ test!(all_state_policies {
     assert_matches!(
         pfcli::get_rules(ANCHOR_NAME),
         Ok(ref v) if v == &["pass inet from 192.168.1.1 to any no state",
-                            "pass inet proto tcp from 192.168.1.2 to any flags any keep state",
+                            "pass inet proto tcp from 192.168.1.2 to any flags S/FSRA keep state",
                             "pass inet proto tcp from 192.168.1.3 to any flags any modulate state",
                             "pass inet proto tcp from 192.168.1.4 to any flags any synproxy state"]
     );
