@@ -343,6 +343,12 @@ impl From<Ipv6Addr> for Endpoint {
     }
 }
 
+impl From<IpAddr> for Endpoint {
+    fn from(ip: IpAddr) -> Self {
+        Self::from(Ip::from(ip))
+    }
+}
+
 impl TryCopyTo<ffi::pfvar::pf_rule_addr> for Endpoint {
     fn copy_to(&self, pf_rule_addr: &mut ffi::pfvar::pf_rule_addr) -> Result<()> {
         let Endpoint(ref ip, ref port) = *self;
