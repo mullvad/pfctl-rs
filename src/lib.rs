@@ -32,6 +32,7 @@ use std::mem;
 use std::os::unix::io::{AsRawFd, RawFd};
 
 mod ffi;
+mod tcp;
 
 mod rule;
 pub use rule::*;

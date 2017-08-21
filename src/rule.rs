@@ -17,6 +17,7 @@ use std::fmt;
 use std::mem;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::vec::Vec;
+use tcp;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[derive(Builder)]
@@ -32,6 +33,8 @@ pub struct FilterRule {
     log: RuleLogSet,
     #[builder(default)]
     keep_state: StatePolicy,
+    #[builder(default)]
+    tcp_flags: TcpFlags,
     #[builder(default)]
     interface: Interface,
     #[builder(default)]
@@ -96,6 +99,8 @@ impl TryCopyTo<ffi::pfvar::pf_rule> for FilterRule {
         pf_rule.quick = self.quick as u8;
         pf_rule.log = (&self.log).into();
         pf_rule.keep_state = self.validate_state_policy()?.into();
+        pf_rule.flags = self.tcp_flags.check.into();
+        pf_rule.flagset = (&self.tcp_flags.mask).into();
         self.interface
             .copy_to(&mut pf_rule.ifname)
             .chain_err(|| ErrorKind::InvalidArgument("Incompatible interface name"))?;
@@ -686,6 +691,70 @@ impl From<StatePolicy> for u8 {
             StatePolicy::Keep => ffi::pfvar::PF_STATE_NORMAL as u8,
             StatePolicy::Modulate => ffi::pfvar::PF_STATE_MODULATE as u8,
             StatePolicy::SynProxy => ffi::pfvar::PF_STATE_SYNPROXY as u8,
+        }
+    }
+}
+
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum TcpFlag {
+    None,
+    Syn,
+    Ack,
+    Fin,
+    Rst,
+    Psh,
+    Urg,
+    Ece,
+    Cwr,
+}
+
+impl Default for TcpFlag {
+    fn default() -> Self {
+        TcpFlag::None
+    }
+}
+
+impl From<TcpFlag> for u8 {
+    fn from(tcp_flag: TcpFlag) -> Self {
+        match tcp_flag {
+            TcpFlag::None => 0,
+            TcpFlag::Fin => tcp::TH_FIN as u8,
+            TcpFlag::Syn => tcp::TH_SYN as u8,
+            TcpFlag::Rst => tcp::TH_RST as u8,
+            TcpFlag::Psh => tcp::TH_PSH as u8,
+            TcpFlag::Ack => tcp::TH_ACK as u8,
+            TcpFlag::Urg => tcp::TH_URG as u8,
+            TcpFlag::Ece => tcp::TH_ECE as u8,
+            TcpFlag::Cwr => tcp::TH_CWR as u8,
+        }
+    }
+}
+
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
+struct TcpFlagSet(Vec<TcpFlag>);
+
+impl<'a> From<&'a TcpFlagSet> for u8 {
+    fn from(set: &TcpFlagSet) -> Self {
+        set.0
+            .iter()
+            .fold(0, |acc, &x| (acc | u8::from(x)))
+    }
+}
+
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
+pub struct TcpFlags {
+    check: TcpFlag,
+    mask: TcpFlagSet,
+}
+
+impl TcpFlags {
+    pub fn new(check: TcpFlag, mask: &[TcpFlag]) -> Self {
+        TcpFlags {
+            check,
+            mask: TcpFlagSet(mask.to_vec()),
         }
     }
 }
