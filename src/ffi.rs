@@ -14,6 +14,20 @@ pub mod pfvar {
     include!(concat!(env!("OUT_DIR"), "/pfvar.rs"));
 }
 
+pub mod tcp {
+    use std::os::raw::c_uint;
+
+    // exports from <netinet/tcp.h>
+    pub const TH_FIN: c_uint = 0x01;
+    pub const TH_SYN: c_uint = 0x02;
+    pub const TH_RST: c_uint = 0x04;
+    pub const TH_PSH: c_uint = 0x08;
+    pub const TH_ACK: c_uint = 0x10;
+    pub const TH_URG: c_uint = 0x20;
+    pub const TH_ECE: c_uint = 0x40;
+    pub const TH_CWR: c_uint = 0x80;
+}
+
 // The definitions of the ioctl calls come from pfvar.h. Look for the comment "ioctl operations"
 // DIOCSTART
 ioctl!(none pf_start with b'D', 1);
