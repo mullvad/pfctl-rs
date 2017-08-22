@@ -13,10 +13,12 @@ use ipnetwork::IpNetwork;
 
 use libc;
 
-use std::fmt;
 use std::mem;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::vec::Vec;
+
+mod addr_family;
+pub use self::addr_family::*;
 
 mod endpoint;
 pub use self::endpoint::*;
@@ -363,7 +365,6 @@ impl From<Direction> for u8 {
 }
 
 
-// TODO(linus): Many more protocols to add. But this will do for now.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Proto {
     Any,
@@ -388,41 +389,6 @@ impl From<Proto> for u8 {
             Proto::Icmp => libc::IPPROTO_ICMP as u8,
             Proto::IcmpV6 => libc::IPPROTO_ICMPV6 as u8,
         }
-    }
-}
-
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum AddrFamily {
-    Any,
-    Ipv4,
-    Ipv6,
-}
-
-impl Default for AddrFamily {
-    fn default() -> Self {
-        AddrFamily::Any
-    }
-}
-
-impl From<AddrFamily> for u8 {
-    fn from(af: AddrFamily) -> Self {
-        match af {
-            AddrFamily::Any => ffi::pfvar::PF_UNSPEC as u8,
-            AddrFamily::Ipv4 => ffi::pfvar::PF_INET as u8,
-            AddrFamily::Ipv6 => ffi::pfvar::PF_INET6 as u8,
-        }
-    }
-}
-
-impl fmt::Display for AddrFamily {
-    fn fmt(&self, f: &mut fmt::Formatter) -> ::std::result::Result<(), fmt::Error> {
-        match *self {
-                AddrFamily::Any => "any",
-                AddrFamily::Ipv4 => "IPv4",
-                AddrFamily::Ipv6 => "IPv6",
-            }
-            .fmt(f)
     }
 }
 
