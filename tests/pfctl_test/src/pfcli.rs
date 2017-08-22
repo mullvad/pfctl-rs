@@ -87,6 +87,22 @@ pub fn get_rules<S: AsRef<OsStr>>(anchor_name: S) -> Result<Vec<String>> {
     Ok(rules)
 }
 
+pub fn get_states<S: AsRef<OsStr>>(anchor_name: S) -> Result<Vec<String>> {
+    let output = get_command()
+        .arg("-a")
+        .arg(anchor_name.as_ref())
+        .arg("-s")
+        .arg("states")
+        .output()
+        .chain_err(|| "Failed to run pfctl")?;
+    let output = str_from_stdout(&output.stdout)?;
+    let rules = output
+        .lines()
+        .map(|x| x.trim().to_owned())
+        .collect();
+    Ok(rules)
+}
+
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum FlushOptions {
