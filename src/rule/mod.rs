@@ -37,6 +37,9 @@ pub use self::state_policy::*;
 mod tcp_flags;
 pub use self::tcp_flags::*;
 
+mod rule_action;
+pub use self::rule_action::*;
+
 mod rule_log;
 pub use self::rule_log::*;
 
@@ -335,22 +338,6 @@ mod filter_rule_tests {
     }
 }
 
-
-/// Enum describing what should happen to a packet that matches a rule.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum RuleAction {
-    Pass,
-    Drop,
-}
-
-impl From<RuleAction> for u8 {
-    fn from(rule_action: RuleAction) -> Self {
-        match rule_action {
-            RuleAction::Pass => ffi::pfvar::PF_PASS as u8,
-            RuleAction::Drop => ffi::pfvar::PF_DROP as u8,
-        }
-    }
-}
 
 
 /// Enum describing matching of rule towards packet flow direction.
