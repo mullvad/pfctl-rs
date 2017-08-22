@@ -258,10 +258,8 @@ impl PfCtl {
     /// Returns total number of removed states upon success, otherwise
     /// ErrorKind::AnchorDoesNotExist if anchor does not exist.
     pub fn clear_states(&mut self, anchor_name: &str, kind: AnchorKind) -> Result<u32> {
-        let num_states = self.get_num_states()?;
-        if num_states > 0 {
-            let (mut pfioc_states, pfsync_states) = setup_pfioc_states(num_states);
-            ioctl_guard!(ffi::pf_get_states(self.fd(), &mut pfioc_states))?;
+        let pfsync_states = self.get_states()?;
+        if pfsync_states.len() > 0 {
             self.with_anchor_rule(
                 anchor_name, kind, |anchor_rule| {
                     pfsync_states
@@ -281,6 +279,18 @@ impl PfCtl {
             )
         } else {
             Ok(0)
+        }
+    }
+
+    /// Get all states created by stateful rules
+    fn get_states(&mut self) -> Result<Vec<ffi::pfvar::pfsync_state>> {
+        let num_states = self.get_num_states()?;
+        if num_states > 0 {
+            let (mut pfioc_states, pfsync_states) = setup_pfioc_states(num_states);
+            ioctl_guard!(ffi::pf_get_states(self.fd(), &mut pfioc_states))?;
+            Ok(pfsync_states)
+        } else {
+            Ok(vec![])
         }
     }
 
