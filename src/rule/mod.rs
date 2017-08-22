@@ -15,7 +15,6 @@ use libc;
 
 use std::mem;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
-use std::vec::Vec;
 
 mod addr_family;
 pub use self::addr_family::*;
@@ -34,6 +33,9 @@ pub use self::interface::*;
 
 mod tcp_flags;
 pub use self::tcp_flags::*;
+
+mod rule_log;
+pub use self::rule_log::*;
 
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -426,52 +428,6 @@ impl From<StatePolicy> for u8 {
 }
 
 
-
-
-/// Enum describing logging options
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum RuleLog {
-    /// Log all packets, but only initial packet for connections with state
-    /// Can be omitted if IncludeMatchingState set
-    ExcludeMatchingState,
-    /// Log all packets including ones matching state
-    IncludeMatchingState,
-    /// Log user id and group id that owns the local socket
-    SocketOwner,
-}
-
-impl From<RuleLog> for u8 {
-    fn from(rule_log: RuleLog) -> Self {
-        match rule_log {
-            RuleLog::ExcludeMatchingState => ffi::pfvar::PF_LOG as u8,
-            RuleLog::IncludeMatchingState => ffi::pfvar::PF_LOG_ALL as u8,
-            RuleLog::SocketOwner => ffi::pfvar::PF_LOG_SOCKET_LOOKUP as u8,
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
-pub struct RuleLogSet(Vec<RuleLog>);
-
-impl RuleLogSet {
-    pub fn new(set: &[RuleLog]) -> Self {
-        RuleLogSet(set.to_vec())
-    }
-}
-
-impl From<RuleLog> for RuleLogSet {
-    fn from(rule_log: RuleLog) -> Self {
-        RuleLogSet(vec![rule_log])
-    }
-}
-
-impl<'a> From<&'a RuleLogSet> for u8 {
-    fn from(set: &RuleLogSet) -> Self {
-        set.0
-            .iter()
-            .fold(0, |acc, &x| (acc | u8::from(x)))
-    }
-}
 
 
 // Implementations to convert types that are not ours into their FFI representation
