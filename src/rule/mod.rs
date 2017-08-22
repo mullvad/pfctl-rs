@@ -11,8 +11,6 @@ use conversion::{CopyTo, TryCopyTo};
 use ffi;
 use ipnetwork::IpNetwork;
 
-use libc;
-
 use std::mem;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
@@ -24,6 +22,9 @@ pub use self::endpoint::*;
 
 mod ip;
 pub use self::ip::*;
+
+mod proto;
+pub use self::proto::*;
 
 mod port;
 pub use self::port::*;
@@ -360,34 +361,6 @@ impl From<Direction> for u8 {
             Direction::Any => ffi::pfvar::PF_INOUT as u8,
             Direction::In => ffi::pfvar::PF_IN as u8,
             Direction::Out => ffi::pfvar::PF_OUT as u8,
-        }
-    }
-}
-
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Proto {
-    Any,
-    Tcp,
-    Udp,
-    Icmp,
-    IcmpV6,
-}
-
-impl Default for Proto {
-    fn default() -> Self {
-        Proto::Any
-    }
-}
-
-impl From<Proto> for u8 {
-    fn from(proto: Proto) -> Self {
-        match proto {
-            Proto::Any => libc::IPPROTO_IP as u8,
-            Proto::Tcp => libc::IPPROTO_TCP as u8,
-            Proto::Udp => libc::IPPROTO_UDP as u8,
-            Proto::Icmp => libc::IPPROTO_ICMP as u8,
-            Proto::IcmpV6 => libc::IPPROTO_ICMPV6 as u8,
         }
     }
 }
