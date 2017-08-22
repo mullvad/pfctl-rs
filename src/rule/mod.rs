@@ -17,6 +17,9 @@ use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 mod addr_family;
 pub use self::addr_family::*;
 
+mod direction;
+pub use self::direction::*;
+
 mod endpoint;
 pub use self::endpoint::*;
 
@@ -336,32 +339,6 @@ mod filter_rule_tests {
                 .validate_state_policy()
                 .is_err()
         );
-    }
-}
-
-
-
-/// Enum describing matching of rule towards packet flow direction.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Direction {
-    Any,
-    In,
-    Out,
-}
-
-impl Default for Direction {
-    fn default() -> Self {
-        Direction::Any
-    }
-}
-
-impl From<Direction> for u8 {
-    fn from(direction: Direction) -> Self {
-        match direction {
-            Direction::Any => ffi::pfvar::PF_INOUT as u8,
-            Direction::In => ffi::pfvar::PF_IN as u8,
-            Direction::Out => ffi::pfvar::PF_OUT as u8,
-        }
     }
 }
 
