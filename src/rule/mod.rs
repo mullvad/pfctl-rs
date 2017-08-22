@@ -29,6 +29,9 @@ pub use self::ip::*;
 mod port;
 pub use self::port::*;
 
+mod interface;
+pub use self::interface::*;
+
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[derive(Builder)]
@@ -392,35 +395,6 @@ impl From<Proto> for u8 {
     }
 }
 
-
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum Interface {
-    Any,
-    Name(String),
-}
-
-impl Default for Interface {
-    fn default() -> Self {
-        Interface::Any
-    }
-}
-
-impl<T: AsRef<str>> From<T> for Interface {
-    fn from(name: T) -> Self {
-        Interface::Name(name.as_ref().to_owned())
-    }
-}
-
-impl TryCopyTo<[i8]> for Interface {
-    fn copy_to(&self, dst: &mut [i8]) -> Result<()> {
-        match *self {
-                Interface::Any => "",
-                Interface::Name(ref name) => &name[..],
-            }
-            .copy_to(dst)
-    }
-}
 
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
