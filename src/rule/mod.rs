@@ -31,6 +31,9 @@ pub use self::port::*;
 mod interface;
 pub use self::interface::*;
 
+mod state_policy;
+pub use self::state_policy::*;
+
 mod tcp_flags;
 pub use self::tcp_flags::*;
 
@@ -130,6 +133,8 @@ impl TryCopyTo<ffi::pfvar::pf_rule> for FilterRule {
         Ok(())
     }
 }
+
+
 
 #[cfg(test)]
 mod filter_rule_tests {
@@ -396,33 +401,6 @@ impl From<Proto> for u8 {
             Proto::Udp => libc::IPPROTO_UDP as u8,
             Proto::Icmp => libc::IPPROTO_ICMP as u8,
             Proto::IcmpV6 => libc::IPPROTO_ICMPV6 as u8,
-        }
-    }
-}
-
-
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum StatePolicy {
-    None,
-    Keep,
-    Modulate,
-    SynProxy,
-}
-
-impl Default for StatePolicy {
-    fn default() -> Self {
-        StatePolicy::None
-    }
-}
-
-impl From<StatePolicy> for u8 {
-    fn from(state_policy: StatePolicy) -> Self {
-        match state_policy {
-            StatePolicy::None => 0,
-            StatePolicy::Keep => ffi::pfvar::PF_STATE_NORMAL as u8,
-            StatePolicy::Modulate => ffi::pfvar::PF_STATE_MODULATE as u8,
-            StatePolicy::SynProxy => ffi::pfvar::PF_STATE_SYNPROXY as u8,
         }
     }
 }
