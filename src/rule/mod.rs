@@ -23,6 +23,9 @@ pub use self::direction::*;
 mod endpoint;
 pub use self::endpoint::*;
 
+mod redirect_endpoint;
+pub use self::redirect_endpoint::*;
+
 mod ip;
 pub use self::ip::*;
 
@@ -86,20 +89,8 @@ impl FilterRule {
     /// Returns the `AddrFamily` this rule matches against. Returns an `InvalidRuleCombination`
     /// error if this rule has an invalid combination of address families.
     fn get_af(&self) -> Result<AddrFamily> {
-        let endpoint_af = Self::compatible_af(self.from.get_af(), self.to.get_af())?;
-        Self::compatible_af(self.af, endpoint_af)
-    }
-
-    fn compatible_af(af1: AddrFamily, af2: AddrFamily) -> Result<AddrFamily> {
-        match (af1, af2) {
-            (af1, af2) if af1 == af2 => Ok(af1),
-            (af, AddrFamily::Any) => Ok(af),
-            (AddrFamily::Any, af) => Ok(af),
-            (af1, af2) => {
-                let msg = format!("AddrFamily {} and {} are incompatible", af1, af2);
-                bail!(ErrorKind::InvalidRuleCombination(msg));
-            }
-        }
+        let endpoint_af = compatible_af(self.from.get_af(), self.to.get_af())?;
+        compatible_af(self.af, endpoint_af)
     }
 
     /// Validates the combination of StatePolicy and Proto.
@@ -140,6 +131,84 @@ impl TryCopyTo<ffi::pfvar::pf_rule> for FilterRule {
         Ok(())
     }
 }
+
+
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Builder)]
+#[builder(setter(into))]
+#[builder(build_fn(name = "build_internal"))]
+pub struct RedirectRule {
+    action: RedirectRuleAction,
+    #[builder(default)]
+    direction: Direction,
+    #[builder(default)]
+    quick: bool,
+    #[builder(default)]
+    proto: Proto,
+    #[builder(default)]
+    af: AddrFamily,
+    #[builder(default)]
+    from: Endpoint,
+    #[builder(default)]
+    to: Endpoint,
+    redirect_to: RedirectEndpoint,
+}
+
+impl RedirectRuleBuilder {
+    pub fn build(&self) -> Result<RedirectRule> {
+        self.build_internal().map_err(|e| ErrorKind::InvalidRuleCombination(e).into())
+    }
+}
+
+impl RedirectRule {
+    /// Returns the `AddrFamily` this rule matches against. Returns an `InvalidRuleCombination`
+    /// error if this rule has an invalid combination of address families.
+    fn get_af(&self) -> Result<AddrFamily> {
+        let endpoint_af = compatible_af(self.from.get_af(), self.to.get_af())?;
+        let rdr_af = compatible_af(endpoint_af, self.redirect_to.get_af())?;
+        compatible_af(self.af, rdr_af)
+    }
+}
+
+impl TryCopyTo<ffi::pfvar::pf_rule> for RedirectRule {
+    fn try_copy_to(&self, pf_rule: &mut ffi::pfvar::pf_rule) -> Result<()> {
+        pf_rule.action = self.action.into();
+        pf_rule.direction = self.direction.into();
+        pf_rule.quick = self.quick as u8;
+        pf_rule.af = self.get_af()?.into();
+        pf_rule.proto = self.proto.into();
+
+        self.from.try_copy_to(&mut pf_rule.src)?;
+        self.to.try_copy_to(&mut pf_rule.dst)?;
+        self.redirect_to.try_copy_to(&mut pf_rule.rpool)?;
+
+        Ok(())
+    }
+}
+
+// Convenience trait to fill pf_pooladdr from `RedirectRule.redirect_to`
+// because usually we need to register `redirect_to` address/port before adding
+// redirect rule.
+impl CopyTo<ffi::pfvar::pf_pooladdr> for RedirectRule {
+    fn copy_to(&self, pf_pooladdr: &mut ffi::pfvar::pf_pooladdr) {
+        self.redirect_to.copy_to(pf_pooladdr);
+    }
+}
+
+
+fn compatible_af(af1: AddrFamily, af2: AddrFamily) -> Result<AddrFamily> {
+    match (af1, af2) {
+        (af1, af2) if af1 == af2 => Ok(af1),
+        (af, AddrFamily::Any) => Ok(af),
+        (AddrFamily::Any, af) => Ok(af),
+        (af1, af2) => {
+            let msg = format!("AddrFamily {} and {} are incompatible", af1, af2);
+            bail!(ErrorKind::InvalidRuleCombination(msg));
+        }
+    }
+}
+
 
 
 

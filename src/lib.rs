@@ -258,6 +258,29 @@ impl PfCtl {
         trans.commit()
     }
 
+    pub fn add_redirect_rule(&mut self, anchor: &str, rule: &RedirectRule) -> Result<()> {
+        // register pool address
+        let mut pfioc_pooladdr = unsafe { mem::zeroed::<ffi::pfvar::pfioc_pooladdr>() };
+        ioctl_guard!(ffi::pf_begin_addrs(self.fd(), &mut pfioc_pooladdr))?;
+        rule.copy_to(&mut pfioc_pooladdr.addr);
+        ioctl_guard!(ffi::pf_add_addr(self.fd(), &mut pfioc_pooladdr))?;
+
+        // prepare pfioc_rule
+        let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
+        anchor.try_copy_to(&mut pfioc_rule.anchor[..])?;
+        rule.try_copy_to(&mut pfioc_rule.rule)?;
+        pfioc_rule.pool_ticket = pfioc_pooladdr.ticket;
+        pfioc_rule.ticket = self.get_ticket(anchor, AnchorKind::Redirect)?;
+
+        // append rule
+        pfioc_rule.action = ffi::pfvar::PF_CHANGE_ADD_TAIL as u32;
+        ioctl_guard!(ffi::pf_change_rule(self.fd(), &mut pfioc_rule)).chain_err(
+            || {
+                ErrorKind::InvalidArgument("Couldn't add rdr rule")
+            },
+        )
+    }
+
     pub fn flush_rules(&mut self, anchor: &str, kind: RulesetKind) -> Result<()> {
         Transaction::new(&anchor, kind)?.commit()
     }

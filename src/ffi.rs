@@ -53,6 +53,8 @@ ioctl!(readwrite pf_delete_rule with b'D', 28; pfvar::pfioc_rule);
 ioctl!(readwrite pf_kill_states with b'D', 41; pfvar::pfioc_state_kill);
 // DIOCBEGINADDRS
 ioctl!(readwrite pf_begin_addrs with b'D', 51; pfvar::pfioc_pooladdr);
+// DIOCADDADDR
+ioctl!(readwrite pf_add_addr with b'D', 52; pfvar::pfioc_pooladdr);
 // DIOCXBEGIN
 ioctl!(readwrite pf_begin_trans with b'D', 81; pfvar::pfioc_trans);
 // DIOCXCOMMIT
