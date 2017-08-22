@@ -37,21 +37,20 @@ fn run() -> Result<()> {
     }
 
     let anchor_name = "test.anchor";
-    match pf.add_anchor(anchor_name, pfctl::AnchorKind::Filter) {
-        Ok(_) => println!("Added filter anchor \"{}\"", anchor_name),
-        Err(pfctl::Error(pfctl::ErrorKind::StateAlreadyActive, _)) => (),
-        err => err.chain_err(|| "Unable to add filter anchor")?,
-    }
 
-    match pf.add_anchor(anchor_name, pfctl::AnchorKind::Redirect) {
-        Ok(_) => println!("Added redirect anchor \"{}\"", anchor_name),
-        Err(pfctl::Error(pfctl::ErrorKind::StateAlreadyActive, _)) => (),
-        err => err.chain_err(|| "Unable to add redirect anchor")?,
-    }
+    pf.try_add_anchor(anchor_name, pfctl::AnchorKind::Filter)
+        .chain_err(|| "Unable to add filter anchor")?;
+    pf.try_add_anchor(anchor_name, pfctl::AnchorKind::Redirect)
+        .chain_err(|| "Unable to add redirect anchor")?;
 
     match pf.flush_rules(anchor_name, pfctl::RulesetKind::Filter) {
         Ok(_) => println!("Flushed filter rules"),
         err => err.chain_err(|| "Unable to flush filter rules")?,
+    }
+
+    match pf.flush_rules(anchor_name, pfctl::RulesetKind::Redirect) {
+        Ok(_) => println!("Flushed rdr rules"),
+        err => err.chain_err(|| "Unable to flush rdr rules")?,
     }
 
     let pass_all_rule =
@@ -107,6 +106,29 @@ fn run() -> Result<()> {
         .build()
         .unwrap();
     pf.set_rules(anchor_name, &[trans_rule1, trans_rule2]).chain_err(|| "Unable to set rules")?;
+
+    let mut rdr_rule_builder = pfctl::RedirectRuleBuilder::default();
+    let rdr_rule1 = rdr_rule_builder
+        .action(pfctl::RedirectRuleAction::Redirect)
+        .af(pfctl::AddrFamily::Ipv4)
+        .proto(pfctl::Proto::Tcp)
+        .direction(pfctl::Direction::In)
+        .to(
+            pfctl::Endpoint(
+                pfctl::Ip::from(Ipv4Addr::new(127, 0, 0, 1)),
+                pfctl::Port::One(3000, pfctl::PortUnaryModifier::Equal),
+            ),
+        )
+        .redirect_to(
+            pfctl::Endpoint(
+                pfctl::Ip::from(Ipv4Addr::new(127, 0, 0, 1)),
+                pfctl::Port::One(4000, pfctl::PortUnaryModifier::Equal),
+            ),
+        )
+        .build()
+        .unwrap();
+
+    pf.add_redirect_rule(anchor_name, &rdr_rule1).chain_err(|| "Unable to add rdr rule")?;
 
     Ok(())
 }

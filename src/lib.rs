@@ -248,14 +248,39 @@ impl PfCtl {
         rule.try_copy_to(&mut pfioc_rule.rule)?;
 
         pfioc_rule.action = ffi::pfvar::PF_CHANGE_ADD_TAIL as u32;
-        ioctl_guard!(ffi::pf_change_rule(self.fd(), &mut pfioc_rule))?;
-        Ok(())
+        ioctl_guard!(ffi::pf_change_rule(self.fd(), &mut pfioc_rule))
     }
 
     pub fn set_rules(&mut self, anchor: &str, rules: &[FilterRule]) -> Result<()> {
         let trans = Transaction::new(&anchor, RulesetKind::Filter)?;
         trans.add_rules(rules)?;
         trans.commit()
+    }
+
+    pub fn add_redirect_rule(&mut self, anchor: &str, rule: &RedirectRule) -> Result<()> {
+        // register redirect address in newly created address pool
+        let redirect_to = rule.get_redirect_to();
+        let mut pfioc_pooladdr = unsafe { mem::zeroed::<ffi::pfvar::pfioc_pooladdr>() };
+        ioctl_guard!(ffi::pf_begin_addrs(self.fd(), &mut pfioc_pooladdr))?;
+        redirect_to.0.copy_to(&mut pfioc_pooladdr.addr.addr);
+        ioctl_guard!(ffi::pf_add_addr(self.fd(), &mut pfioc_pooladdr))?;
+
+        // prepare pfioc_rule
+        let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
+        anchor.try_copy_to(&mut pfioc_rule.anchor[..])?;
+        rule.try_copy_to(&mut pfioc_rule.rule)?;
+
+        // copy address pool in pf_rule
+        let redirect_pool = PoolAddrList::new(&[redirect_to.0]);
+        pfioc_rule.rule.rpool.list = redirect_pool.to_palist();
+
+        // set tickets
+        pfioc_rule.pool_ticket = pfioc_pooladdr.ticket;
+        pfioc_rule.ticket = utils::get_ticket(self.fd(), anchor, AnchorKind::Redirect)?;
+
+        // append rule
+        pfioc_rule.action = ffi::pfvar::PF_CHANGE_ADD_TAIL as u32;
+        ioctl_guard!(ffi::pf_change_rule(self.fd(), &mut pfioc_rule))
     }
 
     pub fn flush_rules(&mut self, anchor: &str, kind: RulesetKind) -> Result<()> {

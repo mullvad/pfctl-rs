@@ -14,6 +14,15 @@ use std::mem;
 use std::ptr;
 use std::vec::Vec;
 
+/// Represents a list of IPs used to set up a table of addresses for traffic redirection in PF.
+///
+/// See pf_rule.rpool.list for more info.
+///
+/// This class retains the array of `pf_pooladdr` to make sure that pointers used in pf_palist
+/// reference the valid memory.
+///
+/// One should never use `pf_palist` produced by this class past the lifetime expiration of it.
+#[derive(Debug)]
 pub struct PoolAddrList {
     list: ffi::pfvar::pf_palist,
     pool: Box<[ffi::pfvar::pf_pooladdr]>,
@@ -26,11 +35,13 @@ impl PoolAddrList {
         let list = Self::create_palist(&mut pool);
 
         PoolAddrList {
-            list: list,
+            list,
             pool: pool.into_boxed_slice(),
         }
     }
 
+    /// Returns a copy of inner pf_palist linked list.
+    /// Returned copy should never be used past the lifetime expiration of PoolAddrList.
     pub fn to_palist(&self) -> ffi::pfvar::pf_palist {
         self.list
     }
