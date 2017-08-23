@@ -9,14 +9,24 @@
 use {ErrorKind, Result, ResultExt};
 use conversion::{CopyTo, TryCopyTo};
 use ffi;
-use ipnetwork::{IpNetwork, Ipv4Network, Ipv6Network};
+use ipnetwork::IpNetwork;
 
 use libc;
 
 use std::fmt;
 use std::mem;
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::vec::Vec;
+
+mod endpoint;
+pub use self::endpoint::*;
+
+mod ip;
+pub use self::ip::*;
+
+mod port;
+pub use self::port::*;
+
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[derive(Builder)]
@@ -310,139 +320,6 @@ mod filter_rule_tests {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub struct Endpoint(pub Ip, pub Port);
-
-impl Endpoint {
-    pub fn get_af(&self) -> AddrFamily {
-        self.0.get_af()
-    }
-}
-
-impl From<Ip> for Endpoint {
-    fn from(ip: Ip) -> Self {
-        Endpoint(ip, Port::default())
-    }
-}
-
-impl From<Port> for Endpoint {
-    fn from(port: Port) -> Self {
-        Endpoint(Ip::default(), port)
-    }
-}
-
-impl From<Ipv4Addr> for Endpoint {
-    fn from(ip: Ipv4Addr) -> Self {
-        Self::from(Ip::from(ip))
-    }
-}
-
-impl From<Ipv6Addr> for Endpoint {
-    fn from(ip: Ipv6Addr) -> Self {
-        Self::from(Ip::from(ip))
-    }
-}
-
-impl From<IpAddr> for Endpoint {
-    fn from(ip: IpAddr) -> Self {
-        Self::from(Ip::from(ip))
-    }
-}
-
-impl From<SocketAddrV4> for Endpoint {
-    fn from(socket_addr: SocketAddrV4) -> Self {
-        Endpoint(Ip::from(*socket_addr.ip()), Port::from(socket_addr.port()))
-    }
-}
-
-impl From<SocketAddrV6> for Endpoint {
-    fn from(socket_addr: SocketAddrV6) -> Self {
-        Endpoint(Ip::from(*socket_addr.ip()), Port::from(socket_addr.port()))
-    }
-}
-
-impl From<SocketAddr> for Endpoint {
-    fn from(socket_addr: SocketAddr) -> Self {
-        match socket_addr {
-            SocketAddr::V4(addr) => Endpoint::from(addr),
-            SocketAddr::V6(addr) => Endpoint::from(addr),
-        }
-    }
-}
-
-impl TryCopyTo<ffi::pfvar::pf_rule_addr> for Endpoint {
-    fn copy_to(&self, pf_rule_addr: &mut ffi::pfvar::pf_rule_addr) -> Result<()> {
-        let Endpoint(ref ip, ref port) = *self;
-        ip.copy_to(&mut pf_rule_addr.addr);
-        port.copy_to(unsafe { pf_rule_addr.xport.range.as_mut() })?;
-        Ok(())
-    }
-}
-
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Ip {
-    Any,
-    Net(IpNetwork),
-}
-
-impl Ip {
-    pub fn get_af(&self) -> AddrFamily {
-        match *self {
-            Ip::Any => AddrFamily::Any,
-            Ip::Net(IpNetwork::V4(_)) => AddrFamily::Ipv4,
-            Ip::Net(IpNetwork::V6(_)) => AddrFamily::Ipv6,
-        }
-    }
-
-    /// Returns `Ip::Any` represented an as an `IpNetwork`, used for ffi.
-    fn any_ffi_repr() -> IpNetwork {
-        IpNetwork::V6(Ipv6Network::new(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0), 0).unwrap(),)
-    }
-}
-
-impl Default for Ip {
-    fn default() -> Self {
-        Ip::Any
-    }
-}
-
-impl From<IpNetwork> for Ip {
-    fn from(net: IpNetwork) -> Self {
-        Ip::Net(net)
-    }
-}
-
-impl From<Ipv4Addr> for Ip {
-    fn from(ip: Ipv4Addr) -> Self {
-        Ip::Net(IpNetwork::V4(Ipv4Network::new(ip, 32).unwrap()))
-    }
-}
-
-impl From<Ipv6Addr> for Ip {
-    fn from(ip: Ipv6Addr) -> Self {
-        Ip::Net(IpNetwork::V6(Ipv6Network::new(ip, 128).unwrap()))
-    }
-}
-
-impl From<IpAddr> for Ip {
-    fn from(ip: IpAddr) -> Self {
-        match ip {
-            IpAddr::V4(addr) => Ip::from(addr),
-            IpAddr::V6(addr) => Ip::from(addr),
-        }
-    }
-}
-
-impl CopyTo<ffi::pfvar::pf_addr_wrap> for Ip {
-    fn copy_to(&self, pf_addr_wrap: &mut ffi::pfvar::pf_addr_wrap) {
-        match *self {
-            Ip::Any => Self::any_ffi_repr().copy_to(pf_addr_wrap),
-            Ip::Net(net) => net.copy_to(pf_addr_wrap),
-        }
-    }
-}
-
 
 /// Enum describing what should happen to a packet that matches a rule.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -549,123 +426,7 @@ impl fmt::Display for AddrFamily {
     }
 }
 
-// Port range representation
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Port {
-    Any,
-    One(u16, PortUnaryModifier),
-    Range(u16, u16, PortRangeModifier),
-}
 
-impl Default for Port {
-    fn default() -> Self {
-        Port::Any
-    }
-}
-
-impl From<u16> for Port {
-    fn from(port: u16) -> Self {
-        Port::One(port, PortUnaryModifier::Equal)
-    }
-}
-
-impl TryCopyTo<ffi::pfvar::pf_port_range> for Port {
-    fn copy_to(&self, pf_port_range: &mut ffi::pfvar::pf_port_range) -> Result<()> {
-        match *self {
-            Port::Any => {
-                pf_port_range.op = ffi::pfvar::PF_OP_NONE as u8;
-                pf_port_range.port[0] = 0;
-                pf_port_range.port[1] = 0;
-            }
-            Port::One(port, modifier) => {
-                pf_port_range.op = modifier.into();
-                // convert port range to network byte order
-                pf_port_range.port[0] = port.to_be();
-                pf_port_range.port[1] = 0;
-            }
-            Port::Range(start_port, end_port, modifier) => {
-                ensure!(
-                    start_port <= end_port,
-                    ErrorKind::InvalidArgument("Lower port is greater than upper port.")
-                );
-                pf_port_range.op = modifier.into();
-                // convert port range to network byte order
-                pf_port_range.port[0] = start_port.to_be();
-                pf_port_range.port[1] = end_port.to_be();
-            }
-        }
-        Ok(())
-    }
-}
-
-impl TryCopyTo<ffi::pfvar::pf_pool> for Port {
-    fn copy_to(&self, pf_pool: &mut ffi::pfvar::pf_pool) -> Result<()> {
-        match *self {
-            Port::Any => {
-                pf_pool.port_op = ffi::pfvar::PF_OP_NONE as u8;
-                pf_pool.proxy_port[0] = 0;
-                pf_pool.proxy_port[1] = 0;
-            }
-            Port::One(port, modifier) => {
-                pf_pool.port_op = modifier.into();
-                pf_pool.proxy_port[0] = port;
-                pf_pool.proxy_port[1] = 0;
-            }
-            Port::Range(start_port, end_port, modifier) => {
-                ensure!(
-                    start_port <= end_port,
-                    ErrorKind::InvalidArgument("Lower port is greater than upper port.")
-                );
-                pf_pool.port_op = modifier.into();
-                pf_pool.proxy_port[0] = start_port;
-                pf_pool.proxy_port[1] = end_port;
-            }
-        }
-        Ok(())
-    }
-}
-
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum PortUnaryModifier {
-    Equal,
-    NotEqual,
-    Greater,
-    Less,
-    GreaterOrEqual,
-    LessOrEqual,
-}
-
-impl From<PortUnaryModifier> for u8 {
-    fn from(modifier: PortUnaryModifier) -> Self {
-        match modifier {
-            PortUnaryModifier::Equal => ffi::pfvar::PF_OP_EQ as u8,
-            PortUnaryModifier::NotEqual => ffi::pfvar::PF_OP_NE as u8,
-            PortUnaryModifier::Greater => ffi::pfvar::PF_OP_GT as u8,
-            PortUnaryModifier::Less => ffi::pfvar::PF_OP_LT as u8,
-            PortUnaryModifier::GreaterOrEqual => ffi::pfvar::PF_OP_GE as u8,
-            PortUnaryModifier::LessOrEqual => ffi::pfvar::PF_OP_LE as u8,
-        }
-    }
-}
-
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum PortRangeModifier {
-    Exclusive,
-    Inclusive,
-    Except,
-}
-
-impl From<PortRangeModifier> for u8 {
-    fn from(modifier: PortRangeModifier) -> Self {
-        match modifier {
-            PortRangeModifier::Exclusive => ffi::pfvar::PF_OP_IRG as u8,
-            PortRangeModifier::Inclusive => ffi::pfvar::PF_OP_RRG as u8,
-            PortRangeModifier::Except => ffi::pfvar::PF_OP_XRG as u8,
-        }
-    }
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Interface {
