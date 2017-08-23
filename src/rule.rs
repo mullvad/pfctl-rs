@@ -343,6 +343,12 @@ impl From<Ipv6Addr> for Endpoint {
     }
 }
 
+impl From<IpAddr> for Endpoint {
+    fn from(ip: IpAddr) -> Self {
+        Self::from(Ip::from(ip))
+    }
+}
+
 impl From<SocketAddrV4> for Endpoint {
     fn from(socket_addr: SocketAddrV4) -> Self {
         Endpoint(Ip::from(*socket_addr.ip()), Port::from(socket_addr.port()))
