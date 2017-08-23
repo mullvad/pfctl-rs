@@ -31,7 +31,7 @@ impl From<u16> for Port {
 }
 
 impl TryCopyTo<ffi::pfvar::pf_port_range> for Port {
-    fn copy_to(&self, pf_port_range: &mut ffi::pfvar::pf_port_range) -> Result<()> {
+    fn try_copy_to(&self, pf_port_range: &mut ffi::pfvar::pf_port_range) -> Result<()> {
         match *self {
             Port::Any => {
                 pf_port_range.op = ffi::pfvar::PF_OP_NONE as u8;
@@ -60,7 +60,7 @@ impl TryCopyTo<ffi::pfvar::pf_port_range> for Port {
 }
 
 impl TryCopyTo<ffi::pfvar::pf_pool> for Port {
-    fn copy_to(&self, pf_pool: &mut ffi::pfvar::pf_pool) -> Result<()> {
+    fn try_copy_to(&self, pf_pool: &mut ffi::pfvar::pf_pool) -> Result<()> {
         match *self {
             Port::Any => {
                 pf_pool.port_op = ffi::pfvar::PF_OP_NONE as u8;

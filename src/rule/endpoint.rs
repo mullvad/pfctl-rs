@@ -75,10 +75,10 @@ impl From<SocketAddr> for Endpoint {
 }
 
 impl TryCopyTo<ffi::pfvar::pf_rule_addr> for Endpoint {
-    fn copy_to(&self, pf_rule_addr: &mut ffi::pfvar::pf_rule_addr) -> Result<()> {
+    fn try_copy_to(&self, pf_rule_addr: &mut ffi::pfvar::pf_rule_addr) -> Result<()> {
         let Endpoint(ref ip, ref port) = *self;
         ip.copy_to(&mut pf_rule_addr.addr);
-        port.copy_to(unsafe { pf_rule_addr.xport.range.as_mut() })?;
+        port.try_copy_to(unsafe { pf_rule_addr.xport.range.as_mut() })?;
         Ok(())
     }
 }
