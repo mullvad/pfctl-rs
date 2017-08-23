@@ -279,7 +279,7 @@ impl PfCtl {
         let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
 
         pfioc_rule.pool_ticket = get_pool_ticket(self.fd(), anchor)?;
-        pfioc_rule.ticket = self.get_ticket(&anchor)?;
+        pfioc_rule.ticket = self.get_ticket(&anchor, AnchorKind::Filter)?;
         anchor
             .copy_to(&mut pfioc_rule.anchor[..])
             .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
@@ -375,9 +375,10 @@ impl PfCtl {
         Ok(buffer_size / element_size)
     }
 
-    fn get_ticket(&self, anchor: &str) -> Result<u32> {
+    fn get_ticket(&self, anchor: &str, kind: AnchorKind) -> Result<u32> {
         let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
         pfioc_rule.action = ffi::pfvar::PF_CHANGE_GET_TICKET as u32;
+        pfioc_rule.rule.action = kind.into();
         anchor
             .copy_to(&mut pfioc_rule.anchor[..])
             .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
