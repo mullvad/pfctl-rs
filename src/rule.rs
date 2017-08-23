@@ -15,7 +15,7 @@ use libc;
 
 use std::fmt;
 use std::mem;
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
 use std::vec::Vec;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -340,6 +340,33 @@ impl From<Ipv4Addr> for Endpoint {
 impl From<Ipv6Addr> for Endpoint {
     fn from(ip: Ipv6Addr) -> Self {
         Self::from(Ip::from(ip))
+    }
+}
+
+impl From<IpAddr> for Endpoint {
+    fn from(ip: IpAddr) -> Self {
+        Self::from(Ip::from(ip))
+    }
+}
+
+impl From<SocketAddrV4> for Endpoint {
+    fn from(socket_addr: SocketAddrV4) -> Self {
+        Endpoint(Ip::from(*socket_addr.ip()), Port::from(socket_addr.port()))
+    }
+}
+
+impl From<SocketAddrV6> for Endpoint {
+    fn from(socket_addr: SocketAddrV6) -> Self {
+        Endpoint(Ip::from(*socket_addr.ip()), Port::from(socket_addr.port()))
+    }
+}
+
+impl From<SocketAddr> for Endpoint {
+    fn from(socket_addr: SocketAddr) -> Self {
+        match socket_addr {
+            SocketAddr::V4(addr) => Endpoint::from(addr),
+            SocketAddr::V6(addr) => Endpoint::from(addr),
+        }
     }
 }
 
