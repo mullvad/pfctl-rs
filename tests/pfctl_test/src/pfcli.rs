@@ -58,49 +58,47 @@ pub fn disable_firewall() -> Result<()> {
     Ok(())
 }
 
-pub fn get_anchors() -> Result<Vec<String>> {
-    let output = get_command()
-        .arg("-s")
-        .arg("Anchors")
-        .output()
-        .chain_err(|| "Failed to run pfctl")?;
-    let output = str_from_stdout(&output.stdout)?;
-    let names = output
-        .lines()
-        .map(|x| x.trim().to_owned())
-        .collect();
-    Ok(names)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum QueryKind {
+    /// Anchors. Use '*' to query anchors in main ruleset
+    Anchors,
+    /// Filter rules
+    Rules,
+    /// Redirect rules
+    Nat,
+    /// States
+    States,
 }
 
-pub fn get_rules<S: AsRef<OsStr>>(anchor_name: S) -> Result<Vec<String>> {
-    let output = get_command()
-        .arg("-a")
-        .arg(anchor_name.as_ref())
-        .arg("-sr")
-        .output()
-        .chain_err(|| "Failed to run pfctl")?;
-    let output = str_from_stdout(&output.stdout)?;
-    let rules = output
-        .lines()
-        .map(|x| x.trim().to_owned())
-        .collect();
-    Ok(rules)
+/// This is a constant value that represents main ruleset in PF
+pub static MAIN_RULESET: &'static str = "*";
+
+impl From<QueryKind> for &'static str {
+    fn from(kind: QueryKind) -> &'static str {
+        match kind {
+            QueryKind::Anchors => "Anchors",
+            QueryKind::Rules => "rules",
+            QueryKind::Nat => "nat",
+            QueryKind::States => "states",
+        }
+    }
 }
 
-pub fn get_states<S: AsRef<OsStr>>(anchor_name: S) -> Result<Vec<String>> {
+pub fn query_state<S: AsRef<OsStr>>(anchor_name: S, kind: QueryKind) -> Result<Vec<String>> {
+    let kind_str: &'static str = kind.into();
     let output = get_command()
         .arg("-a")
-        .arg(anchor_name.as_ref())
+        .arg(anchor_name)
         .arg("-s")
-        .arg("states")
+        .arg(kind_str)
         .output()
         .chain_err(|| "Failed to run pfctl")?;
     let output = str_from_stdout(&output.stdout)?;
-    let rules = output
+    let lines = output
         .lines()
         .map(|x| x.trim().to_owned())
         .collect();
-    Ok(rules)
+    Ok(lines)
 }
 
 
