@@ -168,7 +168,7 @@ fn get_pool_ticket(fd: RawFd, anchor: &str) -> Result<u32> {
     let mut pfioc_pooladdr = unsafe { mem::zeroed::<ffi::pfvar::pfioc_pooladdr>() };
     pfioc_pooladdr.action = ffi::pfvar::PF_CHANGE_GET_TICKET as u32;
     anchor
-        .copy_to(&mut pfioc_pooladdr.anchor[..])
+        .try_copy_to(&mut pfioc_pooladdr.anchor[..])
         .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
     ioctl_guard!(ffi::pf_begin_addrs(fd, &mut pfioc_pooladdr))?;
     Ok(pfioc_pooladdr.ticket)
@@ -185,7 +185,7 @@ mod conversion {
 
     /// Internal trait for all types that can try to write their value into another type.
     pub trait TryCopyTo<T: ?Sized> {
-        fn copy_to(&self, dst: &mut T) -> ::Result<()>;
+        fn try_copy_to(&self, dst: &mut T) -> ::Result<()>;
     }
 }
 use conversion::*;
@@ -244,7 +244,7 @@ impl PfCtl {
         let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
 
         pfioc_rule.rule.action = kind.into();
-        name.copy_to(&mut pfioc_rule.anchor_call[..])
+        name.try_copy_to(&mut pfioc_rule.anchor_call[..])
             .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
 
         ioctl_guard!(ffi::pf_insert_rule(self.fd(), &mut pfioc_rule))?;
@@ -281,9 +281,9 @@ impl PfCtl {
         pfioc_rule.pool_ticket = get_pool_ticket(self.fd(), anchor)?;
         pfioc_rule.ticket = self.get_ticket(&anchor, AnchorKind::Filter)?;
         anchor
-            .copy_to(&mut pfioc_rule.anchor[..])
+            .try_copy_to(&mut pfioc_rule.anchor[..])
             .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
-        rule.copy_to(&mut pfioc_rule.rule)?;
+        rule.try_copy_to(&mut pfioc_rule.rule)?;
 
         pfioc_rule.action = ffi::pfvar::PF_CHANGE_ADD_TAIL as u32;
         ioctl_guard!(ffi::pf_change_rule(self.fd(), &mut pfioc_rule))?;
@@ -380,7 +380,7 @@ impl PfCtl {
         pfioc_rule.action = ffi::pfvar::PF_CHANGE_GET_TICKET as u32;
         pfioc_rule.rule.action = kind.into();
         anchor
-            .copy_to(&mut pfioc_rule.anchor[..])
+            .try_copy_to(&mut pfioc_rule.anchor[..])
             .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
         ioctl_guard!(ffi::pf_change_rule(self.fd(), &mut pfioc_rule))?;
         Ok(pfioc_rule.ticket)
@@ -419,7 +419,7 @@ impl Transaction {
     /// Commit transaction
     pub fn commit(&self) -> Result<()> {
         let mut pfioc_trans_e = unsafe { mem::zeroed::<ffi::pfvar::pfioc_trans_pfioc_trans_e>() };
-        self.copy_to(&mut pfioc_trans_e)?;
+        self.try_copy_to(&mut pfioc_trans_e)?;
 
         let mut trans_elements = [pfioc_trans_e];
         let mut pfioc_trans = unsafe { mem::zeroed::<ffi::pfvar::pfioc_trans>() };
@@ -442,8 +442,8 @@ impl Transaction {
 
         pfioc_rule.action = ffi::pfvar::PF_CHANGE_NONE as u32;
         pfioc_rule.pool_ticket = get_pool_ticket(self.fd(), &self.anchor)?;
-        rule.copy_to(&mut pfioc_rule.rule)?;
-        self.copy_to(&mut pfioc_rule)?;
+        rule.try_copy_to(&mut pfioc_rule.rule)?;
+        self.try_copy_to(&mut pfioc_rule)?;
 
         ioctl_guard!(ffi::pf_add_rule(self.fd(), &mut pfioc_rule))
     }
@@ -477,7 +477,7 @@ impl Transaction {
                            -> Result<()> {
         pfioc_trans_e.rs_num = kind.into();
         anchor
-            .copy_to(&mut pfioc_trans_e.anchor[..])
+            .try_copy_to(&mut pfioc_trans_e.anchor[..])
             .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))
     }
 
@@ -487,17 +487,17 @@ impl Transaction {
 }
 
 impl TryCopyTo<ffi::pfvar::pfioc_trans_pfioc_trans_e> for Transaction {
-    fn copy_to(&self, pfioc_trans_e: &mut ffi::pfvar::pfioc_trans_pfioc_trans_e) -> Result<()> {
+    fn try_copy_to(&self, pfioc_trans_e: &mut ffi::pfvar::pfioc_trans_pfioc_trans_e) -> Result<()> {
         pfioc_trans_e.ticket = self.ticket;
         Self::setup_trans_element(&self.anchor, self.kind, pfioc_trans_e)
     }
 }
 
 impl TryCopyTo<ffi::pfvar::pfioc_rule> for Transaction {
-    fn copy_to(&self, pfioc_rule: &mut ffi::pfvar::pfioc_rule) -> Result<()> {
+    fn try_copy_to(&self, pfioc_rule: &mut ffi::pfvar::pfioc_rule) -> Result<()> {
         pfioc_rule.ticket = self.ticket;
         self.anchor
-            .copy_to(&mut pfioc_rule.anchor[..])
+            .try_copy_to(&mut pfioc_rule.anchor[..])
             .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))
     }
 }

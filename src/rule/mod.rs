@@ -122,7 +122,7 @@ impl FilterRule {
 }
 
 impl TryCopyTo<ffi::pfvar::pf_rule> for FilterRule {
-    fn copy_to(&self, pf_rule: &mut ffi::pfvar::pf_rule) -> Result<()> {
+    fn try_copy_to(&self, pf_rule: &mut ffi::pfvar::pf_rule) -> Result<()> {
         pf_rule.action = self.action.into();
         pf_rule.direction = self.direction.into();
         pf_rule.quick = self.quick as u8;
@@ -131,12 +131,12 @@ impl TryCopyTo<ffi::pfvar::pf_rule> for FilterRule {
         pf_rule.flags = (&self.tcp_flags.check).into();
         pf_rule.flagset = (&self.tcp_flags.mask).into();
         self.interface
-            .copy_to(&mut pf_rule.ifname)
+            .try_copy_to(&mut pf_rule.ifname)
             .chain_err(|| ErrorKind::InvalidArgument("Incompatible interface name"))?;
         pf_rule.proto = self.proto.into();
         pf_rule.af = self.get_af()?.into();
-        self.from.copy_to(&mut pf_rule.src)?;
-        self.to.copy_to(&mut pf_rule.dst)?;
+        self.from.try_copy_to(&mut pf_rule.src)?;
+        self.to.try_copy_to(&mut pf_rule.dst)?;
         Ok(())
     }
 }
@@ -384,7 +384,7 @@ impl CopyTo<ffi::pfvar::in6_addr> for Ipv6Addr {
 impl<T: AsRef<str>> TryCopyTo<[i8]> for T {
     /// Safely copy a Rust string into a raw buffer. Returning an error if the string could not be
     /// copied to the buffer.
-    fn copy_to(&self, dst: &mut [i8]) -> Result<()> {
+    fn try_copy_to(&self, dst: &mut [i8]) -> Result<()> {
         let src_i8: &[i8] = unsafe { mem::transmute(self.as_ref().as_bytes()) };
 
         ensure!(

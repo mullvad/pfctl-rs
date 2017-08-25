@@ -28,11 +28,11 @@ impl<T: AsRef<str>> From<T> for Interface {
 }
 
 impl TryCopyTo<[i8]> for Interface {
-    fn copy_to(&self, dst: &mut [i8]) -> Result<()> {
+    fn try_copy_to(&self, dst: &mut [i8]) -> Result<()> {
         match *self {
                 Interface::Any => "",
                 Interface::Name(ref name) => &name[..],
             }
-            .copy_to(dst)
+            .try_copy_to(dst)
     }
 }
