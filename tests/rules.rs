@@ -29,7 +29,7 @@ test!(drop_all_rule {
         .unwrap();
     assert_matches!(pf.add_rule(ANCHOR_NAME, &rule), Ok(()));
     assert_matches!(
-        pfcli::get_rules(ANCHOR_NAME),
+        pfcli::query_state(ANCHOR_NAME, pfcli::QueryKind::Rules),
         Ok(ref v) if v == &["block drop all"]
     );
 });
@@ -43,7 +43,7 @@ test!(drop_by_direction_rule {
         .unwrap();
     assert_matches!(pf.add_rule(ANCHOR_NAME, &rule), Ok(()));
     assert_matches!(
-        pfcli::get_rules(ANCHOR_NAME),
+        pfcli::query_state(ANCHOR_NAME, pfcli::QueryKind::Rules),
         Ok(ref v) if v == &["block drop out all"]
     );
 });
@@ -57,7 +57,7 @@ test!(drop_quick_rule {
         .unwrap();
     assert_matches!(pf.add_rule(ANCHOR_NAME, &rule), Ok(()));
     assert_matches!(
-        pfcli::get_rules(ANCHOR_NAME),
+        pfcli::query_state(ANCHOR_NAME, pfcli::QueryKind::Rules),
         Ok(ref v) if v == &["block drop quick all"]
     );
 });
@@ -73,7 +73,7 @@ test!(drop_by_ip_rule {
         .unwrap();
     assert_matches!(pf.add_rule(ANCHOR_NAME, &rule), Ok(()));
     assert_matches!(
-        pfcli::get_rules(ANCHOR_NAME),
+        pfcli::query_state(ANCHOR_NAME, pfcli::QueryKind::Rules),
         Ok(ref v) if v == &["block drop inet proto tcp from 192.168.0.1 to 127.0.0.1"]
     );
 });
@@ -89,7 +89,7 @@ test!(drop_by_port_rule {
         .unwrap();
     assert_matches!(pf.add_rule(ANCHOR_NAME, &rule), Ok(()));
     assert_matches!(
-        pfcli::get_rules(ANCHOR_NAME),
+        pfcli::query_state(ANCHOR_NAME, pfcli::QueryKind::Rules),
         Ok(ref v) if v == &["block drop proto tcp from any port = 3000 to any port = 8080"]
     );
 });
@@ -105,7 +105,7 @@ test!(drop_by_port_range_rule {
         .unwrap();
     assert_matches!(pf.add_rule(ANCHOR_NAME, &rule), Ok(()));
     assert_matches!(
-        pfcli::get_rules(ANCHOR_NAME),
+        pfcli::query_state(ANCHOR_NAME, pfcli::QueryKind::Rules),
         Ok(ref v) if v == &["block drop proto tcp from any port 3000:4000 to any port 5000 >< 6000"]
     );
 });
@@ -119,7 +119,7 @@ test!(drop_by_interface_rule {
         .unwrap();
     assert_matches!(pf.add_rule(ANCHOR_NAME, &rule), Ok(()));
     assert_matches!(
-        pfcli::get_rules(ANCHOR_NAME),
+        pfcli::query_state(ANCHOR_NAME, pfcli::QueryKind::Rules),
         Ok(ref v) if v == &["block drop on utun0 all"]
     );
 });
@@ -132,13 +132,13 @@ test!(flush_filter_rules {
         .unwrap();
     assert_matches!(pf.add_rule(ANCHOR_NAME, &rule), Ok(()));
     assert_matches!(
-        pfcli::get_rules(ANCHOR_NAME),
+        pfcli::query_state(ANCHOR_NAME, pfcli::QueryKind::Rules),
         Ok(ref v) if v.len() == 1
     );
 
     assert_matches!(pf.flush_rules(ANCHOR_NAME, pfctl::RulesetKind::Filter), Ok(()));
     assert_matches!(
-        pfcli::get_rules(ANCHOR_NAME),
+        pfcli::query_state(ANCHOR_NAME, pfcli::QueryKind::Rules),
         Ok(ref v) if v.len() == 0
     );
 });
@@ -159,7 +159,7 @@ test!(set_filter_rules_with_transaction {
 
     assert_matches!(pf.set_rules(ANCHOR_NAME, &[rule1, rule2]), Ok(()));
     assert_matches!(
-        pfcli::get_rules(ANCHOR_NAME),
+        pfcli::query_state(ANCHOR_NAME, pfcli::QueryKind::Rules),
         Ok(ref v) if v == &["block drop inet from 192.168.1.1 to any",
                             "block drop inet from 192.168.2.1 to any port = 80"]
     );
@@ -203,7 +203,7 @@ test!(all_state_policies {
 
     assert_matches!(pf.set_rules(ANCHOR_NAME, &[rule1, rule2, rule3, rule4]), Ok(()));
     assert_matches!(
-        pfcli::get_rules(ANCHOR_NAME),
+        pfcli::query_state(ANCHOR_NAME, pfcli::QueryKind::Rules),
         Ok(ref v) if v == &["pass inet from 192.168.1.1 to any no state",
                             "pass inet proto tcp from 192.168.1.2 to any flags S/FSRA keep state",
                             "pass inet proto tcp from 192.168.1.3 to any flags any modulate state",
@@ -224,7 +224,7 @@ test!(logging {
         .unwrap();
     assert_matches!(pf.add_rule(ANCHOR_NAME, &rule), Ok(()));
     assert_matches!(
-        pfcli::get_rules(ANCHOR_NAME),
+        pfcli::query_state(ANCHOR_NAME, pfcli::QueryKind::Rules),
         Ok(ref v) if v == &["block drop log (all, user) all"]
     );
 });
