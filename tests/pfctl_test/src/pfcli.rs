@@ -1,4 +1,3 @@
-use std::ffi::OsStr;
 use std::process::Command;
 use std::str;
 
@@ -58,25 +57,12 @@ pub fn disable_firewall() -> Result<()> {
     Ok(())
 }
 
-pub fn get_anchors() -> Result<Vec<String>> {
-    let output = get_command()
-        .arg("-s")
-        .arg("Anchors")
-        .output()
-        .chain_err(|| "Failed to run pfctl")?;
-    let output = str_from_stdout(&output.stdout)?;
-    let names = output
-        .lines()
-        .map(|x| x.trim().to_owned())
-        .collect();
-    Ok(names)
-}
-
-pub fn get_rules<S: AsRef<OsStr>>(anchor_name: S) -> Result<Vec<String>> {
+fn get_rules_internal(anchor_name: &str, param_kind: &str) -> Result<Vec<String>> {
     let output = get_command()
         .arg("-a")
-        .arg(anchor_name.as_ref())
-        .arg("-sr")
+        .arg(anchor_name)
+        .arg("-s")
+        .arg(param_kind)
         .output()
         .chain_err(|| "Failed to run pfctl")?;
     let output = str_from_stdout(&output.stdout)?;
@@ -87,20 +73,36 @@ pub fn get_rules<S: AsRef<OsStr>>(anchor_name: S) -> Result<Vec<String>> {
     Ok(rules)
 }
 
-pub fn get_states<S: AsRef<OsStr>>(anchor_name: S) -> Result<Vec<String>> {
+/// List anchors.
+/// Pass parent anchor's name to obtain nested anchors.
+/// Otherwise, pass None to obtain anchors from main ruleset.
+pub fn get_anchors(parent_anchor: Option<&str>) -> Result<Vec<String>> {
+    get_rules_internal(parent_anchor.unwrap_or("*"), "Anchors")
+}
+
+/// Get filter rules in anchor
+pub fn get_rules(anchor_name: &str) -> Result<Vec<String>> {
+    get_rules_internal(anchor_name, "rules")
+}
+
+/// Get nat rules in anchor
+pub fn get_nat_rules(anchor_name: &str) -> Result<Vec<String>> {
+    get_rules_internal(anchor_name, "nat")
+}
+
+/// Get global table of states
+pub fn get_all_states() -> Result<Vec<String>> {
     let output = get_command()
-        .arg("-a")
-        .arg(anchor_name.as_ref())
         .arg("-s")
         .arg("states")
         .output()
         .chain_err(|| "Failed to run pfctl")?;
     let output = str_from_stdout(&output.stdout)?;
-    let rules = output
+    let states = output
         .lines()
         .map(|x| x.trim().to_owned())
         .collect();
-    Ok(rules)
+    Ok(states)
 }
 
 
@@ -123,11 +125,11 @@ impl From<FlushOptions> for &'static str {
     }
 }
 
-pub fn flush_rules<S: AsRef<OsStr>>(anchor_name: S, options: FlushOptions) -> Result<()> {
+pub fn flush_rules(anchor_name: &str, options: FlushOptions) -> Result<()> {
     let flush_arg: &'static str = options.into();
     let output = get_command()
         .arg("-a")
-        .arg(anchor_name.as_ref())
+        .arg(anchor_name)
         .arg("-F")
         .arg(flush_arg)
         .output()

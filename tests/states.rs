@@ -52,13 +52,13 @@ test!(reset_ipv4_states_by_anchor {
     send_udp_packet(sender_addr, server_addr);
 
     assert_matches!(
-        pfcli::get_states(ANCHOR_NAME),
+        pfcli::get_all_states(),
         Ok(ref v) if v == &["ALL udp 127.0.0.1:1338 -> 127.0.0.1:1337       SINGLE:NO_TRAFFIC",
                             "ALL udp 127.0.0.1:1337 <- 127.0.0.1:1338       NO_TRAFFIC:SINGLE"]
     );
     assert_matches!(pf.clear_states(ANCHOR_NAME, pfctl::AnchorKind::Filter), Ok(2));
     assert_matches!(
-        pfcli::get_states(ANCHOR_NAME),
+        pfcli::get_all_states(),
         Ok(ref v) if v.len() == 0
     );
 });
@@ -73,13 +73,13 @@ test!(reset_ipv6_states_by_anchor {
     send_udp_packet(sender_addr, server_addr);
 
     assert_matches!(
-        pfcli::get_states(ANCHOR_NAME),
+        pfcli::get_all_states(),
         Ok(ref v) if v == &["ALL udp ::1[1338] -> ::1[1337]       SINGLE:NO_TRAFFIC",
                             "ALL udp ::1[1337] <- ::1[1338]       NO_TRAFFIC:SINGLE"]
     );
     assert_matches!(pf.clear_states(ANCHOR_NAME, pfctl::AnchorKind::Filter), Ok(2));
     assert_matches!(
-        pfcli::get_states(ANCHOR_NAME),
+        pfcli::get_all_states(),
         Ok(ref v) if v.len() == 0
     );
 });
