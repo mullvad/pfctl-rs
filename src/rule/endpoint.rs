@@ -11,6 +11,7 @@ use super::{AddrFamily, Ip, Port};
 use Result;
 use conversion::{CopyTo, TryCopyTo};
 use ffi;
+use pooladdr::PoolAddrList;
 
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
 
@@ -20,6 +21,11 @@ pub struct Endpoint(pub Ip, pub Port);
 impl Endpoint {
     pub fn get_af(&self) -> AddrFamily {
         self.0.get_af()
+    }
+
+    /// Returns PoolAddrList initialized with receiver's IP address
+    pub fn to_pool_addr_list(&self) -> PoolAddrList {
+        PoolAddrList::new(&[self.0])
     }
 }
 

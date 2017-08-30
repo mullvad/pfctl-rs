@@ -272,7 +272,7 @@ impl PfCtl {
         rule.try_copy_to(&mut pfioc_rule.rule)?;
 
         // copy address pool in pf_rule
-        let redirect_pool = PoolAddrList::new(&[redirect_to.0]);
+        let redirect_pool = redirect_to.to_pool_addr_list();
         pfioc_rule.rule.rpool.list = redirect_pool.to_palist();
 
         // set tickets
