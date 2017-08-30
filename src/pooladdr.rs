@@ -9,7 +9,6 @@
 use conversion::CopyTo;
 use ffi;
 use rule::Ip;
-use std::hash::{Hash, Hasher};
 use std::mem;
 
 use std::ptr;
@@ -23,19 +22,17 @@ use std::vec::Vec;
 /// One should never use `pf_palist` produced by this class past the lifetime expiration of it.
 #[derive(Debug)]
 pub struct PoolAddrList {
-    ips: Vec<Ip>,
     list: ffi::pfvar::pf_palist,
     pool: Box<[ffi::pfvar::pf_pooladdr]>,
 }
 
 impl PoolAddrList {
-    pub fn new(ips: Vec<Ip>) -> Self {
+    pub fn new(ips: &[Ip]) -> Self {
         let mut pool = Self::init_pool(&ips);
         Self::link_elements(&mut pool);
         let list = Self::create_palist(&mut pool);
 
         PoolAddrList {
-            ips,
             list,
             pool: pool.into_boxed_slice(),
         }
@@ -81,25 +78,5 @@ impl PoolAddrList {
             list.tqh_last = &mut list.tqh_first;
         }
         list
-    }
-}
-
-impl PartialEq for PoolAddrList {
-    fn eq(&self, other: &PoolAddrList) -> bool {
-        self.ips == other.ips
-    }
-}
-
-impl Eq for PoolAddrList {}
-
-impl Hash for PoolAddrList {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.ips.hash(state);
-    }
-}
-
-impl Clone for PoolAddrList {
-    fn clone(&self) -> Self {
-        PoolAddrList::new(self.ips.clone())
     }
 }

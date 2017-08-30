@@ -23,9 +23,6 @@ pub use self::direction::*;
 mod endpoint;
 pub use self::endpoint::*;
 
-mod redirect_endpoint;
-pub use self::redirect_endpoint::*;
-
 mod ip;
 pub use self::ip::*;
 
@@ -152,7 +149,7 @@ pub struct RedirectRule {
     from: Endpoint,
     #[builder(default)]
     to: Endpoint,
-    redirect_to: RedirectEndpoint,
+    redirect_to: Endpoint,
 }
 
 impl RedirectRuleBuilder {
@@ -171,8 +168,8 @@ impl RedirectRule {
     }
 
     /// Returns reference to inner redirect_to
-    pub fn get_redirect_endpoint(&self) -> &RedirectEndpoint {
-        &self.redirect_to
+    pub fn get_redirect_to(&self) -> Endpoint {
+        self.redirect_to
     }
 }
 
@@ -186,7 +183,11 @@ impl TryCopyTo<ffi::pfvar::pf_rule> for RedirectRule {
 
         self.from.try_copy_to(&mut pf_rule.src)?;
         self.to.try_copy_to(&mut pf_rule.dst)?;
-        self.redirect_to.try_copy_to(&mut pf_rule.rpool)?;
+
+        // Fill in port only. Consumer has to fill in the rpool manually, i.e:
+        // let pa = PoolAddrList::new(&[redirect_ip]);
+        // pfioc_rule.rule.rpool.list = pa.to_palist();
+        self.redirect_to.1.try_copy_to(&mut pf_rule.rpool)?;
 
         Ok(())
     }
