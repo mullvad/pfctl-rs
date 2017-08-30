@@ -114,13 +114,13 @@ fn run() -> Result<()> {
         .proto(pfctl::Proto::Tcp)
         .direction(pfctl::Direction::In)
         .to(
-            pfctl::Endpoint(
+            pfctl::Endpoint::new(
                 pfctl::Ip::from(Ipv4Addr::new(127, 0, 0, 1)),
                 pfctl::Port::One(3000, pfctl::PortUnaryModifier::Equal),
             ),
         )
         .redirect_to(
-            pfctl::Endpoint(
+            pfctl::Endpoint::new(
                 pfctl::Ip::from(Ipv4Addr::new(127, 0, 0, 1)),
                 pfctl::Port::One(4000, pfctl::PortUnaryModifier::Equal),
             ),
