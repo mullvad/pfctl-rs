@@ -29,6 +29,8 @@ pub mod tcp {
 }
 
 // The definitions of the ioctl calls come from pfvar.h. Look for the comment "ioctl operations"
+// The documentation describing the order of calls and accepted parameters can be found at:
+// http://man.openbsd.org/pf.4
 // DIOCSTART
 ioctl!(none pf_start with b'D', 1);
 // DIOCSTOP
