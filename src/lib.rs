@@ -300,7 +300,7 @@ impl PfCtl {
         // register pool address
         let mut pfioc_pooladdr = unsafe { mem::zeroed::<ffi::pfvar::pfioc_pooladdr>() };
         ioctl_guard!(ffi::pf_begin_addrs(self.fd(), &mut pfioc_pooladdr))?;
-        rule.copy_to(&mut pfioc_pooladdr.addr);
+        rule.get_redirect_endpoint().copy_to(&mut pfioc_pooladdr.addr);
         ioctl_guard!(ffi::pf_add_addr(self.fd(), &mut pfioc_pooladdr))?;
 
         // prepare pfioc_rule

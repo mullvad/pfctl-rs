@@ -169,6 +169,11 @@ impl RedirectRule {
         let rdr_af = compatible_af(endpoint_af, self.redirect_to.get_af())?;
         compatible_af(self.af, rdr_af)
     }
+
+    /// Returns reference to inner redirect_to
+    pub fn get_redirect_endpoint(&self) -> &RedirectEndpoint {
+        &self.redirect_to
+    }
 }
 
 impl TryCopyTo<ffi::pfvar::pf_rule> for RedirectRule {
@@ -184,15 +189,6 @@ impl TryCopyTo<ffi::pfvar::pf_rule> for RedirectRule {
         self.redirect_to.try_copy_to(&mut pf_rule.rpool)?;
 
         Ok(())
-    }
-}
-
-// Convenience trait to fill pf_pooladdr from `RedirectRule.redirect_to`
-// because usually we need to register `redirect_to` address/port before adding
-// redirect rule.
-impl CopyTo<ffi::pfvar::pf_pooladdr> for RedirectRule {
-    fn copy_to(&self, pf_pooladdr: &mut ffi::pfvar::pf_pooladdr) {
-        self.redirect_to.copy_to(pf_pooladdr);
     }
 }
 
