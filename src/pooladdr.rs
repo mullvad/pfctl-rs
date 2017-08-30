@@ -14,7 +14,9 @@ use std::mem;
 use std::ptr;
 use std::vec::Vec;
 
-/// A wrapper class for `pf_palist`.
+/// Represents a list of IPs used to set up a table of addresses for traffic redirection in PF.
+///
+/// See pf_rule.rpool.list for more info.
 ///
 /// This class retains the array of `pf_pooladdr` to make sure that pointers used in pf_palist
 /// reference the valid memory.
