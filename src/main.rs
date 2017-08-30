@@ -86,27 +86,6 @@ fn run() -> Result<()> {
         .unwrap();
     pf.add_rule(anchor_name, &to_port_rule).chain_err(|| "Unable to add port rule")?;
 
-    let ipv6 = Ipv6Addr::new(0xbeef, 8, 7, 6, 5, 4, 3, 2);
-    let from_ipv6_rule = pfctl::FilterRuleBuilder::default()
-        .action(pfctl::FilterRuleAction::Pass)
-        .from(ipv6)
-        .build()
-        .unwrap();
-    pf.add_rule(anchor_name, &from_ipv6_rule).chain_err(|| "Unable to add IPv6 rule")?;
-
-    let trans_rule1 = pfctl::FilterRuleBuilder::default()
-        .action(pfctl::FilterRuleAction::Drop)
-        .from(Ipv4Addr::new(192, 168, 1, 1))
-        .build()
-        .unwrap();
-    let trans_rule2 = pfctl::FilterRuleBuilder::default()
-        .action(pfctl::FilterRuleAction::Drop)
-        .from(Ipv4Addr::new(192, 168, 2, 1))
-        .to(pfctl::Port::from(80))
-        .build()
-        .unwrap();
-    pf.set_rules(anchor_name, &[trans_rule1, trans_rule2]).chain_err(|| "Unable to set rules")?;
-
     let mut rdr_rule_builder = pfctl::RedirectRuleBuilder::default();
     let rdr_rule1 = rdr_rule_builder
         .action(pfctl::RedirectRuleAction::Redirect)
@@ -129,6 +108,37 @@ fn run() -> Result<()> {
         .unwrap();
 
     pf.add_redirect_rule(anchor_name, &rdr_rule1).chain_err(|| "Unable to add rdr rule")?;
+
+    let ipv6 = Ipv6Addr::new(0xbeef, 8, 7, 6, 5, 4, 3, 2);
+    let from_ipv6_rule = pfctl::FilterRuleBuilder::default()
+        .action(pfctl::FilterRuleAction::Pass)
+        .from(ipv6)
+        .build()
+        .unwrap();
+    pf.add_rule(anchor_name, &from_ipv6_rule).chain_err(|| "Unable to add IPv6 rule")?;
+
+    let trans_rule1 = pfctl::FilterRuleBuilder::default()
+        .action(pfctl::FilterRuleAction::Drop)
+        .from(Ipv4Addr::new(192, 168, 1, 1))
+        .build()
+        .unwrap();
+    let trans_rule2 = pfctl::FilterRuleBuilder::default()
+        .action(pfctl::FilterRuleAction::Drop)
+        .from(Ipv4Addr::new(192, 168, 2, 1))
+        .to(pfctl::Port::from(80))
+        .build()
+        .unwrap();
+    let trans_rule3 = pfctl::RedirectRuleBuilder::default()
+        .action(pfctl::RedirectRuleAction::Redirect)
+        .to(pfctl::Port::from(80))
+        .redirect_to(pfctl::Port::from(8080))
+        .build()
+        .unwrap();
+    let mut trans_change = pfctl::AnchorChange::new("anchor_name");
+    trans_change.filter_rules = Some(vec![trans_rule1, trans_rule2]);
+    trans_change.redirect_rules = Some(vec![trans_rule3]);
+    pf.set_rules(trans_change)
+        .chain_err(|| "Unable to set rules")?;
 
     Ok(())
 }
