@@ -28,7 +28,7 @@ fn send_udp_packet(sender: SocketAddr, recepient: SocketAddr) {
 
 fn rule_builder(destination: SocketAddr) -> pfctl::FilterRule {
     pfctl::FilterRuleBuilder::default()
-        .action(pfctl::RuleAction::Pass)
+        .action(pfctl::FilterRuleAction::Pass)
         .proto(pfctl::Proto::Udp)
         .to(destination)
         .quick(true)

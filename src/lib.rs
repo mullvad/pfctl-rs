@@ -42,7 +42,7 @@
 //! // Create a packet filtering rule matching all packets on the "lo0" interface and allowing
 //! // them to pass:
 //! let rule = pfctl::FilterRuleBuilder::default()
-//!     .action(pfctl::RuleAction::Pass)
+//!     .action(pfctl::FilterRuleAction::Pass)
 //!     .interface("lo0")
 //!     .build()
 //!     .unwrap();
