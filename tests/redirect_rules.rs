@@ -8,7 +8,7 @@ extern crate pfctl_test;
 use pfctl_test::pfcli;
 use std::net::Ipv4Addr;
 
-static ANCHOR_NAME: &'static str = "pfctl-rs.integration.testing.rdr-rules";
+static ANCHOR_NAME: &'static str = "pfctl-rs.integration.testing.redirect-rules";
 
 fn before_each() {
     pfctl::PfCtl::new()
@@ -19,6 +19,10 @@ fn before_each() {
 
 fn after_each() {
     pfcli::flush_rules(ANCHOR_NAME, pfcli::FlushOptions::Nat).unwrap();
+    pfctl::PfCtl::new()
+        .unwrap()
+        .try_remove_anchor(ANCHOR_NAME, pfctl::AnchorKind::Redirect)
+        .unwrap();
 }
 
 test!(flush_redirect_rules {
