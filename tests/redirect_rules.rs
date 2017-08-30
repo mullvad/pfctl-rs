@@ -28,7 +28,7 @@ fn after_each() {
 test!(flush_redirect_rules {
     let mut pf = pfctl::PfCtl::new().unwrap();
     let rule = pfctl::RedirectRuleBuilder::default()
-        .action(pfctl::RedirectRuleAction::Rdr)
+        .action(pfctl::RedirectRuleAction::Redirect)
         .to(
             pfctl::Endpoint(
                 pfctl::Ip::from(Ipv4Addr::new(127, 0, 0, 1)),
@@ -59,7 +59,7 @@ test!(flush_redirect_rules {
 test!(add_redirect_rule {
     let mut pf = pfctl::PfCtl::new().unwrap();
     let rule = pfctl::RedirectRuleBuilder::default()
-        .action(pfctl::RedirectRuleAction::Rdr)
+        .action(pfctl::RedirectRuleAction::Redirect)
         .to(
             pfctl::Endpoint(
                 pfctl::Ip::from(Ipv4Addr::new(127, 0, 0, 1)),
