@@ -15,6 +15,12 @@ use std::mem;
 use std::ptr;
 use std::vec::Vec;
 
+/// A wrapper class for `pf_palist`.
+///
+/// This class retains the array of `pf_pooladdr` to make sure that pointers used in pf_palist
+/// reference the valid memory.
+///
+/// One should never use `pf_palist` produced by this class past the lifetime expiration of it.
 #[derive(Debug)]
 pub struct PoolAddrList {
     ips: Vec<Ip>,
@@ -35,6 +41,8 @@ impl PoolAddrList {
         }
     }
 
+    /// Returns a copy of inner pf_palist linked list.
+    /// Returned copy should never be used past the lifetime expiration of PoolAddrList.
     pub fn to_palist(&self) -> ffi::pfvar::pf_palist {
         self.list
     }
