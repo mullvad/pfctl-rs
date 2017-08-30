@@ -6,7 +6,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use {ErrorKind, Result, ResultExt};
+use {AnchorKind, ErrorKind, Result, ResultExt};
 use conversion::TryCopyTo;
 use ffi;
 
@@ -35,4 +35,15 @@ pub fn get_pool_ticket(fd: RawFd, anchor: &str) -> Result<u32> {
         .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
     ioctl_guard!(ffi::pf_begin_addrs(fd, &mut pfioc_pooladdr))?;
     Ok(pfioc_pooladdr.ticket)
+}
+
+pub fn get_ticket(fd: RawFd, anchor: &str, kind: AnchorKind) -> Result<u32> {
+    let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
+    pfioc_rule.action = ffi::pfvar::PF_CHANGE_GET_TICKET as u32;
+    pfioc_rule.rule.action = kind.into();
+    anchor
+        .try_copy_to(&mut pfioc_rule.anchor[..])
+        .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
+    ioctl_guard!(ffi::pf_change_rule(fd, &mut pfioc_rule))?;
+    Ok(pfioc_rule.ticket)
 }
