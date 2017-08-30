@@ -54,15 +54,15 @@ fn run() -> Result<()> {
     }
 
     let pass_all_rule =
-        pfctl::FilterRuleBuilder::default().action(pfctl::RuleAction::Pass).build().unwrap();
+        pfctl::FilterRuleBuilder::default().action(pfctl::FilterRuleAction::Pass).build().unwrap();
     let pass_all4_quick_rule = pfctl::FilterRuleBuilder::default()
-        .action(pfctl::RuleAction::Pass)
+        .action(pfctl::FilterRuleAction::Pass)
         .af(pfctl::AddrFamily::Ipv4)
         .quick(true)
         .build()
         .unwrap();
     let pass_all6_rule = pfctl::FilterRuleBuilder::default()
-        .action(pfctl::RuleAction::Pass)
+        .action(pfctl::FilterRuleAction::Pass)
         .af(pfctl::AddrFamily::Ipv6)
         .interface("utun0")
         .build()
@@ -73,14 +73,14 @@ fn run() -> Result<()> {
 
     let from_net = IpNetwork::from_str("192.168.99.11/24").unwrap();
     let from_net_rule = pfctl::FilterRuleBuilder::default()
-        .action(pfctl::RuleAction::Pass)
+        .action(pfctl::FilterRuleAction::Pass)
         .from(pfctl::Ip::from(from_net))
         .build()
         .unwrap();
     pf.add_rule(anchor_name, &from_net_rule).chain_err(|| "Unable to add IPv4 net rule")?;
 
     let to_port_rule = pfctl::FilterRuleBuilder::default()
-        .action(pfctl::RuleAction::Pass)
+        .action(pfctl::FilterRuleAction::Pass)
         .to(pfctl::Port::from(9876))
         .build()
         .unwrap();
@@ -88,19 +88,19 @@ fn run() -> Result<()> {
 
     let ipv6 = Ipv6Addr::new(0xbeef, 8, 7, 6, 5, 4, 3, 2);
     let from_ipv6_rule = pfctl::FilterRuleBuilder::default()
-        .action(pfctl::RuleAction::Pass)
+        .action(pfctl::FilterRuleAction::Pass)
         .from(ipv6)
         .build()
         .unwrap();
     pf.add_rule(anchor_name, &from_ipv6_rule).chain_err(|| "Unable to add IPv6 rule")?;
 
     let trans_rule1 = pfctl::FilterRuleBuilder::default()
-        .action(pfctl::RuleAction::Drop)
+        .action(pfctl::FilterRuleAction::Drop)
         .from(Ipv4Addr::new(192, 168, 1, 1))
         .build()
         .unwrap();
     let trans_rule2 = pfctl::FilterRuleBuilder::default()
-        .action(pfctl::RuleAction::Drop)
+        .action(pfctl::FilterRuleAction::Drop)
         .from(Ipv4Addr::new(192, 168, 2, 1))
         .to(pfctl::Port::from(80))
         .build()
