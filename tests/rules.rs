@@ -24,7 +24,7 @@ fn after_each() {
 test!(drop_all_rule {
     let mut pf = pfctl::PfCtl::new().unwrap();
     let rule = pfctl::FilterRuleBuilder::default()
-        .action(pfctl::RuleAction::Drop)
+        .action(pfctl::FilterRuleAction::Drop)
         .build()
         .unwrap();
     assert_matches!(pf.add_rule(ANCHOR_NAME, &rule), Ok(()));
@@ -37,7 +37,7 @@ test!(drop_all_rule {
 test!(drop_by_direction_rule {
     let mut pf = pfctl::PfCtl::new().unwrap();
     let rule = pfctl::FilterRuleBuilder::default()
-        .action(pfctl::RuleAction::Drop)
+        .action(pfctl::FilterRuleAction::Drop)
         .direction(pfctl::Direction::Out)
         .build()
         .unwrap();
@@ -51,7 +51,7 @@ test!(drop_by_direction_rule {
 test!(drop_quick_rule {
     let mut pf = pfctl::PfCtl::new().unwrap();
     let rule = pfctl::FilterRuleBuilder::default()
-        .action(pfctl::RuleAction::Drop)
+        .action(pfctl::FilterRuleAction::Drop)
         .quick(true)
         .build()
         .unwrap();
@@ -65,7 +65,7 @@ test!(drop_quick_rule {
 test!(drop_by_ip_rule {
     let mut pf = pfctl::PfCtl::new().unwrap();
     let rule = pfctl::FilterRuleBuilder::default()
-        .action(pfctl::RuleAction::Drop)
+        .action(pfctl::FilterRuleAction::Drop)
         .proto(pfctl::Proto::Tcp)
         .from(Ipv4Addr::new(192, 168, 0, 1))
         .to(Ipv4Addr::new(127, 0, 0, 1))
@@ -81,7 +81,7 @@ test!(drop_by_ip_rule {
 test!(drop_by_port_rule {
     let mut pf = pfctl::PfCtl::new().unwrap();
     let rule = pfctl::FilterRuleBuilder::default()
-        .action(pfctl::RuleAction::Drop)
+        .action(pfctl::FilterRuleAction::Drop)
         .proto(pfctl::Proto::Tcp)
         .from(pfctl::Port::One(3000, pfctl::PortUnaryModifier::Equal))
         .to(pfctl::Port::One(8080, pfctl::PortUnaryModifier::Equal))
@@ -97,7 +97,7 @@ test!(drop_by_port_rule {
 test!(drop_by_port_range_rule {
     let mut pf = pfctl::PfCtl::new().unwrap();
     let rule = pfctl::FilterRuleBuilder::default()
-        .action(pfctl::RuleAction::Drop)
+        .action(pfctl::FilterRuleAction::Drop)
         .proto(pfctl::Proto::Tcp)
         .from(pfctl::Port::Range(3000, 4000, pfctl::PortRangeModifier::Inclusive))
         .to(pfctl::Port::Range(5000, 6000, pfctl::PortRangeModifier::Exclusive))
@@ -113,7 +113,7 @@ test!(drop_by_port_range_rule {
 test!(drop_by_interface_rule {
     let mut pf = pfctl::PfCtl::new().unwrap();
     let rule = pfctl::FilterRuleBuilder::default()
-        .action(pfctl::RuleAction::Drop)
+        .action(pfctl::FilterRuleAction::Drop)
         .interface("utun0")
         .build()
         .unwrap();
@@ -127,7 +127,7 @@ test!(drop_by_interface_rule {
 test!(flush_filter_rules {
     let mut pf = pfctl::PfCtl::new().unwrap();
     let rule = pfctl::FilterRuleBuilder::default()
-        .action(pfctl::RuleAction::Drop)
+        .action(pfctl::FilterRuleAction::Drop)
         .build()
         .unwrap();
     assert_matches!(pf.add_rule(ANCHOR_NAME, &rule), Ok(()));
@@ -146,12 +146,12 @@ test!(flush_filter_rules {
 test!(set_filter_rules_with_transaction {
     let mut pf = pfctl::PfCtl::new().unwrap();
     let rule1 = pfctl::FilterRuleBuilder::default()
-        .action(pfctl::RuleAction::Drop)
+        .action(pfctl::FilterRuleAction::Drop)
         .from(Ipv4Addr::new(192, 168, 1, 1))
         .build()
         .unwrap();
     let rule2 = pfctl::FilterRuleBuilder::default()
-        .action(pfctl::RuleAction::Drop)
+        .action(pfctl::FilterRuleAction::Drop)
         .from(Ipv4Addr::new(192, 168, 2, 1))
         .to(pfctl::Port::from(80))
         .build()
@@ -168,13 +168,13 @@ test!(set_filter_rules_with_transaction {
 test!(all_state_policies {
     let mut pf = pfctl::PfCtl::new().unwrap();
     let rule1 = pfctl::FilterRuleBuilder::default()
-        .action(pfctl::RuleAction::Pass)
+        .action(pfctl::FilterRuleAction::Pass)
         .from(Ipv4Addr::new(192, 168, 1, 1))
         .keep_state(pfctl::StatePolicy::None)
         .build()
         .unwrap();
     let rule2 = pfctl::FilterRuleBuilder::default()
-        .action(pfctl::RuleAction::Pass)
+        .action(pfctl::FilterRuleAction::Pass)
         .from(Ipv4Addr::new(192, 168, 1, 2))
         .proto(pfctl::Proto::Tcp)
         .tcp_flags(
@@ -187,14 +187,14 @@ test!(all_state_policies {
         .build()
         .unwrap();
     let rule3 = pfctl::FilterRuleBuilder::default()
-        .action(pfctl::RuleAction::Pass)
+        .action(pfctl::FilterRuleAction::Pass)
         .from(Ipv4Addr::new(192, 168, 1, 3))
         .proto(pfctl::Proto::Tcp)
         .keep_state(pfctl::StatePolicy::Modulate)
         .build()
         .unwrap();
     let rule4 = pfctl::FilterRuleBuilder::default()
-        .action(pfctl::RuleAction::Pass)
+        .action(pfctl::FilterRuleAction::Pass)
         .from(Ipv4Addr::new(192, 168, 1, 4))
         .proto(pfctl::Proto::Tcp)
         .keep_state(pfctl::StatePolicy::SynProxy)
@@ -214,7 +214,7 @@ test!(all_state_policies {
 test!(logging {
     let mut pf = pfctl::PfCtl::new().unwrap();
     let rule = pfctl::FilterRuleBuilder::default()
-        .action(pfctl::RuleAction::Drop)
+        .action(pfctl::FilterRuleAction::Drop)
         .log(pfctl::RuleLogSet::new(&[
             pfctl::RuleLog::ExcludeMatchingState,
             pfctl::RuleLog::IncludeMatchingState,

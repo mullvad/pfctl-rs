@@ -53,7 +53,7 @@ pub use self::rule_log::*;
 #[builder(setter(into))]
 #[builder(build_fn(name = "build_internal"))]
 pub struct FilterRule {
-    action: RuleAction,
+    action: FilterRuleAction,
     #[builder(default)]
     direction: Direction,
     #[builder(default)]
@@ -220,14 +220,14 @@ mod filter_rule_tests {
 
     #[test]
     fn correct_af_default() {
-        let testee = FilterRuleBuilder::default().action(RuleAction::Pass).build().unwrap();
+        let testee = FilterRuleBuilder::default().action(FilterRuleAction::Pass).build().unwrap();
         assert_eq!(AddrFamily::Any, testee.get_af().unwrap());
     }
 
     #[test]
     fn af_incompatible_from_to() {
         let mut testee = FilterRuleBuilder::default();
-        testee.action(RuleAction::Pass);
+        testee.action(FilterRuleAction::Pass);
         let from4to6 = testee
             .from(*IPV4)
             .to(*IPV6)
@@ -245,7 +245,7 @@ mod filter_rule_tests {
     #[test]
     fn af_compatibility_ipv4() {
         let mut testee = FilterRuleBuilder::default();
-        testee.action(RuleAction::Pass).from(*IPV4);
+        testee.action(FilterRuleAction::Pass).from(*IPV4);
         assert_eq!(
             AddrFamily::Ipv4,
             testee
@@ -277,7 +277,7 @@ mod filter_rule_tests {
     #[test]
     fn af_compatibility_ipv6() {
         let mut testee = FilterRuleBuilder::default();
-        testee.action(RuleAction::Pass).to(*IPV6);
+        testee.action(FilterRuleAction::Pass).to(*IPV6);
         assert_eq!(
             AddrFamily::Ipv6,
             testee
@@ -311,7 +311,7 @@ mod filter_rule_tests {
         assert_eq!(
             StatePolicy::None,
             FilterRuleBuilder::default()
-                .action(RuleAction::Pass)
+                .action(FilterRuleAction::Pass)
                 .build()
                 .unwrap()
                 .validate_state_policy()
@@ -324,7 +324,7 @@ mod filter_rule_tests {
         assert_eq!(
             StatePolicy::None,
             FilterRuleBuilder::default()
-                .action(RuleAction::Pass)
+                .action(FilterRuleAction::Pass)
                 .keep_state(StatePolicy::None)
                 .proto(Proto::Tcp)
                 .build()
@@ -339,7 +339,7 @@ mod filter_rule_tests {
         assert_eq!(
             StatePolicy::Keep,
             FilterRuleBuilder::default()
-                .action(RuleAction::Pass)
+                .action(FilterRuleAction::Pass)
                 .keep_state(StatePolicy::Keep)
                 .proto(Proto::Tcp)
                 .build()
@@ -354,7 +354,7 @@ mod filter_rule_tests {
         assert_eq!(
             StatePolicy::Modulate,
             FilterRuleBuilder::default()
-                .action(RuleAction::Pass)
+                .action(FilterRuleAction::Pass)
                 .keep_state(StatePolicy::Modulate)
                 .proto(Proto::Tcp)
                 .build()
@@ -368,7 +368,7 @@ mod filter_rule_tests {
     fn state_policy_incompatible_modulate() {
         assert!(
             FilterRuleBuilder::default()
-                .action(RuleAction::Pass)
+                .action(FilterRuleAction::Pass)
                 .keep_state(StatePolicy::Modulate)
                 .proto(Proto::Udp)
                 .build()
@@ -383,7 +383,7 @@ mod filter_rule_tests {
         assert_eq!(
             StatePolicy::SynProxy,
             FilterRuleBuilder::default()
-                .action(RuleAction::Pass)
+                .action(FilterRuleAction::Pass)
                 .keep_state(StatePolicy::SynProxy)
                 .proto(Proto::Tcp)
                 .build()
@@ -397,7 +397,7 @@ mod filter_rule_tests {
     fn state_policy_incompatible_synproxy() {
         assert!(
             FilterRuleBuilder::default()
-                .action(RuleAction::Pass)
+                .action(FilterRuleAction::Pass)
                 .keep_state(StatePolicy::SynProxy)
                 .proto(Proto::Udp)
                 .build()
