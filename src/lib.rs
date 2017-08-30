@@ -241,7 +241,7 @@ impl PfCtl {
         let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
 
         pfioc_rule.pool_ticket = utils::get_pool_ticket(self.fd(), anchor)?;
-        pfioc_rule.ticket = self.get_ticket(&anchor, AnchorKind::Filter)?;
+        pfioc_rule.ticket = utils::get_ticket(self.fd(), &anchor, AnchorKind::Filter)?;
         anchor
             .try_copy_to(&mut pfioc_rule.anchor[..])
             .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
@@ -335,17 +335,6 @@ impl PfCtl {
         let element_size = mem::size_of::<ffi::pfvar::pfsync_state>() as u32;
         let buffer_size = pfioc_states.ps_len as u32;
         Ok(buffer_size / element_size)
-    }
-
-    fn get_ticket(&self, anchor: &str, kind: AnchorKind) -> Result<u32> {
-        let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
-        pfioc_rule.action = ffi::pfvar::PF_CHANGE_GET_TICKET as u32;
-        pfioc_rule.rule.action = kind.into();
-        anchor
-            .try_copy_to(&mut pfioc_rule.anchor[..])
-            .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
-        ioctl_guard!(ffi::pf_change_rule(self.fd(), &mut pfioc_rule))?;
-        Ok(pfioc_rule.ticket)
     }
 
     /// Internal function for getting the raw file descriptor to PF.
