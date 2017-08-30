@@ -259,11 +259,14 @@ impl PfCtl {
     }
 
     pub fn add_redirect_rule(&mut self, anchor: &str, rule: &RedirectRule) -> Result<()> {
-        // register redirect address in newly created address pool
         let redirect_to = rule.get_redirect_to();
+        let redirect_pool = redirect_to.to_pool_addr_list();
+        let Endpoint(redirect_ip, redirect_port) = redirect_to;
+
+        // register redirect address in newly created address pool
         let mut pfioc_pooladdr = unsafe { mem::zeroed::<ffi::pfvar::pfioc_pooladdr>() };
         ioctl_guard!(ffi::pf_begin_addrs(self.fd(), &mut pfioc_pooladdr))?;
-        redirect_to.0.copy_to(&mut pfioc_pooladdr.addr.addr);
+        redirect_ip.copy_to(&mut pfioc_pooladdr.addr.addr);
         ioctl_guard!(ffi::pf_add_addr(self.fd(), &mut pfioc_pooladdr))?;
 
         // prepare pfioc_rule
@@ -272,8 +275,8 @@ impl PfCtl {
         rule.try_copy_to(&mut pfioc_rule.rule)?;
 
         // copy address pool in pf_rule
-        let redirect_pool = redirect_to.to_pool_addr_list();
         pfioc_rule.rule.rpool.list = redirect_pool.to_palist();
+        redirect_port.try_copy_to(&mut pfioc_rule.rule.rpool)?;
 
         // set tickets
         pfioc_rule.pool_ticket = pfioc_pooladdr.ticket;

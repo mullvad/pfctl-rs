@@ -184,11 +184,6 @@ impl TryCopyTo<ffi::pfvar::pf_rule> for RedirectRule {
         self.from.try_copy_to(&mut pf_rule.src)?;
         self.to.try_copy_to(&mut pf_rule.dst)?;
 
-        // Fill in port only. Consumer has to fill in the rpool manually, i.e:
-        // let pa = PoolAddrList::new(&[redirect_ip]);
-        // pfioc_rule.rule.rpool.list = pa.to_palist();
-        self.redirect_to.1.try_copy_to(&mut pf_rule.rpool)?;
-
         Ok(())
     }
 }
