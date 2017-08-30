@@ -178,8 +178,8 @@ impl TryCopyTo<ffi::pfvar::pf_rule> for RedirectRule {
         pf_rule.action = self.action.into();
         pf_rule.direction = self.direction.into();
         pf_rule.quick = self.quick as u8;
-        pf_rule.af = self.get_af()?.into();
         pf_rule.proto = self.proto.into();
+        pf_rule.af = self.get_af()?.into();
 
         self.from.try_copy_to(&mut pf_rule.src)?;
         self.to.try_copy_to(&mut pf_rule.dst)?;
