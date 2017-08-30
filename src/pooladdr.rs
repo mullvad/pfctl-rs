@@ -29,14 +29,14 @@ pub struct PoolAddrList {
 }
 
 impl PoolAddrList {
-    pub fn new(ips: &[Ip]) -> Self {
-        let mut pool = Self::init_pool(ips);
+    pub fn new(ips: Vec<Ip>) -> Self {
+        let mut pool = Self::init_pool(&ips);
         Self::link_elements(&mut pool);
         let list = Self::create_palist(&mut pool);
 
         PoolAddrList {
-            ips: ips.to_vec(),
-            list: list,
+            ips,
+            list,
             pool: pool.into_boxed_slice(),
         }
     }
@@ -100,6 +100,6 @@ impl Hash for PoolAddrList {
 
 impl Clone for PoolAddrList {
     fn clone(&self) -> Self {
-        PoolAddrList::new(&self.ips)
+        PoolAddrList::new(self.ips.clone())
     }
 }

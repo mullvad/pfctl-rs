@@ -23,7 +23,7 @@ impl RedirectEndpoint {
     pub fn new(endpoint: Endpoint) -> Self {
         RedirectEndpoint {
             endpoint,
-            pool: PoolAddrList::new(&[endpoint.0]),
+            pool: PoolAddrList::new(vec![endpoint.0]),
         }
     }
 
