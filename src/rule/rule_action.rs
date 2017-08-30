@@ -28,15 +28,15 @@ impl From<FilterRuleAction> for u8 {
 /// Enum describing what should happen to a packet that matches a redirect rule.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RedirectRuleAction {
-    Rdr,
-    NoRdr,
+    Redirect,
+    NoRedirect,
 }
 
 impl From<RedirectRuleAction> for u8 {
     fn from(rule_action: RedirectRuleAction) -> Self {
         match rule_action {
-            RedirectRuleAction::Rdr => ffi::pfvar::PF_RDR as u8,
-            RedirectRuleAction::NoRdr => ffi::pfvar::PF_NORDR as u8,
+            RedirectRuleAction::Redirect => ffi::pfvar::PF_RDR as u8,
+            RedirectRuleAction::NoRedirect => ffi::pfvar::PF_NORDR as u8,
         }
     }
 }

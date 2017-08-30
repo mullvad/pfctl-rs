@@ -109,7 +109,7 @@ fn run() -> Result<()> {
 
     let mut rdr_rule_builder = pfctl::RedirectRuleBuilder::default();
     let rdr_rule1 = rdr_rule_builder
-        .action(pfctl::RedirectRuleAction::Rdr)
+        .action(pfctl::RedirectRuleAction::Redirect)
         .af(pfctl::AddrFamily::Ipv4)
         .proto(pfctl::Proto::Tcp)
         .direction(pfctl::Direction::In)
