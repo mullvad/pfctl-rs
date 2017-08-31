@@ -21,11 +21,11 @@ fn make_redirect_rule(to: pfctl::Endpoint, redirect_to: pfctl::Endpoint) -> pfct
 
 fn redirect_rule_ipv4() -> pfctl::RedirectRule {
     make_redirect_rule(
-        pfctl::Endpoint(
+        pfctl::Endpoint::new(
             pfctl::Ip::from(Ipv4Addr::new(127, 0, 0, 1)),
             pfctl::Port::One(3000, pfctl::PortUnaryModifier::Equal),
         ),
-        pfctl::Endpoint(
+        pfctl::Endpoint::new(
             pfctl::Ip::from(Ipv4Addr::new(127, 0, 0, 1)),
             pfctl::Port::One(4000, pfctl::PortUnaryModifier::Equal),
         ),
@@ -34,11 +34,11 @@ fn redirect_rule_ipv4() -> pfctl::RedirectRule {
 
 fn redirect_rule_ipv6() -> pfctl::RedirectRule {
     make_redirect_rule(
-        pfctl::Endpoint(
+        pfctl::Endpoint::new(
             pfctl::Ip::from(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1)),
             pfctl::Port::One(3000, pfctl::PortUnaryModifier::Equal),
         ),
-        pfctl::Endpoint(
+        pfctl::Endpoint::new(
             pfctl::Ip::from(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1)),
             pfctl::Port::One(4000, pfctl::PortUnaryModifier::Equal),
         ),
