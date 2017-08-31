@@ -72,12 +72,14 @@ extern crate lazy_static;
 
 use std::ffi::CStr;
 use std::fs::File;
-use std::fs::OpenOptions;
-use std::io;
 use std::mem;
 use std::os::unix::io::{AsRawFd, RawFd};
 
 mod ffi;
+
+#[macro_use]
+mod macros;
+mod utils;
 
 mod rule;
 pub use rule::*;
@@ -91,10 +93,8 @@ pub use anchor::*;
 mod ruleset;
 pub use ruleset::*;
 
-/// The path to the PF device file this library will use to communicate with PF.
-pub const PF_DEV_PATH: &'static str = "/dev/pf";
-
-const IOCTL_ERROR: i32 = -1;
+mod transaction;
+use transaction::*;
 
 mod errors {
     error_chain! {
@@ -125,24 +125,6 @@ mod errors {
 pub use errors::*;
 
 
-/// Macro for taking an expression with an ioctl call, perform it and return a Rust ´Result´.
-macro_rules! ioctl_guard {
-    ($func:expr) => (ioctl_guard!($func, libc::EEXIST));
-    ($func:expr, $already_active:expr) => {
-        if unsafe { $func } == IOCTL_ERROR {
-            let errno::Errno(error_code) = errno::errno();
-            let io_error = io::Error::from_raw_os_error(error_code);
-            let mut err = Err(ErrorKind::IoctlError(io_error).into());
-            if error_code == $already_active {
-                err = err.chain_err(|| ErrorKind::StateAlreadyActive);
-            }
-            err
-        } else {
-            Ok(()) as Result<()>
-        }
-    }
-}
-
 /// Returns the given input result, except if it is an `Err` matching the given `ErrorKind`,
 /// then it returns `Ok(())` instead, so the error is ignored.
 macro_rules! ignore_error_kind {
@@ -152,26 +134,6 @@ macro_rules! ignore_error_kind {
             result => result,
         }
     }
-}
-
-/// Open PF virtual device
-fn open_pf() -> Result<File> {
-    OpenOptions::new()
-        .read(true)
-        .write(true)
-        .open(PF_DEV_PATH)
-        .chain_err(|| ErrorKind::DeviceOpenError(PF_DEV_PATH))
-}
-
-/// Get pool ticket
-fn get_pool_ticket(fd: RawFd, anchor: &str) -> Result<u32> {
-    let mut pfioc_pooladdr = unsafe { mem::zeroed::<ffi::pfvar::pfioc_pooladdr>() };
-    pfioc_pooladdr.action = ffi::pfvar::PF_CHANGE_GET_TICKET as u32;
-    anchor
-        .try_copy_to(&mut pfioc_pooladdr.anchor[..])
-        .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
-    ioctl_guard!(ffi::pf_begin_addrs(fd, &mut pfioc_pooladdr))?;
-    Ok(pfioc_pooladdr.ticket)
 }
 
 
@@ -207,7 +169,7 @@ pub struct PfCtl {
 impl PfCtl {
     /// Returns a new `PfCtl` if opening the PF device file succeeded.
     pub fn new() -> Result<Self> {
-        let file = open_pf()?;
+        let file = utils::open_pf()?;
         Ok(PfCtl { file: file })
     }
 
@@ -278,8 +240,8 @@ impl PfCtl {
     pub fn add_rule(&mut self, anchor: &str, rule: &FilterRule) -> Result<()> {
         let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
 
-        pfioc_rule.pool_ticket = get_pool_ticket(self.fd(), anchor)?;
-        pfioc_rule.ticket = self.get_ticket(&anchor, AnchorKind::Filter)?;
+        pfioc_rule.pool_ticket = utils::get_pool_ticket(self.fd(), anchor)?;
+        pfioc_rule.ticket = utils::get_ticket(self.fd(), &anchor, AnchorKind::Filter)?;
         anchor
             .try_copy_to(&mut pfioc_rule.anchor[..])
             .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
@@ -375,132 +337,12 @@ impl PfCtl {
         Ok(buffer_size / element_size)
     }
 
-    fn get_ticket(&self, anchor: &str, kind: AnchorKind) -> Result<u32> {
-        let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
-        pfioc_rule.action = ffi::pfvar::PF_CHANGE_GET_TICKET as u32;
-        pfioc_rule.rule.action = kind.into();
-        anchor
-            .try_copy_to(&mut pfioc_rule.anchor[..])
-            .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
-        ioctl_guard!(ffi::pf_change_rule(self.fd(), &mut pfioc_rule))?;
-        Ok(pfioc_rule.ticket)
-    }
-
     /// Internal function for getting the raw file descriptor to PF.
     fn fd(&self) -> RawFd {
         self.file.as_raw_fd()
     }
 }
 
-
-#[derive(Debug)]
-struct Transaction {
-    file: File,
-    ticket: u32,
-    kind: RulesetKind,
-    anchor: String,
-}
-
-impl Transaction {
-    /// Returns a new `Transaction` if opening the PF device file succeeded.
-    pub fn new(anchor: &str, kind: RulesetKind) -> Result<Self> {
-        let file = open_pf()?;
-        let ticket = Self::get_ticket(file.as_raw_fd(), &anchor, kind)?;
-        Ok(
-            Transaction {
-                file: file,
-                ticket: ticket,
-                kind: kind,
-                anchor: anchor.to_owned(),
-            },
-        )
-    }
-
-    /// Commit transaction
-    pub fn commit(&self) -> Result<()> {
-        let mut pfioc_trans_e = unsafe { mem::zeroed::<ffi::pfvar::pfioc_trans_pfioc_trans_e>() };
-        self.try_copy_to(&mut pfioc_trans_e)?;
-
-        let mut trans_elements = [pfioc_trans_e];
-        let mut pfioc_trans = unsafe { mem::zeroed::<ffi::pfvar::pfioc_trans>() };
-        Self::setup_trans(&mut pfioc_trans, &mut trans_elements);
-
-        ioctl_guard!(ffi::pf_commit_trans(self.fd(), &mut pfioc_trans))
-    }
-
-    /// Append an array of rules into transaction
-    pub fn add_rules(&self, rules: &[FilterRule]) -> Result<()> {
-        for rule in rules.iter() {
-            self.add_rule(&rule)?;
-        }
-        Ok(())
-    }
-
-    /// Append single rule into transaction
-    pub fn add_rule(&self, rule: &FilterRule) -> Result<()> {
-        let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
-
-        pfioc_rule.action = ffi::pfvar::PF_CHANGE_NONE as u32;
-        pfioc_rule.pool_ticket = get_pool_ticket(self.fd(), &self.anchor)?;
-        rule.try_copy_to(&mut pfioc_rule.rule)?;
-        self.try_copy_to(&mut pfioc_rule)?;
-
-        ioctl_guard!(ffi::pf_add_rule(self.fd(), &mut pfioc_rule))
-    }
-
-    /// Internal function to obtain transaction ticket
-    fn get_ticket(fd: RawFd, anchor: &str, kind: RulesetKind) -> Result<u32> {
-        let mut pfioc_trans_e = unsafe { mem::zeroed::<ffi::pfvar::pfioc_trans_pfioc_trans_e>() };
-        Self::setup_trans_element(&anchor, kind, &mut pfioc_trans_e)?;
-
-        let mut trans_elements = [pfioc_trans_e];
-        let mut pfioc_trans = unsafe { mem::zeroed::<ffi::pfvar::pfioc_trans>() };
-        Self::setup_trans(&mut pfioc_trans, &mut trans_elements);
-
-        ioctl_guard!(ffi::pf_begin_trans(fd, &mut pfioc_trans))?;
-
-        Ok(trans_elements[0].ticket)
-    }
-
-    /// Internal function to wire up pfioc_trans and pfioc_trans_e
-    fn setup_trans(pfioc_trans: &mut ffi::pfvar::pfioc_trans,
-                   pfioc_trans_elements: &mut [ffi::pfvar::pfioc_trans_pfioc_trans_e]) {
-        pfioc_trans.size = pfioc_trans_elements.len() as i32;
-        pfioc_trans.esize = mem::size_of::<ffi::pfvar::pfioc_trans_pfioc_trans_e>() as i32;
-        pfioc_trans.array = pfioc_trans_elements.as_mut_ptr();
-    }
-
-    /// Internal function to initialize pfioc_trans_e
-    fn setup_trans_element(anchor: &str,
-                           kind: RulesetKind,
-                           pfioc_trans_e: &mut ffi::pfvar::pfioc_trans_pfioc_trans_e)
-                           -> Result<()> {
-        pfioc_trans_e.rs_num = kind.into();
-        anchor
-            .try_copy_to(&mut pfioc_trans_e.anchor[..])
-            .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))
-    }
-
-    fn fd(&self) -> RawFd {
-        self.file.as_raw_fd()
-    }
-}
-
-impl TryCopyTo<ffi::pfvar::pfioc_trans_pfioc_trans_e> for Transaction {
-    fn try_copy_to(&self, pfioc_trans_e: &mut ffi::pfvar::pfioc_trans_pfioc_trans_e) -> Result<()> {
-        pfioc_trans_e.ticket = self.ticket;
-        Self::setup_trans_element(&self.anchor, self.kind, pfioc_trans_e)
-    }
-}
-
-impl TryCopyTo<ffi::pfvar::pfioc_rule> for Transaction {
-    fn try_copy_to(&self, pfioc_rule: &mut ffi::pfvar::pfioc_rule) -> Result<()> {
-        pfioc_rule.ticket = self.ticket;
-        self.anchor
-            .try_copy_to(&mut pfioc_rule.anchor[..])
-            .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))
-    }
-}
 
 /// Creates pfioc_states and returns a tuple of pfioc_states and vector of pfsync_state with the
 /// given number of elements.
