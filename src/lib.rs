@@ -278,7 +278,7 @@ impl PfCtl {
 
         // set tickets
         pfioc_rule.pool_ticket = pfioc_pooladdr.ticket;
-        pfioc_rule.ticket = self.get_ticket(anchor, AnchorKind::Redirect)?;
+        pfioc_rule.ticket = utils::get_ticket(self.fd(), anchor, AnchorKind::Redirect)?;
 
         // append rule
         pfioc_rule.action = ffi::pfvar::PF_CHANGE_ADD_TAIL as u32;
