@@ -167,7 +167,7 @@ impl RedirectRule {
         compatible_af(self.af, rdr_af)
     }
 
-    /// Returns reference to inner redirect_to
+    /// Accessor for `redirect_to`
     pub fn get_redirect_to(&self) -> Endpoint {
         self.redirect_to
     }
