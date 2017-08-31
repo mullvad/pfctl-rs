@@ -10,39 +10,21 @@ use std::net::{Ipv4Addr, Ipv6Addr};
 
 static ANCHOR_NAME: &'static str = "pfctl-rs.integration.testing.redirect-rules";
 
-fn make_redirect_rule(to: pfctl::Endpoint, redirect_to: pfctl::Endpoint) -> pfctl::RedirectRule {
+fn port_mapping_rule(ip: pfctl::Ip) -> pfctl::RedirectRule {
     pfctl::RedirectRuleBuilder::default()
         .action(pfctl::RedirectRuleAction::Redirect)
-        .to(to)
-        .redirect_to(redirect_to)
+        .to(pfctl::Endpoint::new(ip, pfctl::Port::from(3000)))
+        .redirect_to(pfctl::Endpoint::new(ip, pfctl::Port::from(4000)))
         .build()
         .unwrap()
 }
 
 fn redirect_rule_ipv4() -> pfctl::RedirectRule {
-    make_redirect_rule(
-        pfctl::Endpoint::new(
-            pfctl::Ip::from(Ipv4Addr::new(127, 0, 0, 1)),
-            pfctl::Port::One(3000, pfctl::PortUnaryModifier::Equal),
-        ),
-        pfctl::Endpoint::new(
-            pfctl::Ip::from(Ipv4Addr::new(127, 0, 0, 1)),
-            pfctl::Port::One(4000, pfctl::PortUnaryModifier::Equal),
-        ),
-    )
+    port_mapping_rule(pfctl::Ip::from(Ipv4Addr::new(127, 0, 0, 1)))
 }
 
 fn redirect_rule_ipv6() -> pfctl::RedirectRule {
-    make_redirect_rule(
-        pfctl::Endpoint::new(
-            pfctl::Ip::from(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1)),
-            pfctl::Port::One(3000, pfctl::PortUnaryModifier::Equal),
-        ),
-        pfctl::Endpoint::new(
-            pfctl::Ip::from(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1)),
-            pfctl::Port::One(4000, pfctl::PortUnaryModifier::Equal),
-        ),
-    )
+    port_mapping_rule(pfctl::Ip::from(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1)))
 }
 
 fn before_each() {
