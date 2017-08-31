@@ -11,6 +11,7 @@ use super::AddrFamily;
 use conversion::CopyTo;
 use ffi;
 use ipnetwork::{IpNetwork, Ipv4Network, Ipv6Network};
+use pooladdr::PoolAddrList;
 
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
@@ -32,6 +33,11 @@ impl Ip {
     /// Returns `Ip::Any` represented an as an `IpNetwork`, used for ffi.
     fn any_ffi_repr() -> IpNetwork {
         IpNetwork::V6(Ipv6Network::new(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0), 0).unwrap(),)
+    }
+
+    /// Returns PoolAddrList initialized with receiver
+    pub fn to_pool_addr_list(&self) -> PoolAddrList {
+        PoolAddrList::new(&[*self])
     }
 }
 
