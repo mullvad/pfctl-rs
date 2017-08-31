@@ -248,8 +248,7 @@ impl PfCtl {
         rule.try_copy_to(&mut pfioc_rule.rule)?;
 
         pfioc_rule.action = ffi::pfvar::PF_CHANGE_ADD_TAIL as u32;
-        ioctl_guard!(ffi::pf_change_rule(self.fd(), &mut pfioc_rule))?;
-        Ok(())
+        ioctl_guard!(ffi::pf_change_rule(self.fd(), &mut pfioc_rule))
     }
 
     pub fn set_rules(&mut self, anchor: &str, rules: &[FilterRule]) -> Result<()> {
@@ -282,11 +281,7 @@ impl PfCtl {
 
         // append rule
         pfioc_rule.action = ffi::pfvar::PF_CHANGE_ADD_TAIL as u32;
-        ioctl_guard!(ffi::pf_change_rule(self.fd(), &mut pfioc_rule)).chain_err(
-            || {
-                ErrorKind::InvalidArgument("Couldn't add rdr rule")
-            },
-        )
+        ioctl_guard!(ffi::pf_change_rule(self.fd(), &mut pfioc_rule))
     }
 
     pub fn flush_rules(&mut self, anchor: &str, kind: RulesetKind) -> Result<()> {
