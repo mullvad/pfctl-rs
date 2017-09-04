@@ -13,8 +13,8 @@ static ANCHOR_NAME: &'static str = "pfctl-rs.integration.testing.redirect-rules"
 fn port_mapping_rule(ip: pfctl::Ip) -> pfctl::RedirectRule {
     pfctl::RedirectRuleBuilder::default()
         .action(pfctl::RedirectRuleAction::Redirect)
-        .to(pfctl::Endpoint::new(ip, pfctl::Port::from(3000)))
-        .redirect_to(pfctl::Endpoint::new(ip, pfctl::Port::from(4000)))
+        .to(pfctl::Endpoint::new(ip, 3000))
+        .redirect_to(pfctl::Endpoint::new(ip, 4000))
         .build()
         .unwrap()
 }

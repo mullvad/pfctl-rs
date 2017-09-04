@@ -21,8 +21,11 @@ pub struct Endpoint {
 }
 
 impl Endpoint {
-    pub fn new(ip: Ip, port: Port) -> Self {
-        Endpoint { ip, port }
+    pub fn new<IP: Into<Ip>, PORT: Into<Port>>(ip: IP, port: PORT) -> Self {
+        Endpoint {
+            ip: ip.into(),
+            port: port.into(),
+        }
     }
 
     pub fn ip(&self) -> Ip {
