@@ -15,23 +15,41 @@ use ffi;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub struct Endpoint(pub Ip, pub Port);
+pub struct Endpoint {
+    ip: Ip,
+    port: Port,
+}
 
 impl Endpoint {
+    pub fn new<IP: Into<Ip>, PORT: Into<Port>>(ip: IP, port: PORT) -> Self {
+        Endpoint {
+            ip: ip.into(),
+            port: port.into(),
+        }
+    }
+
+    pub fn ip(&self) -> Ip {
+        self.ip
+    }
+
+    pub fn port(&self) -> Port {
+        self.port
+    }
+
     pub fn get_af(&self) -> AddrFamily {
-        self.0.get_af()
+        self.ip.get_af()
     }
 }
 
 impl From<Ip> for Endpoint {
     fn from(ip: Ip) -> Self {
-        Endpoint(ip, Port::default())
+        Endpoint::new(ip, Port::default())
     }
 }
 
 impl From<Port> for Endpoint {
     fn from(port: Port) -> Self {
-        Endpoint(Ip::default(), port)
+        Endpoint::new(Ip::default(), port)
     }
 }
 
@@ -55,13 +73,13 @@ impl From<IpAddr> for Endpoint {
 
 impl From<SocketAddrV4> for Endpoint {
     fn from(socket_addr: SocketAddrV4) -> Self {
-        Endpoint(Ip::from(*socket_addr.ip()), Port::from(socket_addr.port()))
+        Endpoint::new(Ip::from(*socket_addr.ip()), Port::from(socket_addr.port()))
     }
 }
 
 impl From<SocketAddrV6> for Endpoint {
     fn from(socket_addr: SocketAddrV6) -> Self {
-        Endpoint(Ip::from(*socket_addr.ip()), Port::from(socket_addr.port()))
+        Endpoint::new(Ip::from(*socket_addr.ip()), Port::from(socket_addr.port()))
     }
 }
 
@@ -76,9 +94,8 @@ impl From<SocketAddr> for Endpoint {
 
 impl TryCopyTo<ffi::pfvar::pf_rule_addr> for Endpoint {
     fn try_copy_to(&self, pf_rule_addr: &mut ffi::pfvar::pf_rule_addr) -> Result<()> {
-        let Endpoint(ref ip, ref port) = *self;
-        ip.copy_to(&mut pf_rule_addr.addr);
-        port.try_copy_to(unsafe { pf_rule_addr.xport.range.as_mut() })?;
+        self.ip.copy_to(&mut pf_rule_addr.addr);
+        self.port.try_copy_to(unsafe { pf_rule_addr.xport.range.as_mut() })?;
         Ok(())
     }
 }

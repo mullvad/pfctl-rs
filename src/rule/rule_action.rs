@@ -8,18 +8,35 @@
 
 use ffi;
 
-/// Enum describing what should happen to a packet that matches a rule.
+/// Enum describing what should happen to a packet that matches a filter rule.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum RuleAction {
+pub enum FilterRuleAction {
     Pass,
     Drop,
 }
 
-impl From<RuleAction> for u8 {
-    fn from(rule_action: RuleAction) -> Self {
+impl From<FilterRuleAction> for u8 {
+    fn from(rule_action: FilterRuleAction) -> Self {
         match rule_action {
-            RuleAction::Pass => ffi::pfvar::PF_PASS as u8,
-            RuleAction::Drop => ffi::pfvar::PF_DROP as u8,
+            FilterRuleAction::Pass => ffi::pfvar::PF_PASS as u8,
+            FilterRuleAction::Drop => ffi::pfvar::PF_DROP as u8,
+        }
+    }
+}
+
+
+/// Enum describing what should happen to a packet that matches a redirect rule.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum RedirectRuleAction {
+    Redirect,
+    NoRedirect,
+}
+
+impl From<RedirectRuleAction> for u8 {
+    fn from(rule_action: RedirectRuleAction) -> Self {
+        match rule_action {
+            RedirectRuleAction::Redirect => ffi::pfvar::PF_RDR as u8,
+            RedirectRuleAction::NoRedirect => ffi::pfvar::PF_NORDR as u8,
         }
     }
 }

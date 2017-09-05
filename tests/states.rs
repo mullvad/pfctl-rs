@@ -28,7 +28,7 @@ fn send_udp_packet(sender: SocketAddr, recepient: SocketAddr) {
 
 fn rule_builder(destination: SocketAddr) -> pfctl::FilterRule {
     pfctl::FilterRuleBuilder::default()
-        .action(pfctl::RuleAction::Pass)
+        .action(pfctl::FilterRuleAction::Pass)
         .proto(pfctl::Proto::Udp)
         .to(destination)
         .quick(true)
@@ -48,6 +48,10 @@ fn before_each() {
 fn after_each() {
     pfcli::flush_rules(ANCHOR_NAME, pfcli::FlushOptions::Rules).unwrap();
     pfcli::flush_rules(ANCHOR_NAME, pfcli::FlushOptions::States).unwrap();
+    pfctl::PfCtl::new()
+        .unwrap()
+        .try_remove_anchor(ANCHOR_NAME, pfctl::AnchorKind::Filter)
+        .unwrap();
 }
 
 test!(reset_ipv4_states_by_anchor {

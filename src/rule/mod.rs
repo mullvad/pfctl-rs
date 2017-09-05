@@ -53,7 +53,7 @@ pub use self::rule_log::*;
 #[builder(setter(into))]
 #[builder(build_fn(name = "build_internal"))]
 pub struct FilterRule {
-    action: RuleAction,
+    action: FilterRuleAction,
     #[builder(default)]
     direction: Direction,
     #[builder(default)]
@@ -86,20 +86,8 @@ impl FilterRule {
     /// Returns the `AddrFamily` this rule matches against. Returns an `InvalidRuleCombination`
     /// error if this rule has an invalid combination of address families.
     fn get_af(&self) -> Result<AddrFamily> {
-        let endpoint_af = Self::compatible_af(self.from.get_af(), self.to.get_af())?;
-        Self::compatible_af(self.af, endpoint_af)
-    }
-
-    fn compatible_af(af1: AddrFamily, af2: AddrFamily) -> Result<AddrFamily> {
-        match (af1, af2) {
-            (af1, af2) if af1 == af2 => Ok(af1),
-            (af, AddrFamily::Any) => Ok(af),
-            (AddrFamily::Any, af) => Ok(af),
-            (af1, af2) => {
-                let msg = format!("AddrFamily {} and {} are incompatible", af1, af2);
-                bail!(ErrorKind::InvalidRuleCombination(msg));
-            }
-        }
+        let endpoint_af = compatible_af(self.from.get_af(), self.to.get_af())?;
+        compatible_af(self.af, endpoint_af)
     }
 
     /// Validates the combination of StatePolicy and Proto.
@@ -143,6 +131,79 @@ impl TryCopyTo<ffi::pfvar::pf_rule> for FilterRule {
 
 
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Builder)]
+#[builder(setter(into))]
+#[builder(build_fn(name = "build_internal"))]
+pub struct RedirectRule {
+    action: RedirectRuleAction,
+    #[builder(default)]
+    direction: Direction,
+    #[builder(default)]
+    quick: bool,
+    #[builder(default)]
+    proto: Proto,
+    #[builder(default)]
+    af: AddrFamily,
+    #[builder(default)]
+    from: Endpoint,
+    #[builder(default)]
+    to: Endpoint,
+    redirect_to: Endpoint,
+}
+
+impl RedirectRuleBuilder {
+    pub fn build(&self) -> Result<RedirectRule> {
+        self.build_internal().map_err(|e| ErrorKind::InvalidRuleCombination(e).into())
+    }
+}
+
+impl RedirectRule {
+    /// Returns the `AddrFamily` this rule matches against. Returns an `InvalidRuleCombination`
+    /// error if this rule has an invalid combination of address families.
+    fn get_af(&self) -> Result<AddrFamily> {
+        let endpoint_af = compatible_af(self.from.get_af(), self.to.get_af())?;
+        let rdr_af = compatible_af(endpoint_af, self.redirect_to.get_af())?;
+        compatible_af(self.af, rdr_af)
+    }
+
+    /// Accessor for `redirect_to`
+    pub fn get_redirect_to(&self) -> Endpoint {
+        self.redirect_to
+    }
+}
+
+impl TryCopyTo<ffi::pfvar::pf_rule> for RedirectRule {
+    fn try_copy_to(&self, pf_rule: &mut ffi::pfvar::pf_rule) -> Result<()> {
+        pf_rule.action = self.action.into();
+        pf_rule.direction = self.direction.into();
+        pf_rule.quick = self.quick as u8;
+        pf_rule.proto = self.proto.into();
+        pf_rule.af = self.get_af()?.into();
+
+        self.from.try_copy_to(&mut pf_rule.src)?;
+        self.to.try_copy_to(&mut pf_rule.dst)?;
+
+        Ok(())
+    }
+}
+
+
+fn compatible_af(af1: AddrFamily, af2: AddrFamily) -> Result<AddrFamily> {
+    match (af1, af2) {
+        (af1, af2) if af1 == af2 => Ok(af1),
+        (af, AddrFamily::Any) => Ok(af),
+        (AddrFamily::Any, af) => Ok(af),
+        (af1, af2) => {
+            let msg = format!("AddrFamily {} and {} are incompatible", af1, af2);
+            bail!(ErrorKind::InvalidRuleCombination(msg));
+        }
+    }
+}
+
+
+
+
 #[cfg(test)]
 mod filter_rule_tests {
     use super::*;
@@ -154,14 +215,14 @@ mod filter_rule_tests {
 
     #[test]
     fn correct_af_default() {
-        let testee = FilterRuleBuilder::default().action(RuleAction::Pass).build().unwrap();
+        let testee = FilterRuleBuilder::default().action(FilterRuleAction::Pass).build().unwrap();
         assert_eq!(AddrFamily::Any, testee.get_af().unwrap());
     }
 
     #[test]
     fn af_incompatible_from_to() {
         let mut testee = FilterRuleBuilder::default();
-        testee.action(RuleAction::Pass);
+        testee.action(FilterRuleAction::Pass);
         let from4to6 = testee
             .from(*IPV4)
             .to(*IPV6)
@@ -179,7 +240,7 @@ mod filter_rule_tests {
     #[test]
     fn af_compatibility_ipv4() {
         let mut testee = FilterRuleBuilder::default();
-        testee.action(RuleAction::Pass).from(*IPV4);
+        testee.action(FilterRuleAction::Pass).from(*IPV4);
         assert_eq!(
             AddrFamily::Ipv4,
             testee
@@ -211,7 +272,7 @@ mod filter_rule_tests {
     #[test]
     fn af_compatibility_ipv6() {
         let mut testee = FilterRuleBuilder::default();
-        testee.action(RuleAction::Pass).to(*IPV6);
+        testee.action(FilterRuleAction::Pass).to(*IPV6);
         assert_eq!(
             AddrFamily::Ipv6,
             testee
@@ -245,7 +306,7 @@ mod filter_rule_tests {
         assert_eq!(
             StatePolicy::None,
             FilterRuleBuilder::default()
-                .action(RuleAction::Pass)
+                .action(FilterRuleAction::Pass)
                 .build()
                 .unwrap()
                 .validate_state_policy()
@@ -258,7 +319,7 @@ mod filter_rule_tests {
         assert_eq!(
             StatePolicy::None,
             FilterRuleBuilder::default()
-                .action(RuleAction::Pass)
+                .action(FilterRuleAction::Pass)
                 .keep_state(StatePolicy::None)
                 .proto(Proto::Tcp)
                 .build()
@@ -273,7 +334,7 @@ mod filter_rule_tests {
         assert_eq!(
             StatePolicy::Keep,
             FilterRuleBuilder::default()
-                .action(RuleAction::Pass)
+                .action(FilterRuleAction::Pass)
                 .keep_state(StatePolicy::Keep)
                 .proto(Proto::Tcp)
                 .build()
@@ -288,7 +349,7 @@ mod filter_rule_tests {
         assert_eq!(
             StatePolicy::Modulate,
             FilterRuleBuilder::default()
-                .action(RuleAction::Pass)
+                .action(FilterRuleAction::Pass)
                 .keep_state(StatePolicy::Modulate)
                 .proto(Proto::Tcp)
                 .build()
@@ -302,7 +363,7 @@ mod filter_rule_tests {
     fn state_policy_incompatible_modulate() {
         assert!(
             FilterRuleBuilder::default()
-                .action(RuleAction::Pass)
+                .action(FilterRuleAction::Pass)
                 .keep_state(StatePolicy::Modulate)
                 .proto(Proto::Udp)
                 .build()
@@ -317,7 +378,7 @@ mod filter_rule_tests {
         assert_eq!(
             StatePolicy::SynProxy,
             FilterRuleBuilder::default()
-                .action(RuleAction::Pass)
+                .action(FilterRuleAction::Pass)
                 .keep_state(StatePolicy::SynProxy)
                 .proto(Proto::Tcp)
                 .build()
@@ -331,7 +392,7 @@ mod filter_rule_tests {
     fn state_policy_incompatible_synproxy() {
         assert!(
             FilterRuleBuilder::default()
-                .action(RuleAction::Pass)
+                .action(FilterRuleAction::Pass)
                 .keep_state(StatePolicy::SynProxy)
                 .proto(Proto::Udp)
                 .build()
