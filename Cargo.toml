@@ -9,6 +9,9 @@ keywords = ["pf", "pfctl", "firewall", "macos", "network"]
 categories = ["network-programming", "os", "os::unix-apis", "api-bindings", "command-line-utilities"]
 build = "build.rs"
 
+[badges]
+travis-ci = { repository = "mullvad/pfctl-rs" }
+
 [lib]
 path = "src/lib.rs"
 
