@@ -74,6 +74,8 @@ pub struct FilterRule {
     to: Endpoint,
     #[builder(default)]
     tcp_flags: TcpFlags,
+    #[builder(default)]
+    label: String,
 }
 
 impl FilterRuleBuilder {
@@ -123,8 +125,11 @@ impl TryCopyTo<ffi::pfvar::pf_rule> for FilterRule {
             .chain_err(|| ErrorKind::InvalidArgument("Incompatible interface name"))?;
         pf_rule.proto = self.proto.into();
         pf_rule.af = self.get_af()?.into();
+
         self.from.try_copy_to(&mut pf_rule.src)?;
         self.to.try_copy_to(&mut pf_rule.dst)?;
+        self.label.try_copy_to(&mut pf_rule.label)?;
+
         Ok(())
     }
 }
@@ -149,6 +154,8 @@ pub struct RedirectRule {
     from: Endpoint,
     #[builder(default)]
     to: Endpoint,
+    #[builder(default)]
+    label: String,
     redirect_to: Endpoint,
 }
 
@@ -183,6 +190,7 @@ impl TryCopyTo<ffi::pfvar::pf_rule> for RedirectRule {
 
         self.from.try_copy_to(&mut pf_rule.src)?;
         self.to.try_copy_to(&mut pf_rule.dst)?;
+        self.label.try_copy_to(&mut pf_rule.label)?;
 
         Ok(())
     }
