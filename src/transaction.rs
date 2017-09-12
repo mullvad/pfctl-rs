@@ -128,10 +128,11 @@ impl Transaction {
 
     /// Internal function to add a batch of filter rules into transaction
     fn add_filter_rules(&self, anchor: &str, rules: &[FilterRule], ticket: u32) -> Result<()> {
-        for rule in rules {
-            self.add_filter_rule(anchor, rule, ticket)?;
-        }
-        Ok(())
+        rules
+            .iter()
+            .map(|rule| self.add_filter_rule(anchor, rule, ticket))
+            .collect::<Result<Vec<_>>>()
+            .map(|_| ())
     }
 
     /// Internal function to add single redirect rule into transaction
@@ -164,10 +165,11 @@ impl Transaction {
 
     /// Internal function to add a batch of redirect rules into transaction
     fn add_redirect_rules(&self, anchor: &str, rules: &[RedirectRule], ticket: u32) -> Result<()> {
-        for rule in rules {
-            self.add_redirect_rule(anchor, rule, ticket)?;
-        }
-        Ok(())
+        rules
+            .iter()
+            .map(|rule| self.add_redirect_rule(anchor, rule, ticket))
+            .collect::<Result<Vec<_>>>()
+            .map(|_| ())
     }
 
     fn fd(&self) -> RawFd {
