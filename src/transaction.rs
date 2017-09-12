@@ -10,6 +10,7 @@ use {ErrorKind, Result, ResultExt};
 use {FilterRule, RedirectRule, RulesetKind};
 use conversion::{CopyTo, TryCopyTo};
 use ffi;
+use std::collections::HashMap;
 
 use std::fs::File;
 use std::mem;
@@ -20,7 +21,7 @@ use utils;
 #[derive(Debug)]
 pub struct Transaction {
     file: File,
-    anchor_changes: Vec<AnchorChange>,
+    change_by_anchor: HashMap<String, AnchorChange>,
 }
 
 impl Transaction {
@@ -29,7 +30,7 @@ impl Transaction {
         Ok(
             Transaction {
                 file: utils::open_pf()?,
-                anchor_changes: Vec::new(),
+                change_by_anchor: HashMap::new(),
             },
         )
     }
@@ -37,18 +38,12 @@ impl Transaction {
     /// Add change into transaction replacing the prior change registered for corresponding anchor
     /// if any.
     pub fn add_change(&mut self, anchor_change: AnchorChange) {
-        if let Some(index) =
-            self.anchor_changes.iter().position(|r| r.anchor == anchor_change.anchor) {
-            self.anchor_changes.push(anchor_change);
-            self.anchor_changes.swap_remove(index);
-        } else {
-            self.anchor_changes.push(anchor_change);
-        }
+        self.change_by_anchor.insert(anchor_change.anchor.clone(), anchor_change);
     }
 
     /// Convenience method to add multiple changes into Transaction.
-    pub fn add_changes(&mut self, anchor_changes: Vec<AnchorChange>) {
-        for anchor_change in anchor_changes {
+    pub fn add_changes(&mut self, change_by_anchor: Vec<AnchorChange>) {
+        for anchor_change in change_by_anchor {
             self.add_change(anchor_change);
         }
     }
@@ -105,8 +100,8 @@ impl Transaction {
     /// Internal function to produce transaction elements store for each kind of rule
     fn get_trans_elements(&self) -> Result<TransactionElements> {
         let mut trans_elements = TransactionElements::new();
-        self.anchor_changes
-            .iter()
+        self.change_by_anchor
+            .values()
             .map(|anchor_change| trans_elements.add_elements(anchor_change))
             .collect::<Result<Vec<_>>>()
             .map(|_| trans_elements)
