@@ -160,8 +160,9 @@ test!(set_filter_rules_with_transaction {
         .to(pfctl::Port::from(80))
         .build()
         .unwrap();
-
-    assert_matches!(pf.set_rules(ANCHOR_NAME, &[rule1, rule2]), Ok(()));
+    let mut anchor_change = pfctl::AnchorChange::new(ANCHOR_NAME);
+    anchor_change.set_filter_rules(vec![rule1, rule2]);
+    assert_matches!(pf.set_rules(vec![anchor_change]), Ok(()));
     assert_matches!(
         pfcli::get_rules(ANCHOR_NAME),
         Ok(ref v) if v == &["block drop inet from 192.168.1.1 to any",
@@ -204,8 +205,9 @@ test!(all_state_policies {
         .keep_state(pfctl::StatePolicy::SynProxy)
         .build()
         .unwrap();
-
-    assert_matches!(pf.set_rules(ANCHOR_NAME, &[rule1, rule2, rule3, rule4]), Ok(()));
+    let mut anchor_change = pfctl::AnchorChange::new(ANCHOR_NAME);
+    anchor_change.set_filter_rules(vec![rule1, rule2, rule3, rule4]);
+    assert_matches!(pf.set_rules(vec![anchor_change]), Ok(()));
     assert_matches!(
         pfcli::get_rules(ANCHOR_NAME),
         Ok(ref v) if v == &["pass inet from 192.168.1.1 to any no state",
