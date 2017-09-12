@@ -147,29 +147,6 @@ test!(flush_filter_rules {
     );
 });
 
-test!(set_filter_rules_with_transaction {
-    let mut pf = pfctl::PfCtl::new().unwrap();
-    let rule1 = pfctl::FilterRuleBuilder::default()
-        .action(pfctl::FilterRuleAction::Drop)
-        .from(Ipv4Addr::new(192, 168, 1, 1))
-        .build()
-        .unwrap();
-    let rule2 = pfctl::FilterRuleBuilder::default()
-        .action(pfctl::FilterRuleAction::Drop)
-        .from(Ipv4Addr::new(192, 168, 2, 1))
-        .to(pfctl::Port::from(80))
-        .build()
-        .unwrap();
-    let mut anchor_change = pfctl::AnchorChange::new(ANCHOR_NAME);
-    anchor_change.set_filter_rules(vec![rule1, rule2]);
-    assert_matches!(pf.set_rules(vec![anchor_change]), Ok(()));
-    assert_matches!(
-        pfcli::get_rules(ANCHOR_NAME),
-        Ok(ref v) if v == &["block drop inet from 192.168.1.1 to any",
-                            "block drop inet from 192.168.2.1 to any port = 80"]
-    );
-});
-
 test!(all_state_policies {
     let mut pf = pfctl::PfCtl::new().unwrap();
     let rule1 = pfctl::FilterRuleBuilder::default()
@@ -205,9 +182,9 @@ test!(all_state_policies {
         .keep_state(pfctl::StatePolicy::SynProxy)
         .build()
         .unwrap();
-    let mut anchor_change = pfctl::AnchorChange::new(ANCHOR_NAME);
-    anchor_change.set_filter_rules(vec![rule1, rule2, rule3, rule4]);
-    assert_matches!(pf.set_rules(vec![anchor_change]), Ok(()));
+    for rule in [rule1, rule2, rule3, rule4].iter() {
+        assert_matches!(pf.add_rule(ANCHOR_NAME, rule), Ok(()));
+    }
     assert_matches!(
         pfcli::get_rules(ANCHOR_NAME),
         Ok(ref v) if v == &["pass inet from 192.168.1.1 to any no state",
