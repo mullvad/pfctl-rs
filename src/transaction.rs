@@ -46,32 +46,49 @@ impl Transaction {
         }
     }
 
+    /// Convenience method to add multiple changes into Transaction.
+    pub fn add_changes(&mut self, anchor_changes: Vec<AnchorChange>) {
+        for anchor_change in anchor_changes {
+            self.add_change(anchor_change);
+        }
+    }
+
     /// Commit transaction
     pub fn commit(&self) -> Result<()> {
         let mut pfioc_trans = unsafe { mem::zeroed::<ffi::pfvar::pfioc_trans>() };
-        let mut pfioc_trans_elements = self.get_all_trans_elements()?;
-        Self::setup_trans(&mut pfioc_trans, pfioc_trans_elements.as_mut_slice());
+        let mut trans_elements = self.get_trans_elements()?;
+        Self::setup_trans(&mut pfioc_trans, trans_elements.get_mut_heap());
 
         // fill in array of pfioc_trans_e with tickets
         ioctl_guard!(ffi::pf_begin_trans(self.fd(), &mut pfioc_trans))?;
 
-        let mut ticket_iterator = pfioc_trans_elements.iter().map(|e| e.ticket);
-        for anchor_change in self.anchor_changes.iter() {
-            if let Some(ref filter_rules) = anchor_change.filter_rules {
-                self.add_filter_rules(
+        // register all rules in this transaction with firewall
+        trans_elements
+            .get_filter_elements()
+            .into_iter()
+            .map(
+                |(anchor_change, pfioc_trans_e)| {
+                    self.add_filter_rules(
                         &anchor_change.anchor,
-                        filter_rules,
-                        ticket_iterator.next().unwrap(),
-                    )?;
-            }
-            if let Some(ref redirect_rules) = anchor_change.redirect_rules {
-                self.add_redirect_rules(
+                        anchor_change.filter_rules.as_ref().unwrap(),
+                        pfioc_trans_e.ticket,
+                    )
+                },
+            )
+            .collect::<Result<Vec<_>>>()?;
+        trans_elements
+            .get_redirect_elements()
+            .into_iter()
+            .map(
+                |(anchor_change, pfioc_trans_e)| {
+                    self.add_redirect_rules(
                         &anchor_change.anchor,
-                        redirect_rules,
-                        ticket_iterator.next().unwrap(),
-                    )?;
-            }
-        }
+                        anchor_change.redirect_rules.as_ref().unwrap(),
+                        pfioc_trans_e.ticket,
+                    )
+                },
+            )
+            .collect::<Result<Vec<_>>>()?;
 
         // commit transaction
         ioctl_guard!(ffi::pf_commit_trans(self.fd(), &mut pfioc_trans))
@@ -85,57 +102,14 @@ impl Transaction {
         pfioc_trans.array = pfioc_trans_elements.as_mut_ptr();
     }
 
-    /// Internal function to initialize pfioc_trans_e
-    fn new_trans_element(anchor: &str,
-                         ruleset_kind: RulesetKind)
-                         -> Result<ffi::pfvar::pfioc_trans_pfioc_trans_e> {
-        let mut pfioc_trans_e = unsafe { mem::zeroed::<ffi::pfvar::pfioc_trans_pfioc_trans_e>() };
-        pfioc_trans_e.rs_num = ruleset_kind.into();
-        anchor
-            .try_copy_to(&mut pfioc_trans_e.anchor[..])
-            .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
-        Ok(pfioc_trans_e)
-    }
-
-    /// Internal function to produce a flat list of transaction elements (pfioc_trans_e) for each
-    /// anchor.
-    fn get_all_trans_elements(&self) -> Result<Vec<ffi::pfvar::pfioc_trans_pfioc_trans_e>> {
-        // make transaction elements (pfioc_trans_e) for each anchor
-        let trans_elements_by_anchor = self.anchor_changes
+    /// Internal function to produce transaction elements store for each kind of rule
+    fn get_trans_elements(&self) -> Result<TransactionElements> {
+        let mut trans_elements = TransactionElements::new();
+        self.anchor_changes
             .iter()
-            .map(Self::get_trans_elements)
-            .collect::<Result<Vec<_>>>()?;
-        // flatten Vec<Vec<pfioc_trans_e>>
-        Ok(
-            trans_elements_by_anchor
-                .into_iter()
-                .flat_map(|e| e.into_iter())
-                .collect::<Vec<_>>(),
-        )
-    }
-
-    /// Internal function to produces an array of pfioc_trans_e for each kind of rules skipping
-    /// ones with None set in the following order: filter, redirect.
-    fn get_trans_elements(anchor_change: &AnchorChange)
-                          -> Result<Vec<ffi::pfvar::pfioc_trans_pfioc_trans_e>> {
-        let mut trans_elements = Vec::new();
-        if anchor_change.filter_rules.is_some() {
-            trans_elements.push(
-                Self::new_trans_element(
-                    &anchor_change.anchor,
-                    RulesetKind::Filter
-                )?
-            );
-        }
-        if anchor_change.redirect_rules.is_some() {
-            trans_elements.push(
-                Self::new_trans_element(
-                    &anchor_change.anchor,
-                    RulesetKind::Redirect,
-                )?,
-            );
-        }
-        Ok(trans_elements)
+            .map(|anchor_change| trans_elements.add_elements(anchor_change))
+            .collect::<Result<Vec<_>>>()
+            .map(|_| trans_elements)
     }
 
     /// Internal function add single filter rule into transaction
@@ -235,3 +209,93 @@ impl AnchorChange {
         self.redirect_rules = Some(rules);
     }
 }
+
+
+mod private {
+    use super::*;
+
+    pub struct TransactionElements<'a> {
+        heap: Vec<ffi::pfvar::pfioc_trans_pfioc_trans_e>,
+        filter_indices: Vec<(&'a AnchorChange, usize)>,
+        redirect_indices: Vec<(&'a AnchorChange, usize)>,
+    }
+
+    impl<'a> TransactionElements<'a> {
+        /// Initializes empty TransactionElements holder
+        pub fn new() -> Self {
+            TransactionElements {
+                heap: Vec::new(),
+                filter_indices: Vec::new(),
+                redirect_indices: Vec::new(),
+            }
+        }
+
+        /// Returns mutable slice from inner vector that contains all transaction elements
+        pub fn get_mut_heap(&mut self) -> &mut [ffi::pfvar::pfioc_trans_pfioc_trans_e] {
+            self.heap.as_mut_slice()
+        }
+
+        /// Registers transaction elements for each ruleset in AnchorChange
+        pub fn add_elements(&mut self, anchor_change: &'a AnchorChange) -> Result<()> {
+            if anchor_change.filter_rules.is_some() {
+                self.add_filter_element(&anchor_change)?;
+            }
+            if anchor_change.redirect_rules.is_some() {
+                self.add_redirect_element(&anchor_change)?;
+            }
+            Ok(())
+        }
+
+        /// Returns series of tuples with corresponding AnchorChange and transaction elements
+        /// (pfioc_trans_e) with tickets obtained for filter rules update
+        pub fn get_filter_elements
+            (&'a self)
+             -> Vec<(&'a AnchorChange, &'a ffi::pfvar::pfioc_trans_pfioc_trans_e)> {
+            self.filter_indices
+                .iter()
+                .map(|&(a, i)| (a, &self.heap[i]))
+                .collect::<Vec<(&AnchorChange, &ffi::pfvar::pfioc_trans_pfioc_trans_e)>>()
+        }
+
+        /// Returns series of tuples with corresponding AnchorChange and transaction elements
+        /// (pfioc_trans_e) with tickets obtained for redirect rules update
+        pub fn get_redirect_elements
+            (&'a self)
+             -> Vec<(&'a AnchorChange, &'a ffi::pfvar::pfioc_trans_pfioc_trans_e)> {
+            self.redirect_indices
+                .iter()
+                .map(|&(a, i)| (a, &self.heap[i]))
+                .collect::<Vec<(&AnchorChange, &ffi::pfvar::pfioc_trans_pfioc_trans_e)>>()
+        }
+
+        /// Internal function to register filter element for corresponding AnchorChange
+        fn add_filter_element(&mut self, anchor_change: &'a AnchorChange) -> Result<()> {
+            let element_index = self.heap.len();
+            self.heap.push(Self::new_trans_element(&anchor_change.anchor, RulesetKind::Filter)?,);
+            self.filter_indices.push((anchor_change, element_index));
+            Ok(())
+        }
+
+        /// Internal function to register redirect element for corresponding AnchorChange
+        fn add_redirect_element(&mut self, anchor_change: &'a AnchorChange) -> Result<()> {
+            let element_index = self.heap.len();
+            self.heap.push(Self::new_trans_element(&anchor_change.anchor, RulesetKind::Redirect)?,);
+            self.redirect_indices.push((anchor_change, element_index));
+            Ok(())
+        }
+
+        /// Internal function to initialize pfioc_trans_e
+        fn new_trans_element(anchor: &str,
+                             ruleset_kind: RulesetKind)
+                             -> Result<ffi::pfvar::pfioc_trans_pfioc_trans_e> {
+            let mut pfioc_trans_e =
+                unsafe { mem::zeroed::<ffi::pfvar::pfioc_trans_pfioc_trans_e>() };
+            pfioc_trans_e.rs_num = ruleset_kind.into();
+            anchor
+                .try_copy_to(&mut pfioc_trans_e.anchor[..])
+                .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
+            Ok(pfioc_trans_e)
+        }
+    }
+}
+use self::private::*;
