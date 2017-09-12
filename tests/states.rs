@@ -59,10 +59,8 @@ test!(reset_ipv4_states_by_anchor {
     let ipv4 = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
     let server_addr = SocketAddr::new(ipv4, 1337);
     let sender_addr = SocketAddr::new(ipv4, 1338);
-    let mut anchor_change = pfctl::AnchorChange::new(ANCHOR_NAME);
-    anchor_change.set_filter_rules(vec![rule_builder(server_addr)]);
 
-    pf.set_rules(vec![anchor_change]).unwrap();
+    pf.add_rule(ANCHOR_NAME, &rule_builder(server_addr)).unwrap();
     send_udp_packet(sender_addr, server_addr);
 
     let expected_states = [
@@ -87,9 +85,9 @@ test!(reset_ipv6_states_by_anchor {
     let server_addr = SocketAddr::new(ipv6, 1337);
     let sender_addr = SocketAddr::new(ipv6, 1338);
     let mut anchor_change = pfctl::AnchorChange::new(ANCHOR_NAME);
-    anchor_change.set_filter_rules(vec![rule_builder(server_addr)]);
+    anchor_change.set_filter_rules(vec![]);
 
-    pf.set_rules(vec![anchor_change]).unwrap();
+    pf.add_rule(ANCHOR_NAME, &rule_builder(server_addr)).unwrap();
     send_udp_packet(sender_addr, server_addr);
 
     let expected_states = [
