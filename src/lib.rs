@@ -137,6 +137,43 @@ macro_rules! ignore_error_kind {
 }
 
 
+/// Delay between retries
+const RETRY_IF_BUSY_DELAY: u64 = 100;
+
+/// Maximum runtime of retry_if_busy before giving up
+const RETRY_IF_BUSY_TIMEOUT: u64 = 1000;
+
+/// Maximum number of retries to perform before giving up
+const RETRY_IF_BUSY_MAX: i8 = 5;
+
+/// Helper function that runs the given closure if received error indicates that firewall rules
+/// were modified concurrently by other program until either timeout, or number of retries reached,
+/// or any other result occurred.
+pub fn retry_if_busy<F, R>(f: F) -> Result<R>
+where
+    F: Fn() -> Result<R>,
+{
+    use std::time::{Duration, Instant};
+    let start = Instant::now();
+    let timeout = Duration::from_millis(RETRY_IF_BUSY_TIMEOUT);
+    let delay = Duration::from_millis(RETRY_IF_BUSY_DELAY);
+    let mut retry = 0;
+    loop {
+        match f() {
+            Err(Error(ErrorKind::IoctlError(ref io_err), _))
+                if io_err.raw_os_error() == Some(libc::EBUSY) &&
+                    (start.elapsed() + delay) < timeout &&
+                    retry < RETRY_IF_BUSY_MAX =>
+            {
+                retry += 1;
+                ::std::thread::sleep(delay);
+            }
+            r => return r,
+        }
+    }
+}
+
+
 /// Module for types and traits dealing with translating between Rust and FFI.
 mod conversion {
     /// Internal trait for all types that can write their value into another type without risk
