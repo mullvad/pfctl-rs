@@ -52,7 +52,7 @@ impl Transaction {
     pub fn commit(&self) -> Result<()> {
         let mut pfioc_trans = unsafe { mem::zeroed::<ffi::pfvar::pfioc_trans>() };
 
-        let all_changes = self.change_by_anchor.values().collect::<Vec<&AnchorChange>>();
+        let all_changes = self.change_by_anchor.values().collect::<Vec<_>>();
         let filter_changes =
             all_changes.iter().filter(|c| c.filter_rules.is_some()).collect::<Vec<_>>();
         let redirect_changes =
