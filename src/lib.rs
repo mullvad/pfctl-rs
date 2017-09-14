@@ -94,8 +94,7 @@ mod ruleset;
 pub use ruleset::*;
 
 mod transaction;
-pub use transaction::AnchorChange;
-use transaction::Transaction;
+pub use transaction::*;
 
 mod errors {
     error_chain! {
@@ -253,7 +252,7 @@ impl PfCtl {
     }
 
     pub fn set_rules(&mut self, anchor_changes: Vec<AnchorChange>) -> Result<()> {
-        let mut trans = Transaction::new()?;
+        let mut trans = Transaction::new();
         trans.add_changes(anchor_changes);
         trans.commit()
     }
@@ -286,7 +285,7 @@ impl PfCtl {
     }
 
     pub fn flush_rules(&mut self, anchor: &str, kind: RulesetKind) -> Result<()> {
-        let mut trans = Transaction::new()?;
+        let mut trans = Transaction::new();
         let mut anchor_change = AnchorChange::new(anchor);
         match kind {
             RulesetKind::Filter => anchor_change.set_filter_rules(Vec::new()),
