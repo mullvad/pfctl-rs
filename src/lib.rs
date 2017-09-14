@@ -251,9 +251,9 @@ impl PfCtl {
         ioctl_guard!(ffi::pf_change_rule(self.fd(), &mut pfioc_rule))
     }
 
-    pub fn set_rules(&mut self, anchor_changes: Vec<AnchorChange>) -> Result<()> {
+    pub fn set_rules(&mut self, anchor: &str, change: AnchorChange) -> Result<()> {
         let mut trans = Transaction::new();
-        trans.add_changes(anchor_changes);
+        trans.add_change(anchor, change);
         trans.commit()
     }
 
@@ -286,12 +286,12 @@ impl PfCtl {
 
     pub fn flush_rules(&mut self, anchor: &str, kind: RulesetKind) -> Result<()> {
         let mut trans = Transaction::new();
-        let mut anchor_change = AnchorChange::new(anchor);
+        let mut anchor_change = AnchorChange::new();
         match kind {
             RulesetKind::Filter => anchor_change.set_filter_rules(Vec::new()),
             RulesetKind::Redirect => anchor_change.set_redirect_rules(Vec::new()),
         };
-        trans.add_change(anchor_change);
+        trans.add_change(anchor, anchor_change);
         trans.commit()
     }
 
