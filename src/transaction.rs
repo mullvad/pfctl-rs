@@ -68,49 +68,28 @@ impl Transaction {
         // fill in array of pfioc_trans_e with tickets
         ioctl_guard!(ffi::pf_begin_trans(dev, &mut pfioc_trans))?;
 
-        // register all rules in this transaction with firewall
-        let mut pfioc_element_iterator = pfioc_elements.iter();
-        for (change, pfioc_trans_e) in filter_changes.iter().zip(pfioc_element_iterator.by_ref()) {
-            self.add_filter_rules(
-                    dev,
-                    &change.anchor,
-                    change.filter_rules.as_ref().unwrap(),
-                    pfioc_trans_e.ticket,
-                )?;
+        // create iterator for tickets
+        let tickets = pfioc_elements.iter().map(|e| e.ticket).collect::<Vec<_>>();
+        let mut ticket_iterator = tickets.iter();
+
+        // add filter rules into transaction's inactive ruleset
+        for (change, &ticket) in filter_changes.iter().zip(ticket_iterator.by_ref()) {
+            for filter_rule in change.filter_rules.as_ref().unwrap().iter() {
+                self.add_filter_rule(dev, &change.anchor, filter_rule, ticket)?;
+            }
         }
 
-        for (change, pfioc_trans_e) in
-            redirect_changes.iter().zip(pfioc_element_iterator.by_ref()) {
-            self.add_redirect_rules(
-                    dev,
-                    &change.anchor,
-                    change.redirect_rules.as_ref().unwrap(),
-                    pfioc_trans_e.ticket,
-                )?;
+        // add redirect rules into transaction's inactive ruleset
+        for (change, &ticket) in redirect_changes.iter().zip(ticket_iterator.by_ref()) {
+            for redirect_rule in change.redirect_rules.as_ref().unwrap().iter() {
+                self.add_redirect_rule(dev, &change.anchor, redirect_rule, ticket)?;
+            }
         }
 
-        // commit transaction
+        // commit transaction.
+        // this call performs atomic switch of inactive rulesets created by transaction
+        // and corresponding currently active rulesets.
         ioctl_guard!(ffi::pf_commit_trans(dev, &mut pfioc_trans))
-    }
-
-    /// Internal function to wire up pfioc_trans and pfioc_trans_e
-    fn setup_trans(pfioc_trans: &mut ffi::pfvar::pfioc_trans,
-                   pfioc_trans_elements: &mut [ffi::pfvar::pfioc_trans_pfioc_trans_e]) {
-        pfioc_trans.size = pfioc_trans_elements.len() as i32;
-        pfioc_trans.esize = mem::size_of::<ffi::pfvar::pfioc_trans_pfioc_trans_e>() as i32;
-        pfioc_trans.array = pfioc_trans_elements.as_mut_ptr();
-    }
-
-    /// Internal function to initialize pfioc_trans_e
-    fn new_trans_element(anchor: &str,
-                         ruleset_kind: RulesetKind)
-                         -> Result<ffi::pfvar::pfioc_trans_pfioc_trans_e> {
-        let mut pfioc_trans_e = unsafe { mem::zeroed::<ffi::pfvar::pfioc_trans_pfioc_trans_e>() };
-        pfioc_trans_e.rs_num = ruleset_kind.into();
-        anchor
-            .try_copy_to(&mut pfioc_trans_e.anchor[..])
-            .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
-        Ok(pfioc_trans_e)
     }
 
     /// Internal function add single filter rule into transaction
@@ -134,19 +113,6 @@ impl Transaction {
 
         // add rule into transaction
         ioctl_guard!(ffi::pf_add_rule(dev, &mut pfioc_rule))
-    }
-
-    /// Internal function to add a batch of filter rules into transaction
-    fn add_filter_rules(&self,
-                        dev: RawFd,
-                        anchor: &str,
-                        rules: &[FilterRule],
-                        ticket: u32)
-                        -> Result<()> {
-        for rule in rules.iter() {
-            self.add_filter_rule(dev, anchor, rule, ticket)?;
-        }
-        Ok(())
     }
 
     /// Internal function to add single redirect rule into transaction
@@ -181,17 +147,24 @@ impl Transaction {
         ioctl_guard!(ffi::pf_add_rule(dev, &mut pfioc_rule))
     }
 
-    /// Internal function to add a batch of redirect rules into transaction
-    fn add_redirect_rules(&self,
-                          dev: RawFd,
-                          anchor: &str,
-                          rules: &[RedirectRule],
-                          ticket: u32)
-                          -> Result<()> {
-        for rule in rules.iter() {
-            self.add_redirect_rule(dev, anchor, rule, ticket)?;
-        }
-        Ok(())
+    /// Internal function to wire up pfioc_trans and pfioc_trans_e
+    fn setup_trans(pfioc_trans: &mut ffi::pfvar::pfioc_trans,
+                   pfioc_trans_elements: &mut [ffi::pfvar::pfioc_trans_pfioc_trans_e]) {
+        pfioc_trans.size = pfioc_trans_elements.len() as i32;
+        pfioc_trans.esize = mem::size_of::<ffi::pfvar::pfioc_trans_pfioc_trans_e>() as i32;
+        pfioc_trans.array = pfioc_trans_elements.as_mut_ptr();
+    }
+
+    /// Internal function to initialize pfioc_trans_e
+    fn new_trans_element(anchor: &str,
+                         ruleset_kind: RulesetKind)
+                         -> Result<ffi::pfvar::pfioc_trans_pfioc_trans_e> {
+        let mut pfioc_trans_e = unsafe { mem::zeroed::<ffi::pfvar::pfioc_trans_pfioc_trans_e>() };
+        pfioc_trans_e.rs_num = ruleset_kind.into();
+        anchor
+            .try_copy_to(&mut pfioc_trans_e.anchor[..])
+            .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
+        Ok(pfioc_trans_e)
     }
 }
 
