@@ -74,32 +74,22 @@ impl Transaction {
         ioctl_guard!(ffi::pf_begin_trans(self.fd(), &mut pfioc_trans))?;
 
         // register all rules in this transaction with firewall
-        let mut element_iter = pfioc_elements.iter();
-        filter_changes
-            .iter()
-            .map(
-                |c| {
-                    self.add_filter_rules(
-                        &c.anchor,
-                        c.filter_rules.as_ref().unwrap(),
-                        element_iter.next().unwrap().ticket,
-                    )
-                },
-            )
-            .collect::<Result<Vec<_>>>()?;
+        let mut pfioc_element_iterator = pfioc_elements.iter();
+        for (change, pfioc_trans_e) in filter_changes.iter().zip(pfioc_element_iterator.by_ref()) {
+            self.add_filter_rules(
+                    &change.anchor,
+                    change.filter_rules.as_ref().unwrap(),
+                    pfioc_trans_e.ticket,
+                )?;
+        }
 
-        redirect_changes
-            .iter()
-            .map(
-                |c| {
-                    self.add_redirect_rules(
-                        &c.anchor,
-                        c.redirect_rules.as_ref().unwrap(),
-                        element_iter.next().unwrap().ticket,
-                    )
-                },
-            )
-            .collect::<Result<Vec<_>>>()?;
+        for (change, pfioc_trans_e) in redirect_changes.iter().zip(pfioc_element_iterator.by_ref()) {
+            self.add_redirect_rules(
+                    &change.anchor,
+                    change.redirect_rules.as_ref().unwrap(),
+                    pfioc_trans_e.ticket,
+                )?;
+        }
 
         // commit transaction
         ioctl_guard!(ffi::pf_commit_trans(self.fd(), &mut pfioc_trans))
@@ -141,16 +131,14 @@ impl Transaction {
 
         // add rule into transaction
         ioctl_guard!(ffi::pf_add_rule(self.fd(), &mut pfioc_rule))
-            .chain_err(|| "pf_add_rule failed")
     }
 
     /// Internal function to add a batch of filter rules into transaction
     fn add_filter_rules(&self, anchor: &str, rules: &[FilterRule], ticket: u32) -> Result<()> {
-        rules
-            .iter()
-            .map(|rule| self.add_filter_rule(anchor, rule, ticket))
-            .collect::<Result<Vec<_>>>()
-            .map(|_| ())
+        for rule in rules.iter() {
+            self.add_filter_rule(anchor, rule, ticket)?;
+        }
+        Ok(())
     }
 
     /// Internal function to add single redirect rule into transaction
@@ -178,16 +166,14 @@ impl Transaction {
 
         // add rule into transaction
         ioctl_guard!(ffi::pf_add_rule(self.fd(), &mut pfioc_rule))
-            .chain_err(|| "pf_add_rule failed")
     }
 
     /// Internal function to add a batch of redirect rules into transaction
     fn add_redirect_rules(&self, anchor: &str, rules: &[RedirectRule], ticket: u32) -> Result<()> {
-        rules
-            .iter()
-            .map(|rule| self.add_redirect_rule(anchor, rule, ticket))
-            .collect::<Result<Vec<_>>>()
-            .map(|_| ())
+        for rule in rules.iter() {
+            self.add_redirect_rule(anchor, rule, ticket)?;
+        }
+        Ok(())
     }
 
     fn fd(&self) -> RawFd {
