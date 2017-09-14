@@ -134,10 +134,10 @@ fn run() -> Result<()> {
         .redirect_to(pfctl::Port::from(1338))
         .build()
         .unwrap();
-    let mut trans_change = pfctl::AnchorChange::new(ANCHOR_NAME);
+    let mut trans_change = pfctl::AnchorChange::new();
     trans_change.set_filter_rules(vec![trans_rule1, trans_rule2]);
     trans_change.set_redirect_rules(vec![trans_rule3]);
-    pf.set_rules(vec![trans_change])
+    pf.set_rules(ANCHOR_NAME, trans_change)
         .chain_err(|| "Unable to set rules")?;
 
     Ok(())

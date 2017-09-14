@@ -30,96 +30,81 @@ impl Transaction {
 
     /// Add change into transaction replacing the prior change registered for corresponding anchor
     /// if any.
-    pub fn add_change(&mut self, anchor_change: AnchorChange) {
-        self.change_by_anchor.insert(anchor_change.anchor.clone(), anchor_change);
+    pub fn add_change(&mut self, anchor_name: &str, anchor_change: AnchorChange) {
+        self.change_by_anchor.insert(anchor_name.to_owned(), anchor_change);
     }
 
-    /// Convenience method to add multiple changes into Transaction.
-    pub fn add_changes(&mut self, change_by_anchor: Vec<AnchorChange>) {
-        for anchor_change in change_by_anchor {
-            self.add_change(anchor_change);
-        }
-    }
-
-    /// Commit transaction
-    pub fn commit(&self) -> Result<()> {
+    /// Commit transaction and consume itself
+    pub fn commit(mut self) -> Result<()> {
         let pf_file = utils::open_pf()?;
         let fd = pf_file.as_raw_fd();
         let mut pfioc_trans = unsafe { mem::zeroed::<ffi::pfvar::pfioc_trans>() };
 
-        let all_changes = self.change_by_anchor.values().collect::<Vec<_>>();
-        let filter_changes =
-            all_changes.iter().filter(|c| c.filter_rules.is_some()).collect::<Vec<_>>();
-        let redirect_changes =
-            all_changes.iter().filter(|c| c.redirect_rules.is_some()).collect::<Vec<_>>();
-
-        let mut pfioc_elements = filter_changes
-            .iter()
-            .map(|c| Self::new_trans_element(&c.anchor, RulesetKind::Filter))
-            .chain(
-                redirect_changes
-                    .iter()
-                    .map(|c| Self::new_trans_element(&c.anchor, RulesetKind::Redirect),),
+        // partition changes by ruleset kind
+        let filter_changes: Vec<(String, Vec<FilterRule>)> =
+            self.change_by_anchor
+                .iter_mut()
+                .filter_map(
+                    |(anchor, change)| {
+                        change.filter_rules.take().map(|rules| (anchor.clone(), rules))
+                    },
+                )
+                .collect();
+        let redirect_changes: Vec<(String, Vec<RedirectRule>)> = self.change_by_anchor
+            .iter_mut()
+            .filter_map(
+                |(anchor, change)| {
+                    change.redirect_rules.take().map(|rules| (anchor.clone(), rules))
+                },
             )
-            .collect::<Result<Vec<_>>>()?;
+            .collect();
 
+        // create one transaction element for each unique combination of anchor name and
+        // `RulesetKind` and order them so elements for filter rules go first followed by redirect
+        // rules
+        let mut pfioc_elements: Vec<ffi::pfvar::pfioc_trans_pfioc_trans_e> =
+            filter_changes
+                .iter()
+                .map(|&(ref anchor, _)| Self::new_trans_element(&anchor, RulesetKind::Filter),)
+                .chain(
+                    redirect_changes
+                        .iter()
+                        .map(
+                            |&(ref anchor, _)| {
+                                Self::new_trans_element(&anchor, RulesetKind::Redirect)
+                            },
+                        ),
+                )
+                .collect::<Result<_>>()?;
         Self::setup_trans(&mut pfioc_trans, pfioc_elements.as_mut_slice());
 
-        // fill in array of pfioc_trans_e with tickets
+        // get tickets
         ioctl_guard!(ffi::pf_begin_trans(fd, &mut pfioc_trans))?;
 
-        // register all rules in this transaction with firewall
-        let mut pfioc_element_iterator = pfioc_elements.iter();
-        for (change, pfioc_trans_e) in filter_changes.iter().zip(pfioc_element_iterator.by_ref()) {
-            self.add_filter_rules(
-                    fd,
-                    &change.anchor,
-                    change.filter_rules.as_ref().unwrap(),
-                    pfioc_trans_e.ticket,
-                )?;
+        // create iterator for tickets
+        let mut ticket_iterator = pfioc_elements.iter().map(|e| e.ticket);
+
+        // add filter rules into transaction
+        for ((anchor_name, filter_rules), ticket) in
+            filter_changes.into_iter().zip(ticket_iterator.by_ref()) {
+            for filter_rule in filter_rules.iter() {
+                Self::add_filter_rule(fd, &anchor_name, filter_rule, ticket)?;
+            }
         }
 
-        for (change, pfioc_trans_e) in
-            redirect_changes.iter().zip(pfioc_element_iterator.by_ref()) {
-            self.add_redirect_rules(
-                    fd,
-                    &change.anchor,
-                    change.redirect_rules.as_ref().unwrap(),
-                    pfioc_trans_e.ticket,
-                )?;
+        // // add redirect rules into transaction
+        for ((anchor_name, redirect_rules), ticket) in
+            redirect_changes.into_iter().zip(ticket_iterator.by_ref()) {
+            for redirect_rule in redirect_rules.iter() {
+                Self::add_redirect_rule(fd, &anchor_name, redirect_rule, ticket)?;
+            }
         }
 
-        // commit transaction
         ioctl_guard!(ffi::pf_commit_trans(fd, &mut pfioc_trans))
     }
 
-    /// Internal function to wire up pfioc_trans and pfioc_trans_e
-    fn setup_trans(pfioc_trans: &mut ffi::pfvar::pfioc_trans,
-                   pfioc_trans_elements: &mut [ffi::pfvar::pfioc_trans_pfioc_trans_e]) {
-        pfioc_trans.size = pfioc_trans_elements.len() as i32;
-        pfioc_trans.esize = mem::size_of::<ffi::pfvar::pfioc_trans_pfioc_trans_e>() as i32;
-        pfioc_trans.array = pfioc_trans_elements.as_mut_ptr();
-    }
-
-    /// Internal function to initialize pfioc_trans_e
-    fn new_trans_element(anchor: &str,
-                         ruleset_kind: RulesetKind)
-                         -> Result<ffi::pfvar::pfioc_trans_pfioc_trans_e> {
-        let mut pfioc_trans_e = unsafe { mem::zeroed::<ffi::pfvar::pfioc_trans_pfioc_trans_e>() };
-        pfioc_trans_e.rs_num = ruleset_kind.into();
-        anchor
-            .try_copy_to(&mut pfioc_trans_e.anchor[..])
-            .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
-        Ok(pfioc_trans_e)
-    }
-
-    /// Internal function add single filter rule into transaction
-    fn add_filter_rule(&self,
-                       fd: RawFd,
-                       anchor: &str,
-                       rule: &FilterRule,
-                       ticket: u32)
-                       -> Result<()> {
+    /// Internal helper add filter rule into transaction
+    fn add_filter_rule(fd: RawFd, anchor: &str, rule: &FilterRule, ticket: u32) -> Result<()> {
         // fill in rule information
         let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
         pfioc_rule.action = ffi::pfvar::PF_CHANGE_NONE as u32;
@@ -136,26 +121,8 @@ impl Transaction {
         ioctl_guard!(ffi::pf_add_rule(fd, &mut pfioc_rule))
     }
 
-    /// Internal function to add a batch of filter rules into transaction
-    fn add_filter_rules(&self,
-                        fd: RawFd,
-                        anchor: &str,
-                        rules: &[FilterRule],
-                        ticket: u32)
-                        -> Result<()> {
-        for rule in rules.iter() {
-            self.add_filter_rule(fd, anchor, rule, ticket)?;
-        }
-        Ok(())
-    }
-
-    /// Internal function to add single redirect rule into transaction
-    fn add_redirect_rule(&self,
-                         fd: RawFd,
-                         anchor: &str,
-                         rule: &RedirectRule,
-                         ticket: u32)
-                         -> Result<()> {
+    /// Internal helper to add redirect rule into transaction
+    fn add_redirect_rule(fd: RawFd, anchor: &str, rule: &RedirectRule, ticket: u32) -> Result<()> {
         // register redirect address in newly created address pool
         let redirect_to = rule.get_redirect_to();
         let mut pfioc_pooladdr = unsafe { mem::zeroed::<ffi::pfvar::pfioc_pooladdr>() };
@@ -181,17 +148,24 @@ impl Transaction {
         ioctl_guard!(ffi::pf_add_rule(fd, &mut pfioc_rule))
     }
 
-    /// Internal function to add a batch of redirect rules into transaction
-    fn add_redirect_rules(&self,
-                          fd: RawFd,
-                          anchor: &str,
-                          rules: &[RedirectRule],
-                          ticket: u32)
-                          -> Result<()> {
-        for rule in rules.iter() {
-            self.add_redirect_rule(fd, anchor, rule, ticket)?;
-        }
-        Ok(())
+    /// Internal helper to wire up pfioc_trans and pfioc_trans_e
+    fn setup_trans(pfioc_trans: &mut ffi::pfvar::pfioc_trans,
+                   pfioc_trans_elements: &mut [ffi::pfvar::pfioc_trans_pfioc_trans_e]) {
+        pfioc_trans.size = pfioc_trans_elements.len() as i32;
+        pfioc_trans.esize = mem::size_of::<ffi::pfvar::pfioc_trans_pfioc_trans_e>() as i32;
+        pfioc_trans.array = pfioc_trans_elements.as_mut_ptr();
+    }
+
+    /// Internal helper to initialize pfioc_trans_e
+    fn new_trans_element(anchor: &str,
+                         ruleset_kind: RulesetKind)
+                         -> Result<ffi::pfvar::pfioc_trans_pfioc_trans_e> {
+        let mut pfioc_trans_e = unsafe { mem::zeroed::<ffi::pfvar::pfioc_trans_pfioc_trans_e>() };
+        pfioc_trans_e.rs_num = ruleset_kind.into();
+        anchor
+            .try_copy_to(&mut pfioc_trans_e.anchor[..])
+            .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
+        Ok(pfioc_trans_e)
     }
 }
 
@@ -202,16 +176,14 @@ impl Transaction {
 /// In contrast, setting an empty vector for either of rules will remove the corresponding rules.
 #[derive(Debug)]
 pub struct AnchorChange {
-    pub anchor: String,
     pub filter_rules: Option<Vec<FilterRule>>,
     pub redirect_rules: Option<Vec<RedirectRule>>,
 }
 
 impl AnchorChange {
-    /// Returns an empty changeset for corresponding anchor
-    pub fn new(anchor: &str) -> Self {
+    /// Returns an empty changeset
+    pub fn new() -> Self {
         AnchorChange {
-            anchor: anchor.to_owned(),
             filter_rules: None,
             redirect_rules: None,
         }

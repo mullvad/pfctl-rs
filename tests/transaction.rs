@@ -120,10 +120,10 @@ fn assert_eq_redirect_marker_rule(pf_rules: Vec<String>) {
 /// Test that replaces filter and redirect rules in single anchor
 test!(replace_many_rulesets_in_one_anchor {
     let mut pf = pfctl::PfCtl::new().unwrap();
-    let mut change = pfctl::AnchorChange::new(ANCHOR1_NAME);
+    let mut change = pfctl::AnchorChange::new();
     change.set_filter_rules(get_filter_rules());
     change.set_redirect_rules(get_redirect_rules());
-    assert_matches!(pf.set_rules(vec![change]), Ok(()));
+    assert_matches!(pf.set_rules(ANCHOR1_NAME, change), Ok(()));
     assert_eq_filter_rules(pfcli::get_rules(ANCHOR1_NAME).unwrap());
     assert_eq_redirect_rules(pfcli::get_nat_rules(ANCHOR1_NAME).unwrap());
 });
@@ -147,13 +147,17 @@ test!(replace_one_ruleset_in_many_anchors {
     assert_matches!(pf.add_redirect_rule(ANCHOR2_NAME, &get_marker_redirect_rule()), Ok(()));
     assert_eq_redirect_marker_rule(pfcli::get_nat_rules(ANCHOR2_NAME).unwrap());
 
-    let mut change1 = pfctl::AnchorChange::new(ANCHOR1_NAME);
+    let mut change1 = pfctl::AnchorChange::new();
     change1.set_redirect_rules(get_redirect_rules());
 
-    let mut change2 = pfctl::AnchorChange::new(ANCHOR2_NAME);
+    let mut change2 = pfctl::AnchorChange::new();
     change2.set_filter_rules(get_filter_rules());
 
-    assert_matches!(pf.set_rules(vec![change1, change2]), Ok(()));
+    let mut trans = pfctl::Transaction::new();
+    trans.add_change(ANCHOR1_NAME, change1);
+    trans.add_change(ANCHOR2_NAME, change2);
+
+    assert_matches!(trans.commit(), Ok(()));
 
     assert_eq_redirect_rules(pfcli::get_nat_rules(ANCHOR1_NAME).unwrap());
     assert_eq_filter_marker_rule(pfcli::get_rules(ANCHOR1_NAME).unwrap());
