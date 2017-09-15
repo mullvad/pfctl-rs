@@ -75,12 +75,11 @@ impl Transaction {
         // get tickets
         ioctl_guard!(ffi::pf_begin_trans(dev, &mut pfioc_trans))?;
 
-        // fetch tickets and create iterator for them
-        let tickets = pfioc_elements.iter().map(|e| e.ticket).collect::<Vec<_>>();
-        let mut ticket_iterator = tickets.iter();
+        // create iterator for tickets
+        let mut ticket_iterator = pfioc_elements.iter().map(|e| e.ticket);
 
         // add filter rules into transaction
-        for (&(ref anchor_name, ref change), &ticket) in
+        for (&(ref anchor_name, ref change), ticket) in
             filter_changes.iter().zip(ticket_iterator.by_ref()) {
             for filter_rule in change.filter_rules.as_ref().unwrap().iter() {
                 Self::add_filter_rule(dev, &anchor_name, filter_rule, ticket)?;
@@ -88,7 +87,7 @@ impl Transaction {
         }
 
         // add redirect rules into transaction
-        for (&(ref anchor_name, ref change), &ticket) in
+        for (&(ref anchor_name, ref change), ticket) in
             redirect_changes.iter().zip(ticket_iterator.by_ref()) {
             for redirect_rule in change.redirect_rules.as_ref().unwrap().iter() {
                 Self::add_redirect_rule(dev, &anchor_name, redirect_rule, ticket)?;
