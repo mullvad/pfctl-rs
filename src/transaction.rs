@@ -176,8 +176,8 @@ impl Transaction {
 /// In contrast, setting an empty vector for either of rules will remove the corresponding rules.
 #[derive(Debug)]
 pub struct AnchorChange {
-    pub filter_rules: Option<Vec<FilterRule>>,
-    pub redirect_rules: Option<Vec<RedirectRule>>,
+    filter_rules: Option<Vec<FilterRule>>,
+    redirect_rules: Option<Vec<RedirectRule>>,
 }
 
 impl AnchorChange {
