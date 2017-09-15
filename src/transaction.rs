@@ -36,8 +36,8 @@ impl Transaction {
 
     /// Commit transaction and consume itself
     pub fn commit(self) -> Result<()> {
-        let fd = utils::open_pf()?;
-        let dev = fd.as_raw_fd();
+        let pf_file = utils::open_pf()?;
+        let fd = pf_file.as_raw_fd();
         let mut pfioc_trans = unsafe { mem::zeroed::<ffi::pfvar::pfioc_trans>() };
 
         // partition changes by ruleset kind
@@ -85,7 +85,7 @@ impl Transaction {
         Self::setup_trans(&mut pfioc_trans, pfioc_elements.as_mut_slice());
 
         // get tickets
-        ioctl_guard!(ffi::pf_begin_trans(dev, &mut pfioc_trans))?;
+        ioctl_guard!(ffi::pf_begin_trans(fd, &mut pfioc_trans))?;
 
         // create iterator for tickets
         let mut ticket_iterator = pfioc_elements.iter().map(|e| e.ticket);
@@ -94,7 +94,7 @@ impl Transaction {
         for (&(anchor_name, filter_rules), ticket) in
             filter_changes.iter().zip(ticket_iterator.by_ref()) {
             for filter_rule in filter_rules.iter() {
-                Self::add_filter_rule(dev, &anchor_name, filter_rule, ticket)?;
+                Self::add_filter_rule(fd, &anchor_name, filter_rule, ticket)?;
             }
         }
 
@@ -102,19 +102,19 @@ impl Transaction {
         for (&(anchor_name, redirect_rules), ticket) in
             redirect_changes.iter().zip(ticket_iterator.by_ref()) {
             for redirect_rule in redirect_rules.iter() {
-                Self::add_redirect_rule(dev, &anchor_name, redirect_rule, ticket)?;
+                Self::add_redirect_rule(fd, &anchor_name, redirect_rule, ticket)?;
             }
         }
 
-        ioctl_guard!(ffi::pf_commit_trans(dev, &mut pfioc_trans))
+        ioctl_guard!(ffi::pf_commit_trans(fd, &mut pfioc_trans))
     }
 
     /// Internal helper add filter rule into transaction
-    fn add_filter_rule(dev: RawFd, anchor: &str, rule: &FilterRule, ticket: u32) -> Result<()> {
+    fn add_filter_rule(fd: RawFd, anchor: &str, rule: &FilterRule, ticket: u32) -> Result<()> {
         // fill in rule information
         let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
         pfioc_rule.action = ffi::pfvar::PF_CHANGE_NONE as u32;
-        pfioc_rule.pool_ticket = utils::get_pool_ticket(dev, &anchor)?;
+        pfioc_rule.pool_ticket = utils::get_pool_ticket(fd, &anchor)?;
         rule.try_copy_to(&mut pfioc_rule.rule)?;
 
         // fill in ticket with ticket associated with transaction
@@ -124,17 +124,17 @@ impl Transaction {
             .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
 
         // add rule into transaction
-        ioctl_guard!(ffi::pf_add_rule(dev, &mut pfioc_rule))
+        ioctl_guard!(ffi::pf_add_rule(fd, &mut pfioc_rule))
     }
 
     /// Internal helper to add redirect rule into transaction
-    fn add_redirect_rule(dev: RawFd, anchor: &str, rule: &RedirectRule, ticket: u32) -> Result<()> {
+    fn add_redirect_rule(fd: RawFd, anchor: &str, rule: &RedirectRule, ticket: u32) -> Result<()> {
         // register redirect address in newly created address pool
         let redirect_to = rule.get_redirect_to();
         let mut pfioc_pooladdr = unsafe { mem::zeroed::<ffi::pfvar::pfioc_pooladdr>() };
-        ioctl_guard!(ffi::pf_begin_addrs(dev, &mut pfioc_pooladdr))?;
+        ioctl_guard!(ffi::pf_begin_addrs(fd, &mut pfioc_pooladdr))?;
         redirect_to.ip().copy_to(&mut pfioc_pooladdr.addr.addr);
-        ioctl_guard!(ffi::pf_add_addr(dev, &mut pfioc_pooladdr))?;
+        ioctl_guard!(ffi::pf_add_addr(fd, &mut pfioc_pooladdr))?;
 
         // prepare pfioc_rule
         let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
@@ -151,7 +151,7 @@ impl Transaction {
         pfioc_rule.ticket = ticket;
 
         // add rule into transaction
-        ioctl_guard!(ffi::pf_add_rule(dev, &mut pfioc_rule))
+        ioctl_guard!(ffi::pf_add_rule(fd, &mut pfioc_rule))
     }
 
     /// Internal helper to wire up pfioc_trans and pfioc_trans_e
