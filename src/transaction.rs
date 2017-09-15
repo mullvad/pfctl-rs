@@ -62,8 +62,9 @@ impl Transaction {
             )
             .collect();
 
-        // create transaction elements for each ruleset and order them so elements for filter rules
-        // go first followed by redirect rules
+        // create one transaction element for each unique combination of anchor name and
+        // `RulesetKind` and order them so elements for filter rules go first followed by redirect
+        // rules
         let mut pfioc_elements =
             filter_changes
                 .iter()
