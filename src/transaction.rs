@@ -182,8 +182,8 @@ impl Transaction {
 /// rules that set to None will remain untouched during transaction.
 #[derive(Debug)]
 pub struct AnchorChange {
-    pub filter_rules: Option<Vec<FilterRule>>,
-    pub redirect_rules: Option<Vec<RedirectRule>>,
+    filter_rules: Option<Vec<FilterRule>>,
+    redirect_rules: Option<Vec<RedirectRule>>,
 }
 
 impl AnchorChange {
