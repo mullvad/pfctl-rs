@@ -34,21 +34,33 @@ impl Transaction {
         self.change_by_anchor.insert(anchor_name.to_owned(), anchor_change);
     }
 
-    /// Commit transaction
-    pub fn commit(&self) -> Result<()> {
+    /// Commit transaction and consume itself
+    pub fn commit(self) -> Result<()> {
         let fd = utils::open_pf()?;
         let dev = fd.as_raw_fd();
         let mut pfioc_trans = unsafe { mem::zeroed::<ffi::pfvar::pfioc_trans>() };
 
         // partition changes by ruleset kind
-        let filter_changes = self.change_by_anchor
+        let filter_changes: Vec<(&String, &Vec<FilterRule>)> = self.change_by_anchor
             .iter()
-            .filter(|&(_, ref change)| change.filter_rules.is_some())
-            .collect::<Vec<_>>();
-        let redirect_changes = self.change_by_anchor
+            .filter_map(
+                |(key, ref change)| if let Some(ref filter_rules) = change.filter_rules {
+                    Some((key, filter_rules))
+                } else {
+                    None
+                },
+            )
+            .collect();
+        let redirect_changes: Vec<(&String, &Vec<RedirectRule>)> = self.change_by_anchor
             .iter()
-            .filter(|&(_, ref change)| change.redirect_rules.is_some())
-            .collect::<Vec<_>>();
+            .filter_map(
+                |(key, ref change)| if let Some(ref redirect_rules) = change.redirect_rules {
+                    Some((key, redirect_rules))
+                } else {
+                    None
+                },
+            )
+            .collect();
 
         // create transaction elements for each ruleset and order them so elements for filter rules
         // go first followed by redirect rules
@@ -79,17 +91,17 @@ impl Transaction {
         let mut ticket_iterator = pfioc_elements.iter().map(|e| e.ticket);
 
         // add filter rules into transaction
-        for (&(ref anchor_name, ref change), ticket) in
+        for (&(anchor_name, filter_rules), ticket) in
             filter_changes.iter().zip(ticket_iterator.by_ref()) {
-            for filter_rule in change.filter_rules.as_ref().unwrap().iter() {
+            for filter_rule in filter_rules.iter() {
                 Self::add_filter_rule(dev, &anchor_name, filter_rule, ticket)?;
             }
         }
 
         // add redirect rules into transaction
-        for (&(ref anchor_name, ref change), ticket) in
+        for (&(anchor_name, redirect_rules), ticket) in
             redirect_changes.iter().zip(ticket_iterator.by_ref()) {
-            for redirect_rule in change.redirect_rules.as_ref().unwrap().iter() {
+            for redirect_rule in redirect_rules.iter() {
                 Self::add_redirect_rule(dev, &anchor_name, redirect_rule, ticket)?;
             }
         }
