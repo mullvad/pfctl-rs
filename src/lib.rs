@@ -94,7 +94,7 @@ mod ruleset;
 pub use ruleset::*;
 
 mod transaction;
-use transaction::*;
+pub use transaction::*;
 
 mod errors {
     error_chain! {
@@ -251,9 +251,9 @@ impl PfCtl {
         ioctl_guard!(ffi::pf_change_rule(self.fd(), &mut pfioc_rule))
     }
 
-    pub fn set_rules(&mut self, anchor: &str, rules: &[FilterRule]) -> Result<()> {
-        let trans = Transaction::new(&anchor, RulesetKind::Filter)?;
-        trans.add_rules(rules)?;
+    pub fn set_rules(&mut self, anchor: &str, change: AnchorChange) -> Result<()> {
+        let mut trans = Transaction::new();
+        trans.add_change(anchor, change);
         trans.commit()
     }
 
@@ -285,7 +285,14 @@ impl PfCtl {
     }
 
     pub fn flush_rules(&mut self, anchor: &str, kind: RulesetKind) -> Result<()> {
-        Transaction::new(&anchor, kind)?.commit()
+        let mut trans = Transaction::new();
+        let mut anchor_change = AnchorChange::new();
+        match kind {
+            RulesetKind::Filter => anchor_change.set_filter_rules(Vec::new()),
+            RulesetKind::Redirect => anchor_change.set_redirect_rules(Vec::new()),
+        };
+        trans.add_change(anchor, anchor_change);
+        trans.commit()
     }
 
     /// Clear states created by rules in anchor.
