@@ -31,4 +31,5 @@ else
     shift
 fi
 
+export DYLD_LIBRARY_PATH=$(rustc --print sysroot)/lib:$DYLD_LIBRARY_PATH
 find . -iname "*.rs" -not -path "*/target/*" -print0 | xargs -0 -n1 rustfmt --skip-children "$@"
