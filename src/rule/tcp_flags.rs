@@ -49,9 +49,7 @@ pub struct TcpFlagSet(Vec<TcpFlag>);
 
 impl<'a> From<&'a TcpFlagSet> for u8 {
     fn from(set: &TcpFlagSet) -> Self {
-        set.0
-            .iter()
-            .fold(0, |acc, &x| (acc | u8::from(x)))
+        set.0.iter().fold(0, |acc, &x| (acc | u8::from(x)))
     }
 }
 

@@ -66,10 +66,7 @@ fn get_rules_internal(anchor_name: &str, param_kind: &str) -> Result<Vec<String>
         .output()
         .chain_err(|| "Failed to run pfctl")?;
     let output = str_from_stdout(&output.stdout)?;
-    let rules = output
-        .lines()
-        .map(|x| x.trim().to_owned())
-        .collect();
+    let rules = output.lines().map(|x| x.trim().to_owned()).collect();
     Ok(rules)
 }
 
@@ -98,10 +95,7 @@ pub fn get_all_states() -> Result<Vec<String>> {
         .output()
         .chain_err(|| "Failed to run pfctl")?;
     let output = str_from_stdout(&output.stdout)?;
-    let states = output
-        .lines()
-        .map(|x| x.trim().to_owned())
-        .collect();
+    let states = output.lines().map(|x| x.trim().to_owned()).collect();
     Ok(states)
 }
 

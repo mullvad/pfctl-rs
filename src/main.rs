@@ -53,8 +53,10 @@ fn run() -> Result<()> {
         err => err.chain_err(|| "Unable to flush rdr rules")?,
     }
 
-    let pass_all_rule =
-        pfctl::FilterRuleBuilder::default().action(pfctl::FilterRuleAction::Pass).build().unwrap();
+    let pass_all_rule = pfctl::FilterRuleBuilder::default()
+        .action(pfctl::FilterRuleAction::Pass)
+        .build()
+        .unwrap();
     let pass_all4_quick_rule = pfctl::FilterRuleBuilder::default()
         .action(pfctl::FilterRuleAction::Pass)
         .af(pfctl::AddrFamily::Ipv4)
@@ -67,9 +69,12 @@ fn run() -> Result<()> {
         .interface("utun0")
         .build()
         .unwrap();
-    pf.add_rule(ANCHOR_NAME, &pass_all_rule).chain_err(|| "Unable to add rule")?;
-    pf.add_rule(ANCHOR_NAME, &pass_all4_quick_rule).chain_err(|| "Unable to add rule")?;
-    pf.add_rule(ANCHOR_NAME, &pass_all6_rule).chain_err(|| "Unable to add rule")?;
+    pf.add_rule(ANCHOR_NAME, &pass_all_rule)
+        .chain_err(|| "Unable to add rule")?;
+    pf.add_rule(ANCHOR_NAME, &pass_all4_quick_rule)
+        .chain_err(|| "Unable to add rule")?;
+    pf.add_rule(ANCHOR_NAME, &pass_all6_rule)
+        .chain_err(|| "Unable to add rule")?;
 
     let from_net = IpNetwork::from_str("192.168.99.11/24").unwrap();
     let from_net_rule = pfctl::FilterRuleBuilder::default()
@@ -77,14 +82,16 @@ fn run() -> Result<()> {
         .from(pfctl::Ip::from(from_net))
         .build()
         .unwrap();
-    pf.add_rule(ANCHOR_NAME, &from_net_rule).chain_err(|| "Unable to add IPv4 net rule")?;
+    pf.add_rule(ANCHOR_NAME, &from_net_rule)
+        .chain_err(|| "Unable to add IPv4 net rule")?;
 
     let to_port_rule = pfctl::FilterRuleBuilder::default()
         .action(pfctl::FilterRuleAction::Pass)
         .to(pfctl::Port::from(9876))
         .build()
         .unwrap();
-    pf.add_rule(ANCHOR_NAME, &to_port_rule).chain_err(|| "Unable to add port rule")?;
+    pf.add_rule(ANCHOR_NAME, &to_port_rule)
+        .chain_err(|| "Unable to add port rule")?;
 
     let mut rdr_rule_builder = pfctl::RedirectRuleBuilder::default();
     let rdr_rule1 = rdr_rule_builder
@@ -92,22 +99,19 @@ fn run() -> Result<()> {
         .af(pfctl::AddrFamily::Ipv4)
         .proto(pfctl::Proto::Tcp)
         .direction(pfctl::Direction::In)
-        .to(
-            pfctl::Endpoint::new(
-                pfctl::Ip::from(Ipv4Addr::new(127, 0, 0, 1)),
-                pfctl::Port::One(3000, pfctl::PortUnaryModifier::Equal),
-            ),
-        )
-        .redirect_to(
-            pfctl::Endpoint::new(
-                pfctl::Ip::from(Ipv4Addr::new(127, 0, 0, 1)),
-                pfctl::Port::One(4000, pfctl::PortUnaryModifier::Equal),
-            ),
-        )
+        .to(pfctl::Endpoint::new(
+            pfctl::Ip::from(Ipv4Addr::new(127, 0, 0, 1)),
+            pfctl::Port::One(3000, pfctl::PortUnaryModifier::Equal),
+        ))
+        .redirect_to(pfctl::Endpoint::new(
+            pfctl::Ip::from(Ipv4Addr::new(127, 0, 0, 1)),
+            pfctl::Port::One(4000, pfctl::PortUnaryModifier::Equal),
+        ))
         .build()
         .unwrap();
 
-    pf.add_redirect_rule(ANCHOR_NAME, &rdr_rule1).chain_err(|| "Unable to add rdr rule")?;
+    pf.add_redirect_rule(ANCHOR_NAME, &rdr_rule1)
+        .chain_err(|| "Unable to add rdr rule")?;
 
     let ipv6 = Ipv6Addr::new(0xbeef, 8, 7, 6, 5, 4, 3, 2);
     let from_ipv6_rule = pfctl::FilterRuleBuilder::default()
@@ -115,7 +119,8 @@ fn run() -> Result<()> {
         .from(ipv6)
         .build()
         .unwrap();
-    pf.add_rule(ANCHOR_NAME, &from_ipv6_rule).chain_err(|| "Unable to add IPv6 rule")?;
+    pf.add_rule(ANCHOR_NAME, &from_ipv6_rule)
+        .chain_err(|| "Unable to add IPv6 rule")?;
 
     let trans_rule1 = pfctl::FilterRuleBuilder::default()
         .action(pfctl::FilterRuleAction::Drop)

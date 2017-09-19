@@ -53,14 +53,14 @@
 //!
 
 #[macro_use]
-extern crate ioctl_sys;
-#[macro_use]
-extern crate error_chain;
+extern crate derive_builder;
 extern crate errno;
 #[macro_use]
-extern crate derive_builder;
-extern crate libc;
+extern crate error_chain;
+#[macro_use]
+extern crate ioctl_sys;
 extern crate ipnetwork;
+extern crate libc;
 
 #[cfg(test)]
 #[macro_use]
@@ -139,8 +139,8 @@ macro_rules! ignore_error_kind {
 
 /// Module for types and traits dealing with translating between Rust and FFI.
 mod conversion {
-    /// Internal trait for all types that can write their value into another type without risk of
-    /// failing.
+    /// Internal trait for all types that can write their value into another type without risk
+    /// of failing.
     pub trait CopyTo<T: ?Sized> {
         fn copy_to(&self, dst: &mut T);
     }
@@ -179,7 +179,8 @@ impl PfCtl {
         ioctl_guard!(ffi::pf_start(self.fd()))
     }
 
-    /// Same as `enable`, but `StateAlreadyActive` errors are supressed and exchanged for `Ok(())`.
+    /// Same as `enable`, but `StateAlreadyActive` errors are supressed and exchanged for
+    /// `Ok(())`.
     pub fn try_enable(&mut self) -> Result<()> {
         ignore_error_kind!(self.enable(), ErrorKind::StateAlreadyActive)
     }
@@ -190,7 +191,8 @@ impl PfCtl {
         ioctl_guard!(ffi::pf_stop(self.fd()), libc::ENOENT)
     }
 
-    /// Same as `disable`, but `StateAlreadyActive` errors are supressed and exchanged for `Ok(())`.
+    /// Same as `disable`, but `StateAlreadyActive` errors are supressed and exchanged for
+    /// `Ok(())`.
     pub fn try_disable(&mut self) -> Result<()> {
         ignore_error_kind!(self.disable(), ErrorKind::StateAlreadyActive)
     }
@@ -220,11 +222,9 @@ impl PfCtl {
     }
 
     pub fn remove_anchor(&mut self, name: &str, kind: AnchorKind) -> Result<()> {
-        self.with_anchor_rule(
-            name,
-            kind,
-            |mut anchor_rule| ioctl_guard!(ffi::pf_delete_rule(self.fd(), &mut anchor_rule)),
-        )
+        self.with_anchor_rule(name, kind, |mut anchor_rule| {
+            ioctl_guard!(ffi::pf_delete_rule(self.fd(), &mut anchor_rule))
+        })
     }
 
     /// Same as `remove_anchor`, but `AnchorDoesNotExist` errors are supressed and exchanged for
@@ -301,9 +301,8 @@ impl PfCtl {
     pub fn clear_states(&mut self, anchor_name: &str, kind: AnchorKind) -> Result<u32> {
         let pfsync_states = self.get_states()?;
         if pfsync_states.len() > 0 {
-            self.with_anchor_rule(
-                anchor_name, kind, |anchor_rule| {
-                    pfsync_states
+            self.with_anchor_rule(anchor_name, kind, |anchor_rule| {
+                pfsync_states
                     .iter()
                     .filter(|pfsync_state| pfsync_state.anchor == anchor_rule.nr)
                     .map(|pfsync_state| {
@@ -316,8 +315,7 @@ impl PfCtl {
                     })
                     .collect::<Result<Vec<_>>>()
                     .map(|v| v.iter().sum())
-                }
-            )
+            })
         } else {
             Ok(0)
         }
@@ -345,7 +343,8 @@ impl PfCtl {
     /// - Returns `ErrorKind::AnchorDoesNotExist` on mismatch, the closure is not called in that
     /// case.
     fn with_anchor_rule<F, R>(&self, name: &str, kind: AnchorKind, f: F) -> Result<R>
-        where F: FnOnce(ffi::pfvar::pfioc_rule) -> Result<R>
+    where
+        F: FnOnce(ffi::pfvar::pfioc_rule) -> Result<R>,
     {
         let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
         pfioc_rule.rule.action = kind.into();
@@ -381,8 +380,9 @@ impl PfCtl {
 /// given number of elements.
 /// Since pfioc_states uses raw memory pointer to Vec<pfsync_state>, make sure that
 /// Vec<pfsync_state> outlives pfsync_states.
-fn setup_pfioc_states(num_states: u32)
-                      -> (ffi::pfvar::pfioc_states, Vec<ffi::pfvar::pfsync_state>) {
+fn setup_pfioc_states(
+    num_states: u32,
+) -> (ffi::pfvar::pfioc_states, Vec<ffi::pfvar::pfsync_state>) {
     let mut pfioc_states = unsafe { mem::zeroed::<ffi::pfvar::pfioc_states>() };
     let element_size = mem::size_of::<ffi::pfvar::pfsync_state>() as i32;
     pfioc_states.ps_len = element_size * (num_states as i32);
@@ -396,8 +396,10 @@ fn setup_pfioc_states(num_states: u32)
 }
 
 /// Setup pfioc_state_kill from pfsync_state
-fn setup_pfioc_state_kill(pfsync_state: &ffi::pfvar::pfsync_state,
-                          pfioc_state_kill: &mut ffi::pfvar::pfioc_state_kill) {
+fn setup_pfioc_state_kill(
+    pfsync_state: &ffi::pfvar::pfsync_state,
+    pfioc_state_kill: &mut ffi::pfvar::pfioc_state_kill,
+) {
     pfioc_state_kill.psk_af = pfsync_state.af_lan;
     pfioc_state_kill.psk_proto = pfsync_state.proto;
     pfioc_state_kill.psk_proto_variant = pfsync_state.proto_variant;
