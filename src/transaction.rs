@@ -107,8 +107,7 @@ impl Transaction {
     /// Internal helper add filter rule into transaction
     fn add_filter_rule<'a>(fd: RawFd, anchor: &str, rule: &FilterRule, ticket: u32) -> Result<()> {
         // request new address pool
-        let mut pfioc_pooladdr = unsafe { mem::zeroed::<ffi::pfvar::pfioc_pooladdr>() };
-        ioctl_guard!(ffi::pf_begin_addrs(fd, &mut pfioc_pooladdr))?;
+        let pool_ticket = utils::get_pool_ticket(fd)?;
 
         // prepare pfioc_rule
         let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
@@ -121,6 +120,8 @@ impl Transaction {
         // setup address pool for route
         let route_addr_pool = if let Route::RouteTo(ref pool_addr) = *rule.get_route() {
             // register pool address with firewall
+            let mut pfioc_pooladdr = unsafe { mem::zeroed::<ffi::pfvar::pfioc_pooladdr>() };
+            pfioc_pooladdr.ticket = pool_ticket;
             pool_addr.try_copy_to(&mut pfioc_pooladdr.addr)?;
             ioctl_guard!(ffi::pf_add_addr(fd, &mut pfioc_pooladdr))?;
 
@@ -139,7 +140,7 @@ impl Transaction {
 
         // fill in ticket with ticket associated with transaction
         pfioc_rule.ticket = ticket;
-        pfioc_rule.pool_ticket = pfioc_pooladdr.ticket;
+        pfioc_rule.pool_ticket = pool_ticket;
 
         // add rule into transaction
         ioctl_guard!(ffi::pf_add_rule(fd, &mut pfioc_rule))
@@ -150,7 +151,7 @@ impl Transaction {
         // register redirect address in newly created address pool
         let redirect_to = rule.get_redirect_to();
         let mut pfioc_pooladdr = unsafe { mem::zeroed::<ffi::pfvar::pfioc_pooladdr>() };
-        ioctl_guard!(ffi::pf_begin_addrs(fd, &mut pfioc_pooladdr))?;
+        pfioc_pooladdr.ticket = utils::get_pool_ticket(fd)?;
         redirect_to.ip().copy_to(&mut pfioc_pooladdr.addr.addr);
         ioctl_guard!(ffi::pf_add_addr(fd, &mut pfioc_pooladdr))?;
 
