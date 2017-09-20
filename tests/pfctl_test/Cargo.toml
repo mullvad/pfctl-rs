@@ -4,5 +4,5 @@ version = "0.1.0"
 authors = ["Mullvad VPN", "Andrej Mihajlov <and@mullvad.net>"]
 
 [dependencies]
-error-chain = "0.10"
+error-chain = "0.11"
 scopeguard = "0.3.2"
