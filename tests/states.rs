@@ -12,11 +12,15 @@ use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, UdpSocket};
 static ANCHOR_NAME: &'static str = "pfctl-rs.integration.testing.states";
 
 fn contains_subset(haystack: &Vec<String>, subset: &[&str]) -> bool {
-    subset.iter().all(|&state| haystack.contains(&state.to_owned()))
+    subset
+        .iter()
+        .all(|&state| haystack.contains(&state.to_owned()))
 }
 
 fn not_contains_subset(haystack: &Vec<String>, subset: &[&str]) -> bool {
-    subset.iter().all(|&state| !haystack.contains(&state.to_owned()))
+    subset
+        .iter()
+        .all(|&state| !haystack.contains(&state.to_owned()))
 }
 
 fn send_udp_packet(sender: SocketAddr, recepient: SocketAddr) {

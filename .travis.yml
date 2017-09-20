@@ -1,26 +1,26 @@
 language: rust
 cache: cargo
 rust:
+  - nightly
   - stable
   - beta
-  - nightly
-matrix:
-  allow_failures:
-    - rust: nightly
 os:
   - osx
 
 
 before_script:
-  - (cargo install rustfmt || true)
   - export PATH=$HOME/.cargo/bin:$HOME/.local/bin:$PATH
-  - rustfmt --version
   - env
 
 script:
   - cargo build --verbose
   - sudo cargo test --verbose -- --test-threads=1
-  - ./format.sh --write-mode=diff
+  # Format only on nightly, since that is where rustfmt-nightly compiles
+  - if [ "${TRAVIS_RUST_VERSION}" = "nightly" ]; then
+      ./format.sh --write-mode=diff;
+    else
+      echo "Not checking formatting on this build";
+    fi
 
 notifications:
   email:

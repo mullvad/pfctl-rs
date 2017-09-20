@@ -30,9 +30,8 @@ impl<T: AsRef<str>> From<T> for Interface {
 impl TryCopyTo<[i8]> for Interface {
     fn try_copy_to(&self, dst: &mut [i8]) -> Result<()> {
         match *self {
-                Interface::Any => "",
-                Interface::Name(ref name) => &name[..],
-            }
-            .try_copy_to(dst)
+            Interface::Any => "",
+            Interface::Name(ref name) => &name[..],
+        }.try_copy_to(dst)
     }
 }

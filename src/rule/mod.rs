@@ -48,39 +48,28 @@ mod rule_log;
 pub use self::rule_log::*;
 
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-#[derive(Builder)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Builder)]
 #[builder(setter(into))]
 #[builder(build_fn(name = "build_internal"))]
 pub struct FilterRule {
     action: FilterRuleAction,
-    #[builder(default)]
-    direction: Direction,
-    #[builder(default)]
-    quick: bool,
-    #[builder(default)]
-    log: RuleLogSet,
-    #[builder(default)]
-    keep_state: StatePolicy,
-    #[builder(default)]
-    interface: Interface,
-    #[builder(default)]
-    proto: Proto,
-    #[builder(default)]
-    af: AddrFamily,
-    #[builder(default)]
-    from: Endpoint,
-    #[builder(default)]
-    to: Endpoint,
-    #[builder(default)]
-    tcp_flags: TcpFlags,
-    #[builder(default)]
-    label: String,
+    #[builder(default)] direction: Direction,
+    #[builder(default)] quick: bool,
+    #[builder(default)] log: RuleLogSet,
+    #[builder(default)] keep_state: StatePolicy,
+    #[builder(default)] interface: Interface,
+    #[builder(default)] proto: Proto,
+    #[builder(default)] af: AddrFamily,
+    #[builder(default)] from: Endpoint,
+    #[builder(default)] to: Endpoint,
+    #[builder(default)] tcp_flags: TcpFlags,
+    #[builder(default)] label: String,
 }
 
 impl FilterRuleBuilder {
     pub fn build(&self) -> Result<FilterRule> {
-        self.build_internal().map_err(|e| ErrorKind::InvalidRuleCombination(e).into())
+        self.build_internal()
+            .map_err(|e| ErrorKind::InvalidRuleCombination(e).into())
     }
 }
 
@@ -136,32 +125,25 @@ impl TryCopyTo<ffi::pfvar::pf_rule> for FilterRule {
 
 
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-#[derive(Builder)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Builder)]
 #[builder(setter(into))]
 #[builder(build_fn(name = "build_internal"))]
 pub struct RedirectRule {
     action: RedirectRuleAction,
-    #[builder(default)]
-    direction: Direction,
-    #[builder(default)]
-    quick: bool,
-    #[builder(default)]
-    proto: Proto,
-    #[builder(default)]
-    af: AddrFamily,
-    #[builder(default)]
-    from: Endpoint,
-    #[builder(default)]
-    to: Endpoint,
-    #[builder(default)]
-    label: String,
+    #[builder(default)] direction: Direction,
+    #[builder(default)] quick: bool,
+    #[builder(default)] proto: Proto,
+    #[builder(default)] af: AddrFamily,
+    #[builder(default)] from: Endpoint,
+    #[builder(default)] to: Endpoint,
+    #[builder(default)] label: String,
     redirect_to: Endpoint,
 }
 
 impl RedirectRuleBuilder {
     pub fn build(&self) -> Result<RedirectRule> {
-        self.build_internal().map_err(|e| ErrorKind::InvalidRuleCombination(e).into())
+        self.build_internal()
+            .map_err(|e| ErrorKind::InvalidRuleCombination(e).into())
     }
 }
 
@@ -223,7 +205,10 @@ mod filter_rule_tests {
 
     #[test]
     fn correct_af_default() {
-        let testee = FilterRuleBuilder::default().action(FilterRuleAction::Pass).build().unwrap();
+        let testee = FilterRuleBuilder::default()
+            .action(FilterRuleAction::Pass)
+            .build()
+            .unwrap();
         assert_eq!(AddrFamily::Any, testee.get_af().unwrap());
     }
 
@@ -231,16 +216,8 @@ mod filter_rule_tests {
     fn af_incompatible_from_to() {
         let mut testee = FilterRuleBuilder::default();
         testee.action(FilterRuleAction::Pass);
-        let from4to6 = testee
-            .from(*IPV4)
-            .to(*IPV6)
-            .build()
-            .unwrap();
-        let from6to4 = testee
-            .from(*IPV6)
-            .to(*IPV4)
-            .build()
-            .unwrap();
+        let from4to6 = testee.from(*IPV4).to(*IPV6).build().unwrap();
+        let from6to4 = testee.from(*IPV6).to(*IPV4).build().unwrap();
         assert!(from4to6.get_af().is_err());
         assert!(from6to4.get_af().is_err());
     }
@@ -451,8 +428,8 @@ impl CopyTo<ffi::pfvar::in6_addr> for Ipv6Addr {
 }
 
 impl<T: AsRef<str>> TryCopyTo<[i8]> for T {
-    /// Safely copy a Rust string into a raw buffer. Returning an error if the string could not be
-    /// copied to the buffer.
+    /// Safely copy a Rust string into a raw buffer. Returning an error if the string could not
+    /// be copied to the buffer.
     fn try_copy_to(&self, dst: &mut [i8]) -> Result<()> {
         let src_i8: &[i8] = unsafe { mem::transmute(self.as_ref().as_bytes()) };
 

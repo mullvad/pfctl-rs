@@ -16,12 +16,10 @@ fn main() {
         .unstable_rust(false)
         .clang_arg("-DPRIVATE")
         .clang_arg(format!("-I{}/usr/include", sdk_path))
-        .clang_arg(
-            format!(
-                "-I{}/System/Library/Frameworks/Kernel.framework/Versions/A/Headers",
-                sdk_path
-            ),
-        )
+        .clang_arg(format!(
+            "-I{}/System/Library/Frameworks/Kernel.framework/Versions/A/Headers",
+            sdk_path
+        ))
         .whitelisted_type("pf_status")
         .whitelisted_type("pfioc_rule")
         .whitelisted_type("pfioc_pooladdr")
