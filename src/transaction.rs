@@ -7,7 +7,7 @@
 // except according to those terms.
 
 use {ErrorKind, Result, ResultExt};
-use {FilterRule, RedirectRule, RulesetKind};
+use {FilterRule, PoolAddrList, RedirectRule, Route, RulesetKind};
 use conversion::{CopyTo, TryCopyTo};
 use ffi;
 use std::collections::HashMap;
@@ -111,6 +111,16 @@ impl Transaction {
         pfioc_rule.action = ffi::pfvar::PF_CHANGE_NONE as u32;
         pfioc_rule.pool_ticket = utils::get_pool_ticket(fd, &anchor)?;
         rule.try_copy_to(&mut pfioc_rule.rule)?;
+
+        pfioc_rule.rule.rt = u8::from(&rule.route);
+        let _pool_addr_list = if let Route::RouteTo(ref pool_addr) = rule.route {
+            let pool_addr_list = PoolAddrList::new(&[pool_addr.clone()])
+                .chain_err(|| ErrorKind::InvalidArgument("Invalid route-to target"))?;
+            pfioc_rule.rule.rpool.list = unsafe { pool_addr_list.to_palist() };
+            Some(pool_addr_list)
+        } else {
+            None
+        };
 
         // fill in ticket with ticket associated with transaction
         pfioc_rule.ticket = ticket;

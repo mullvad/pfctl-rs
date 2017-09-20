@@ -271,7 +271,7 @@ impl PfCtl {
         rule.try_copy_to(&mut pfioc_rule.rule)?;
 
         // copy address pool in pf_rule
-        let redirect_pool = redirect_to.ip().to_pool_addr_list();
+        let redirect_pool = redirect_to.ip().to_pool_addr_list()?;
         pfioc_rule.rule.rpool.list = unsafe { redirect_pool.to_palist() };
         redirect_to.port().try_copy_to(&mut pfioc_rule.rule.rpool)?;
 

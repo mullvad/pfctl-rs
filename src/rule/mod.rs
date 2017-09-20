@@ -29,6 +29,9 @@ pub use self::ip::*;
 mod proto;
 pub use self::proto::*;
 
+mod route;
+pub use self::route::*;
+
 mod port;
 pub use self::port::*;
 
@@ -56,6 +59,7 @@ pub struct FilterRule {
     #[builder(default)] direction: Direction,
     #[builder(default)] quick: bool,
     #[builder(default)] log: RuleLogSet,
+    #[builder(default)] route: Route,
     #[builder(default)] keep_state: StatePolicy,
     #[builder(default)] interface: Interface,
     #[builder(default)] proto: Proto,

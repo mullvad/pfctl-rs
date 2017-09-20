@@ -6,12 +6,12 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use super::AddrFamily;
+use {AddrFamily, Result};
 
 use conversion::CopyTo;
 use ffi;
 use ipnetwork::{IpNetwork, Ipv4Network, Ipv6Network};
-use pooladdr::PoolAddrList;
+use pooladdr::{PoolAddr, PoolAddrList};
 
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
@@ -38,8 +38,8 @@ impl Ip {
     }
 
     /// Returns PoolAddrList initialized with receiver
-    pub fn to_pool_addr_list(&self) -> PoolAddrList {
-        PoolAddrList::new(&[*self])
+    pub fn to_pool_addr_list(&self) -> Result<PoolAddrList> {
+        PoolAddrList::new(&[PoolAddr::from(*self)])
     }
 }
 
