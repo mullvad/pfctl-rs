@@ -85,6 +85,11 @@ impl FilterRule {
         compatible_af(self.af, endpoint_af)
     }
 
+    /// Accessor for `route`
+    pub fn get_route(&self) -> &Route {
+        &self.route
+    }
+
     /// Validates the combination of StatePolicy and Proto.
     fn validate_state_policy(&self) -> Result<StatePolicy> {
         match (self.keep_state, self.proto) {
