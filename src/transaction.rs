@@ -105,28 +105,39 @@ impl Transaction {
     }
 
     /// Internal helper add filter rule into transaction
-    fn add_filter_rule(fd: RawFd, anchor: &str, rule: &FilterRule, ticket: u32) -> Result<()> {
-        // fill in rule information
+    fn add_filter_rule<'a>(fd: RawFd, anchor: &str, rule: &FilterRule, ticket: u32) -> Result<()> {
+        // request new address pool
+        let mut pfioc_pooladdr = unsafe { mem::zeroed::<ffi::pfvar::pfioc_pooladdr>() };
+        ioctl_guard!(ffi::pf_begin_addrs(fd, &mut pfioc_pooladdr))?;
+
+        // prepare pfioc_rule
         let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
         pfioc_rule.action = ffi::pfvar::PF_CHANGE_NONE as u32;
-        pfioc_rule.pool_ticket = utils::get_pool_ticket(fd, &anchor)?;
+        anchor
+            .try_copy_to(&mut pfioc_rule.anchor[..])
+            .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
         rule.try_copy_to(&mut pfioc_rule.rule)?;
 
-        pfioc_rule.rule.rt = u8::from(&rule.route);
-        let _pool_addr_list = if let Route::RouteTo(ref pool_addr) = rule.route {
-            let pool_addr_list = PoolAddrList::new(&[pool_addr.clone()])
-                .chain_err(|| ErrorKind::InvalidArgument("Invalid route-to target"))?;
-            pfioc_rule.rule.rpool.list = unsafe { pool_addr_list.to_palist() };
-            Some(pool_addr_list)
+        // setup route-to
+        let route_to = if let Route::RouteTo(ref pool_addr) = *rule.get_route() {
+            Some((
+                pool_addr.clone(),
+                PoolAddrList::new(&[pool_addr.clone()])
+                    .chain_err(|| ErrorKind::InvalidArgument("Invalid route-to target"))?,
+            ))
         } else {
             None
         };
 
+        if let Some((pool_addr, pool_list)) = route_to {
+            pool_addr.try_copy_to(&mut pfioc_pooladdr.addr)?;
+            ioctl_guard!(ffi::pf_add_addr(fd, &mut pfioc_pooladdr))?;
+            pfioc_rule.rule.rpool.list = unsafe { pool_list.to_palist() };
+        }
+
         // fill in ticket with ticket associated with transaction
         pfioc_rule.ticket = ticket;
-        anchor
-            .try_copy_to(&mut pfioc_rule.anchor[..])
-            .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
+        pfioc_rule.pool_ticket = pfioc_pooladdr.ticket;
 
         // add rule into transaction
         ioctl_guard!(ffi::pf_add_rule(fd, &mut pfioc_rule))
@@ -143,11 +154,13 @@ impl Transaction {
 
         // prepare pfioc_rule
         let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
-        anchor.try_copy_to(&mut pfioc_rule.anchor[..])?;
+        anchor
+            .try_copy_to(&mut pfioc_rule.anchor[..])
+            .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
         rule.try_copy_to(&mut pfioc_rule.rule)?;
 
         // copy address pool in pf_rule
-        let redirect_pool = redirect_to.ip().to_pool_addr_list();
+        let redirect_pool = redirect_to.ip().to_pool_addr_list()?;
         pfioc_rule.rule.rpool.list = unsafe { redirect_pool.to_palist() };
         redirect_to.port().try_copy_to(&mut pfioc_rule.rule.rpool)?;
 
