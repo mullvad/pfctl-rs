@@ -10,9 +10,18 @@ use Result;
 use conversion::TryCopyTo;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct InterfaceName(String);
+
+impl AsRef<str> for InterfaceName {
+    fn as_ref(&self) -> &str {
+        self.0.as_ref()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Interface {
     Any,
-    Name(String),
+    Name(InterfaceName),
 }
 
 impl Default for Interface {
@@ -23,7 +32,7 @@ impl Default for Interface {
 
 impl<T: AsRef<str>> From<T> for Interface {
     fn from(name: T) -> Self {
-        Interface::Name(name.as_ref().to_owned())
+        Interface::Name(InterfaceName(name.as_ref().to_owned()))
     }
 }
 
@@ -31,7 +40,7 @@ impl TryCopyTo<[i8]> for Interface {
     fn try_copy_to(&self, dst: &mut [i8]) -> Result<()> {
         match *self {
             Interface::Any => "",
-            Interface::Name(ref name) => &name[..],
+            Interface::Name(InterfaceName(ref name)) => &name[..],
         }.try_copy_to(dst)
     }
 }
