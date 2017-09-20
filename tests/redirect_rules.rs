@@ -79,3 +79,20 @@ test!(add_redirect_rule_ipv6 {
         Ok(ref v) if v == &["rdr inet6 from any to ::1 port = 3000 -> ::1 port 4000"]
     );
 });
+
+test!(add_redirect_rule_on_interface {
+    let mut pf = pfctl::PfCtl::new().unwrap();
+    let rule = pfctl::RedirectRuleBuilder::default()
+        .action(pfctl::RedirectRuleAction::Redirect)
+        .log(pfctl::RuleLog::ExcludeMatchingState)
+        .interface("lo0")
+        .from(Ipv4Addr::new(1, 2, 3, 4))
+        .redirect_to(pfctl::Port::from(1237))
+        .build()
+        .unwrap();
+    assert_matches!(pf.add_redirect_rule(ANCHOR_NAME, &rule), Ok(()));
+    assert_matches!(
+        pfcli::get_nat_rules(ANCHOR_NAME),
+        Ok(ref v) if v == &["rdr log on lo0 inet from 1.2.3.4 to any -> any port 1237"]
+    );
+});
