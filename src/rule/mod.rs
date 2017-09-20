@@ -132,6 +132,7 @@ pub struct RedirectRule {
     action: RedirectRuleAction,
     #[builder(default)] direction: Direction,
     #[builder(default)] quick: bool,
+    #[builder(default)] log: RuleLogSet,
     #[builder(default)] interface: Interface,
     #[builder(default)] proto: Proto,
     #[builder(default)] af: AddrFamily,
@@ -168,6 +169,7 @@ impl TryCopyTo<ffi::pfvar::pf_rule> for RedirectRule {
         pf_rule.action = self.action.into();
         pf_rule.direction = self.direction.into();
         pf_rule.quick = self.quick as u8;
+        pf_rule.log = (&self.log).into();
         self.interface
             .try_copy_to(&mut pf_rule.ifname)
             .chain_err(|| ErrorKind::InvalidArgument("Incompatible interface name"))?;
