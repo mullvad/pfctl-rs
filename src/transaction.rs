@@ -118,22 +118,24 @@ impl Transaction {
             .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
         rule.try_copy_to(&mut pfioc_rule.rule)?;
 
-        // setup route-to
-        let route_to = if let Route::RouteTo(ref pool_addr) = *rule.get_route() {
-            Some((
-                pool_addr.clone(),
+        // setup address pool for route
+        let route_addr_pool = if let Route::RouteTo(ref pool_addr) = *rule.get_route() {
+            // register pool address with firewall
+            pool_addr.try_copy_to(&mut pfioc_pooladdr.addr)?;
+            ioctl_guard!(ffi::pf_add_addr(fd, &mut pfioc_pooladdr))?;
+
+            Some(
                 PoolAddrList::new(&[pool_addr.clone()])
                     .chain_err(|| ErrorKind::InvalidArgument("Invalid route-to target"))?,
-            ))
+            )
         } else {
             None
         };
 
-        if let Some((pool_addr, pool_list)) = route_to {
-            pool_addr.try_copy_to(&mut pfioc_pooladdr.addr)?;
-            ioctl_guard!(ffi::pf_add_addr(fd, &mut pfioc_pooladdr))?;
-            pfioc_rule.rule.rpool.list = unsafe { pool_list.to_palist() };
-        }
+        // copy address into rule
+        route_addr_pool.map(|pool| {
+            pfioc_rule.rule.rpool.list = unsafe { pool.to_palist() };
+        });
 
         // fill in ticket with ticket associated with transaction
         pfioc_rule.ticket = ticket;
