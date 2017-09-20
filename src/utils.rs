@@ -27,12 +27,8 @@ pub fn open_pf() -> Result<File> {
 }
 
 /// Get pool ticket
-pub fn get_pool_ticket(fd: RawFd, anchor: &str) -> Result<u32> {
+pub fn get_pool_ticket(fd: RawFd) -> Result<u32> {
     let mut pfioc_pooladdr = unsafe { mem::zeroed::<ffi::pfvar::pfioc_pooladdr>() };
-    pfioc_pooladdr.action = ffi::pfvar::PF_CHANGE_GET_TICKET as u32;
-    anchor
-        .try_copy_to(&mut pfioc_pooladdr.anchor[..])
-        .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
     ioctl_guard!(ffi::pf_begin_addrs(fd, &mut pfioc_pooladdr))?;
     Ok(pfioc_pooladdr.ticket)
 }

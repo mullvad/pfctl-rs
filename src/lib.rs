@@ -240,7 +240,7 @@ impl PfCtl {
     pub fn add_rule(&mut self, anchor: &str, rule: &FilterRule) -> Result<()> {
         let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
 
-        pfioc_rule.pool_ticket = utils::get_pool_ticket(self.fd(), anchor)?;
+        pfioc_rule.pool_ticket = utils::get_pool_ticket(self.fd())?;
         pfioc_rule.ticket = utils::get_ticket(self.fd(), &anchor, AnchorKind::Filter)?;
         anchor
             .try_copy_to(&mut pfioc_rule.anchor[..])
@@ -261,7 +261,7 @@ impl PfCtl {
         // register redirect address in newly created address pool
         let redirect_to = rule.get_redirect_to();
         let mut pfioc_pooladdr = unsafe { mem::zeroed::<ffi::pfvar::pfioc_pooladdr>() };
-        ioctl_guard!(ffi::pf_begin_addrs(self.fd(), &mut pfioc_pooladdr))?;
+        pfioc_pooladdr.ticket = utils::get_pool_ticket(self.fd())?;
         redirect_to.ip().copy_to(&mut pfioc_pooladdr.addr.addr);
         ioctl_guard!(ffi::pf_add_addr(self.fd(), &mut pfioc_pooladdr))?;
 
