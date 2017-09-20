@@ -17,8 +17,7 @@ script:
   - sudo cargo test --verbose -- --test-threads=1
   # Format only on nightly, since that is where rustfmt-nightly compiles
   - if [ "${TRAVIS_RUST_VERSION}" = "nightly" ]; then
-      export DYLD_LIBRARY_PATH=$(rustc --print sysroot)/lib:$DYLD_LIBRARY_PATH
-      && ./format.sh --write-mode=diff;
+      ./format.sh --write-mode=diff;
     else
       echo "Not checking formatting on this build";
     fi
