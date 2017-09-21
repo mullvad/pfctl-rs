@@ -117,22 +117,19 @@ impl Transaction {
         // request new address pool
         let pool_ticket = utils::get_pool_ticket(fd)?;
 
-        // setup address pool for route
-        let route_pool = if let Route::RouteTo(ref pool_addr) = *rule.get_route() {
+        // setup address pool for route if routing is enabled on the rule.
+        // Save the list so the memory is valid until end of method.
+        let _pool_addr_list = if let Some(pool_addr) = rule.get_route().get_pool_addr() {
             // register pool address with firewall
             utils::add_pool_address(fd, pool_addr.clone(), pool_ticket)?;
-            Some(
-                PoolAddrList::new(&[pool_addr.clone()])
-                    .chain_err(|| ErrorKind::InvalidArgument("Invalid route-to target"))?,
-            )
+            let pool_addr_list = PoolAddrList::new(&[pool_addr.clone()])
+                .chain_err(|| ErrorKind::InvalidArgument("Invalid route target"))?;
+
+            pfioc_rule.rule.rpool.list = unsafe { pool_addr_list.to_palist() };
+            Some(pool_addr_list)
         } else {
             None
         };
-
-        // copy address into rule
-        route_pool.map(|pool| {
-            pfioc_rule.rule.rpool.list = unsafe { pool.to_palist() };
-        });
 
         // fill in ticket with ticket associated with transaction
         pfioc_rule.ticket = ticket;

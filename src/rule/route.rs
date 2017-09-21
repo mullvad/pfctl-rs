@@ -13,6 +13,8 @@ use pooladdr::PoolAddr;
 pub enum Route {
     NoRoute,
     RouteTo(PoolAddr),
+    ReplyTo(PoolAddr),
+    DupTo(PoolAddr),
 }
 
 impl Default for Route {
@@ -21,9 +23,26 @@ impl Default for Route {
     }
 }
 
-impl From<PoolAddr> for Route {
-    fn from(pool_addr: PoolAddr) -> Self {
-        Route::RouteTo(pool_addr)
+impl Route {
+    pub fn route_to<T: Into<PoolAddr>>(pool_addr: T) -> Self {
+        Route::RouteTo(pool_addr.into())
+    }
+
+    pub fn reply_to<T: Into<PoolAddr>>(pool_addr: T) -> Self {
+        Route::ReplyTo(pool_addr.into())
+    }
+
+    pub fn dup_to<T: Into<PoolAddr>>(pool_addr: T) -> Self {
+        Route::DupTo(pool_addr.into())
+    }
+
+    pub fn get_pool_addr(&self) -> Option<&PoolAddr> {
+        match *self {
+            Route::NoRoute => None,
+            Route::RouteTo(ref pool_addr) => Some(pool_addr),
+            Route::ReplyTo(ref pool_addr) => Some(pool_addr),
+            Route::DupTo(ref pool_addr) => Some(pool_addr),
+        }
     }
 }
 
@@ -32,6 +51,8 @@ impl<'a> From<&'a Route> for u8 {
         match *route {
             Route::NoRoute => ffi::pfvar::PF_NOPFROUTE as u8,
             Route::RouteTo(_) => ffi::pfvar::PF_ROUTETO as u8,
+            Route::ReplyTo(_) => ffi::pfvar::PF_REPLYTO as u8,
+            Route::DupTo(_) => ffi::pfvar::PF_DUPTO as u8,
         }
     }
 }
