@@ -21,6 +21,12 @@ impl Default for Route {
     }
 }
 
+impl From<PoolAddr> for Route {
+    fn from(pool_addr: PoolAddr) -> Self {
+        Route::RouteTo(pool_addr)
+    }
+}
+
 impl<'a> From<&'a Route> for u8 {
     fn from(route: &'a Route) -> u8 {
         match *route {
