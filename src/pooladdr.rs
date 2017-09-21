@@ -20,6 +20,15 @@ pub struct PoolAddr {
     ip: Ip,
 }
 
+impl PoolAddr {
+    pub fn new<INTERFACE: Into<Interface>, IP: Into<Ip>>(interface: INTERFACE, ip: IP) -> Self {
+        PoolAddr {
+            interface: interface.into(),
+            ip: ip.into(),
+        }
+    }
+}
+
 impl From<Interface> for PoolAddr {
     fn from(interface: Interface) -> Self {
         PoolAddr {
