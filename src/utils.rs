@@ -6,7 +6,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use {AnchorKind, ErrorKind, Result, ResultExt};
+use {AnchorKind, ErrorKind, PoolAddr, Result, ResultExt};
 use conversion::TryCopyTo;
 use ffi;
 
@@ -26,13 +26,21 @@ pub fn open_pf() -> Result<File> {
         .chain_err(|| ErrorKind::DeviceOpenError(PF_DEV_PATH))
 }
 
-/// Get pool ticket
-pub fn get_pool_ticket(fd: RawFd, anchor: &str) -> Result<u32> {
+/// Add pool address using the pool ticket previously obtained via `get_pool_ticket()`
+pub fn add_pool_address<A: Into<PoolAddr>>(
+    fd: RawFd,
+    pool_addr: A,
+    pool_ticket: u32,
+) -> Result<()> {
     let mut pfioc_pooladdr = unsafe { mem::zeroed::<ffi::pfvar::pfioc_pooladdr>() };
-    pfioc_pooladdr.action = ffi::pfvar::PF_CHANGE_GET_TICKET as u32;
-    anchor
-        .try_copy_to(&mut pfioc_pooladdr.anchor[..])
-        .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
+    pfioc_pooladdr.ticket = pool_ticket;
+    pool_addr.into().try_copy_to(&mut pfioc_pooladdr.addr)?;
+    ioctl_guard!(ffi::pf_add_addr(fd, &mut pfioc_pooladdr))
+}
+
+/// Get pool ticket
+pub fn get_pool_ticket(fd: RawFd) -> Result<u32> {
+    let mut pfioc_pooladdr = unsafe { mem::zeroed::<ffi::pfvar::pfioc_pooladdr>() };
     ioctl_guard!(ffi::pf_begin_addrs(fd, &mut pfioc_pooladdr))?;
     Ok(pfioc_pooladdr.ticket)
 }

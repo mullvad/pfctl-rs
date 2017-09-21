@@ -29,6 +29,9 @@ pub use self::ip::*;
 mod proto;
 pub use self::proto::*;
 
+mod route;
+pub use self::route::*;
+
 mod port;
 pub use self::port::*;
 
@@ -56,6 +59,7 @@ pub struct FilterRule {
     #[builder(default)] direction: Direction,
     #[builder(default)] quick: bool,
     #[builder(default)] log: RuleLogSet,
+    #[builder(default)] route: Route,
     #[builder(default)] keep_state: StatePolicy,
     #[builder(default)] interface: Interface,
     #[builder(default)] proto: Proto,
@@ -79,6 +83,11 @@ impl FilterRule {
     fn get_af(&self) -> Result<AddrFamily> {
         let endpoint_af = compatible_af(self.from.get_af(), self.to.get_af())?;
         compatible_af(self.af, endpoint_af)
+    }
+
+    /// Accessor for `route`
+    pub fn get_route(&self) -> &Route {
+        &self.route
     }
 
     /// Validates the combination of StatePolicy and Proto.
@@ -106,6 +115,7 @@ impl TryCopyTo<ffi::pfvar::pf_rule> for FilterRule {
         pf_rule.direction = self.direction.into();
         pf_rule.quick = self.quick as u8;
         pf_rule.log = (&self.log).into();
+        pf_rule.rt = (&self.route).into();
         pf_rule.keep_state = self.validate_state_policy()?.into();
         pf_rule.flags = (&self.tcp_flags.check).into();
         pf_rule.flagset = (&self.tcp_flags.mask).into();

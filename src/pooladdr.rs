@@ -6,13 +6,54 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use conversion::CopyTo;
+use {Interface, Ip, Result};
+use conversion::{CopyTo, TryCopyTo};
 use ffi;
-use rule::Ip;
 use std::mem;
 
 use std::ptr;
 use std::vec::Vec;
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct PoolAddr {
+    interface: Interface,
+    ip: Ip,
+}
+
+impl PoolAddr {
+    pub fn new<INTERFACE: Into<Interface>, IP: Into<Ip>>(interface: INTERFACE, ip: IP) -> Self {
+        PoolAddr {
+            interface: interface.into(),
+            ip: ip.into(),
+        }
+    }
+}
+
+impl From<Interface> for PoolAddr {
+    fn from(interface: Interface) -> Self {
+        PoolAddr {
+            interface,
+            ip: Ip::Any,
+        }
+    }
+}
+
+impl From<Ip> for PoolAddr {
+    fn from(ip: Ip) -> Self {
+        PoolAddr {
+            interface: Interface::Any,
+            ip,
+        }
+    }
+}
+
+impl TryCopyTo<ffi::pfvar::pf_pooladdr> for PoolAddr {
+    fn try_copy_to(&self, pf_pooladdr: &mut ffi::pfvar::pf_pooladdr) -> Result<()> {
+        self.interface.try_copy_to(&mut pf_pooladdr.ifname)?;
+        self.ip.copy_to(&mut pf_pooladdr.addr);
+        Ok(())
+    }
+}
 
 /// Represents a list of IPs used to set up a table of addresses for traffic redirection in PF.
 ///
@@ -29,31 +70,31 @@ pub struct PoolAddrList {
 }
 
 impl PoolAddrList {
-    pub fn new(ips: &[Ip]) -> Self {
-        let mut pool = Self::init_pool(ips);
+    pub fn new(pool_addrs: &[PoolAddr]) -> Result<Self> {
+        let mut pool = Self::init_pool(pool_addrs)?;
         Self::link_elements(&mut pool);
         let list = Self::create_palist(&mut pool);
 
-        PoolAddrList {
+        Ok(PoolAddrList {
             list,
             pool: pool.into_boxed_slice(),
-        }
+        })
     }
 
     /// Returns a copy of inner pf_palist linked list.
     /// Returned copy should never be used past the lifetime expiration of PoolAddrList.
-    pub unsafe fn to_palist(self) -> ffi::pfvar::pf_palist {
+    pub unsafe fn to_palist(&self) -> ffi::pfvar::pf_palist {
         self.list
     }
 
-    fn init_pool(ips: &[Ip]) -> Vec<ffi::pfvar::pf_pooladdr> {
-        let mut pool = Vec::with_capacity(ips.len());
-        for ip in ips {
-            let mut pooladdr = unsafe { mem::zeroed::<ffi::pfvar::pf_pooladdr>() };
-            ip.copy_to(&mut pooladdr.addr);
-            pool.push(pooladdr);
+    fn init_pool(pool_addrs: &[PoolAddr]) -> Result<Vec<ffi::pfvar::pf_pooladdr>> {
+        let mut pool = Vec::with_capacity(pool_addrs.len());
+        for pool_addr in pool_addrs {
+            let mut pf_pooladdr = unsafe { mem::zeroed::<ffi::pfvar::pf_pooladdr>() };
+            pool_addr.try_copy_to(&mut pf_pooladdr)?;
+            pool.push(pf_pooladdr);
         }
-        pool
+        Ok(pool)
     }
 
     fn link_elements(pool: &mut Vec<ffi::pfvar::pf_pooladdr>) {
