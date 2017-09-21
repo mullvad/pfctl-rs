@@ -134,15 +134,15 @@ test!(drop_by_interface_rule {
 test!(pass_out_route_rule {
     let rule = pfctl::FilterRuleBuilder::default()
         .action(pfctl::FilterRuleAction::Pass)
-        .proto(pfctl::Proto::Udp)
         .direction(pfctl::Direction::Out)
-        .from(Ipv4Addr::new(1, 2, 3, 4))
-        .to(pfctl::Port::from(53))
         .route(
             pfctl::Route::RouteTo(
                 pfctl::PoolAddr::new("lo0", Ipv4Addr::new(127, 0, 0, 1))
             )
         )
+        .proto(pfctl::Proto::Udp)
+        .from(Ipv4Addr::new(1, 2, 3, 4))
+        .to(pfctl::Port::from(53))
         .build()
         .unwrap();
 
@@ -157,6 +157,52 @@ test!(pass_out_route_rule {
         Ok(ref v) if v == &[
             "pass out route-to (lo0 127.0.0.1) inet proto udp \
             from 1.2.3.4 to any port = 53 no state"
+        ]
+    );
+});
+
+test!(pass_in_reply_to_rule {
+    let rule = pfctl::FilterRuleBuilder::default()
+        .action(pfctl::FilterRuleAction::Pass)
+        .direction(pfctl::Direction::In)
+        .interface("lo1")
+        .route(pfctl::Route::reply_to(pfctl::Interface::from("lo9")))
+        .from(Ipv4Addr::new(6, 7, 8, 9))
+        .build()
+        .unwrap();
+
+    let mut change = pfctl::AnchorChange::new();
+    change.set_filter_rules(vec![rule]);
+    let mut trans = pfctl::Transaction::new();
+    trans.add_change(ANCHOR_NAME, change);
+
+    assert_matches!(trans.commit(), Ok(()));
+    assert_matches!(
+        pfcli::get_rules(ANCHOR_NAME),
+        Ok(ref v) if v == &["pass in on lo1 reply-to lo9 inet from 6.7.8.9 to any no state"]
+    );
+});
+
+test!(pass_in_dup_to_rule {
+    let rule = pfctl::FilterRuleBuilder::default()
+        .action(pfctl::FilterRuleAction::Pass)
+        .direction(pfctl::Direction::In)
+        .interface("lo1")
+        .route(pfctl::Route::DupTo(pfctl::PoolAddr::new("lo8", Ipv4Addr::new(1, 2, 3, 4))))
+        .from(Ipv4Addr::new(6, 7, 8, 9))
+        .build()
+        .unwrap();
+
+    let mut change = pfctl::AnchorChange::new();
+    change.set_filter_rules(vec![rule]);
+    let mut trans = pfctl::Transaction::new();
+    trans.add_change(ANCHOR_NAME, change);
+
+    assert_matches!(trans.commit(), Ok(()));
+    assert_matches!(
+        pfcli::get_rules(ANCHOR_NAME),
+        Ok(ref v) if v == &[
+            "pass in on lo1 dup-to (lo8 1.2.3.4) inet from 6.7.8.9 to any no state"
         ]
     );
 });
