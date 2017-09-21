@@ -7,7 +7,7 @@
 // except according to those terms.
 
 use {ErrorKind, Result, ResultExt};
-use {FilterRule, PoolAddrList, RedirectRule, Route, RulesetKind};
+use {FilterRule, PoolAddrList, RedirectRule, RulesetKind};
 use conversion::TryCopyTo;
 use ffi;
 use std::collections::HashMap;

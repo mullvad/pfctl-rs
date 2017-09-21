@@ -13,7 +13,6 @@ fn main() {
 
     let _ = bindgen::builder()
         .header("ffi/pfvar.h")
-        .unstable_rust(false)
         .clang_arg("-DPRIVATE")
         .clang_arg(format!("-I{}/usr/include", sdk_path))
         .clang_arg(format!(
