@@ -74,7 +74,6 @@ use std::ffi::CStr;
 use std::fs::File;
 use std::mem;
 use std::os::unix::io::{AsRawFd, RawFd};
-use std::time::{Duration, Instant};
 
 mod ffi;
 
@@ -133,34 +132,6 @@ macro_rules! ignore_error_kind {
         match $result {
             Err($crate::Error($kind, _)) => Ok(()),
             result => result,
-        }
-    }
-}
-
-
-/// Delay between retries
-const RETRY_IF_BUSY_DELAY: u64 = 100;
-
-/// Maximum number of retries to perform before giving up
-const RETRY_IF_BUSY_MAX: i8 = 5;
-
-/// Helper function that runs the given closure if received error indicates that firewall rules
-/// were modified concurrently by other program until either timeout, or number of retries reached,
-/// or any other result occurred.
-pub fn retry_if_busy<F, R>(f: F) -> Result<R>
-where
-    F: Fn() -> Result<R>,
-{
-    let mut retry = 0;
-    loop {
-        match f() {
-            Err(Error(ErrorKind::IoctlError(ref io_err), _))
-                if io_err.raw_os_error() == Some(libc::EBUSY) && retry < RETRY_IF_BUSY_MAX =>
-            {
-                retry += 1;
-                ::std::thread::sleep(Duration::from_millis(RETRY_IF_BUSY_DELAY));
-            }
-            r => return r,
         }
     }
 }

@@ -25,3 +25,33 @@ macro_rules! ioctl_guard {
         }
     }
 }
+
+/// Delay between retries (in milliseconds)
+pub const RETRY_IF_BUSY_DELAY: u64 = 100;
+
+/// Maximum number of retries to perform before giving up
+pub const RETRY_IF_BUSY_MAX: i8 = 5;
+
+/// Helper macro that runs the given expression if received error indicates that firewall rules
+/// were modified concurrently by other program until either timeout, or number of retries reached,
+/// or any other result occurred.
+macro_rules! retry_on_busy {
+    ($body:expr) => ({
+        let delay = ::std::time::Duration::from_millis($crate::macros::RETRY_IF_BUSY_DELAY);
+        let mut retry = 0;
+        let mut result;
+        loop {
+            result = $body;
+            match result {
+                Err($crate::Error($crate::ErrorKind::IoctlError(ref io_err), _))
+                    if io_err.raw_os_error() == Some($crate::libc::EBUSY) &&
+                       retry < $crate::macros::RETRY_IF_BUSY_MAX => {
+                    retry += 1;
+                    ::std::thread::sleep(delay);
+                }
+                _ => break
+            };
+        };
+        result
+    })
+}
