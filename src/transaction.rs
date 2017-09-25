@@ -20,6 +20,7 @@ use utils;
 #[derive(Debug)]
 pub struct Transaction {
     change_by_anchor: HashMap<String, AnchorChange>,
+    retry_on_concurrent_changes: bool,
 }
 
 impl Transaction {
@@ -27,7 +28,14 @@ impl Transaction {
     pub fn new() -> Self {
         Transaction {
             change_by_anchor: HashMap::new(),
+            retry_on_concurrent_changes: false,
         }
+    }
+
+    /// Allows transaction to commit more than once on failure due to concurrent changes to
+    /// affected anchors. Defaults to false.
+    pub fn set_retry_on_concurrent_changes(&mut self, retry: bool) {
+        self.retry_on_concurrent_changes = retry;
     }
 
     /// Add change into transaction replacing the prior change registered for corresponding
@@ -41,7 +49,6 @@ impl Transaction {
     pub fn commit(mut self) -> Result<()> {
         let pf_file = utils::open_pf()?;
         let fd = pf_file.as_raw_fd();
-        let mut pfioc_trans = unsafe { mem::zeroed::<ffi::pfvar::pfioc_trans>() };
 
         // partition changes by ruleset kind
         let filter_changes: Vec<(String, Vec<FilterRule>)> = self.change_by_anchor
@@ -62,6 +69,21 @@ impl Transaction {
                     .map(|rules| (anchor.clone(), rules))
             })
             .collect();
+
+        if self.retry_on_concurrent_changes {
+            retry_on_busy!(Self::try_commit(fd, &filter_changes, &redirect_changes))
+        } else {
+            Self::try_commit(fd, &filter_changes, &redirect_changes)
+        }
+    }
+
+    /// Internal helper that converts series of changes into FFI transaction and commits it.
+    fn try_commit(
+        fd: RawFd,
+        filter_changes: &Vec<(String, Vec<FilterRule>)>,
+        redirect_changes: &Vec<(String, Vec<RedirectRule>)>,
+    ) -> Result<()> {
+        let mut pfioc_trans = unsafe { mem::zeroed::<ffi::pfvar::pfioc_trans>() };
 
         // create one transaction element for each unique combination of anchor name and
         // `RulesetKind` and order them so elements for filter rules go first followed by redirect
@@ -84,7 +106,7 @@ impl Transaction {
         let mut ticket_iterator = pfioc_elements.iter().map(|e| e.ticket);
 
         // add filter rules into transaction
-        for ((anchor_name, filter_rules), ticket) in
+        for (&(ref anchor_name, ref filter_rules), ticket) in
             filter_changes.into_iter().zip(ticket_iterator.by_ref())
         {
             for filter_rule in filter_rules.iter() {
@@ -93,7 +115,7 @@ impl Transaction {
         }
 
         // add redirect rules into transaction
-        for ((anchor_name, redirect_rules), ticket) in
+        for (&(ref anchor_name, ref redirect_rules), ticket) in
             redirect_changes.into_iter().zip(ticket_iterator.by_ref())
         {
             for redirect_rule in redirect_rules.iter() {
