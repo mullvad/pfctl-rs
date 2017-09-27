@@ -412,17 +412,16 @@ mod filter_rule_tests {
 impl CopyTo<ffi::pfvar::pf_addr_wrap> for IpNetwork {
     fn copy_to(&self, pf_addr_wrap: &mut ffi::pfvar::pf_addr_wrap) {
         pf_addr_wrap.type_ = ffi::pfvar::PF_ADDR_ADDRMASK as u8;
-        let a = unsafe { pf_addr_wrap.v.a.as_mut() };
-        self.ip().copy_to(&mut a.addr);
-        self.mask().copy_to(&mut a.mask);
+        self.ip().copy_to(unsafe { &mut pf_addr_wrap.v.a.addr });
+        self.mask().copy_to(unsafe { &mut pf_addr_wrap.v.a.mask });
     }
 }
 
 impl CopyTo<ffi::pfvar::pf_addr> for IpAddr {
     fn copy_to(&self, pf_addr: &mut ffi::pfvar::pf_addr) {
         match *self {
-            IpAddr::V4(ip) => ip.copy_to(unsafe { pf_addr.pfa.v4.as_mut() }),
-            IpAddr::V6(ip) => ip.copy_to(unsafe { pf_addr.pfa.v6.as_mut() }),
+            IpAddr::V4(ip) => ip.copy_to(unsafe { &mut pf_addr.pfa.v4 }),
+            IpAddr::V6(ip) => ip.copy_to(unsafe { &mut pf_addr.pfa.v6 }),
         }
     }
 }
