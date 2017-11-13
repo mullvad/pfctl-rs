@@ -32,9 +32,7 @@ impl Ip {
 
     /// Returns `Ip::Any` represented an as an `IpNetwork`, used for ffi.
     fn any_ffi_repr() -> IpNetwork {
-        IpNetwork::V6(
-            Ipv6Network::new(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0), 0).unwrap(),
-        )
+        IpNetwork::V6(Ipv6Network::new(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0), 0).unwrap())
     }
 
     /// Returns PoolAddrList initialized with receiver
