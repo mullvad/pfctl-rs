@@ -93,10 +93,10 @@ impl FilterRule {
     /// Validates the combination of StatePolicy and Proto.
     fn validate_state_policy(&self) -> Result<StatePolicy> {
         match (self.keep_state, self.proto) {
-            (StatePolicy::None, _) |
-            (StatePolicy::Keep, _) |
-            (StatePolicy::Modulate, Proto::Tcp) |
-            (StatePolicy::SynProxy, Proto::Tcp) => Ok(self.keep_state),
+            (StatePolicy::None, _)
+            | (StatePolicy::Keep, _)
+            | (StatePolicy::Modulate, Proto::Tcp)
+            | (StatePolicy::SynProxy, Proto::Tcp) => Ok(self.keep_state),
             (state_policy, proto) => {
                 let msg = format!(
                     "StatePolicy {:?} and protocol {:?} are incompatible",
