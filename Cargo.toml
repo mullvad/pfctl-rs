@@ -3,7 +3,7 @@ name = "pfctl"
 version = "0.1.0"
 authors = ["Mullvad VPN <admin@mullvad.net>", "Linus Färnstrand <faern@faern.net>", "Andrej Mihajlov <and@mullvad.net>"]
 license = "MIT/Apache-2.0"
-description = "Library and CLI for interfacing with the Packet Filter (PF) firewall on macOS"
+description = "Library for interfacing with the Packet Filter (PF) firewall on macOS"
 readme = "README.md"
 keywords = ["pf", "pfctl", "firewall", "macos", "network"]
 categories = ["network-programming", "os", "os::unix-apis", "api-bindings", "command-line-utilities"]
@@ -12,12 +12,6 @@ build = "build.rs"
 [badges]
 travis-ci = { repository = "mullvad/pfctl-rs" }
 
-[lib]
-path = "src/lib.rs"
-
-[[bin]]
-name = "pfctl-rs"
-path = "src/main.rs"
 
 [dependencies]
 errno = "0.2"
