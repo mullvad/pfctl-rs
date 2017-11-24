@@ -58,6 +58,6 @@ fn run() -> Result<()> {
 
     println!("Added a bunch of rules to the {} anchor.", ANCHOR_NAME);
     println!("Run this command to remove them:");
-    println!("sudo pfctl -a {} -f /dev/null", ANCHOR_NAME);
+    println!("sudo pfctl -a {} -F all", ANCHOR_NAME);
     Ok(())
 }
