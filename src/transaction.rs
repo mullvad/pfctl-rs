@@ -66,15 +66,14 @@ impl Transaction {
         // create one transaction element for each unique combination of anchor name and
         // `RulesetKind` and order them so elements for filter rules go first followed by redirect
         // rules
-        let mut pfioc_elements: Vec<ffi::pfvar::pfioc_trans_pfioc_trans_e> = filter_changes
-            .iter()
-            .map(|&(ref anchor, _)| {
-                Self::new_trans_element(&anchor, RulesetKind::Filter)
-            })
-            .chain(redirect_changes.iter().map(|&(ref anchor, _)| {
-                Self::new_trans_element(&anchor, RulesetKind::Redirect)
-            }))
-            .collect::<Result<_>>()?;
+        let mut pfioc_elements: Vec<ffi::pfvar::pfioc_trans_pfioc_trans_e> =
+            filter_changes
+                .iter()
+                .map(|&(ref anchor, _)| Self::new_trans_element(&anchor, RulesetKind::Filter))
+                .chain(redirect_changes.iter().map(|&(ref anchor, _)| {
+                    Self::new_trans_element(&anchor, RulesetKind::Redirect)
+                }))
+                .collect::<Result<_>>()?;
         Self::setup_trans(&mut pfioc_trans, pfioc_elements.as_mut_slice());
 
         // get tickets
@@ -181,7 +180,8 @@ impl Transaction {
         anchor: &str,
         ruleset_kind: RulesetKind,
     ) -> Result<ffi::pfvar::pfioc_trans_pfioc_trans_e> {
-        let mut pfioc_trans_e = unsafe { mem::zeroed::<ffi::pfvar::pfioc_trans_pfioc_trans_e>() };
+        let mut pfioc_trans_e =
+            unsafe { mem::zeroed::<ffi::pfvar::pfioc_trans_pfioc_trans_e>() };
         pfioc_trans_e.rs_num = ruleset_kind.into();
         anchor
             .try_copy_to(&mut pfioc_trans_e.anchor[..])
