@@ -22,10 +22,10 @@ derive_builder = "0.5"
 ipnetwork = "0.12"
 
 [dev-dependencies]
-lazy_static = "0.2"
+lazy_static = "1.0"
 pfctl_test = { path = "tests/pfctl_test" }
 assert_matches = "1.1.0"
 uuid = { version = "0.5", features = ["v4"] }
 
 [build-dependencies]
-bindgen = "0.31"
+bindgen = "0.32"
