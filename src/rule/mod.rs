@@ -100,8 +100,7 @@ impl FilterRule {
             (state_policy, proto) => {
                 let msg = format!(
                     "StatePolicy {:?} and protocol {:?} are incompatible",
-                    state_policy,
-                    proto
+                    state_policy, proto
                 );
                 bail!(ErrorKind::InvalidRuleCombination(msg));
             }
@@ -132,7 +131,6 @@ impl TryCopyTo<ffi::pfvar::pf_rule> for FilterRule {
         Ok(())
     }
 }
-
 
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Builder)]
@@ -206,8 +204,6 @@ fn compatible_af(af1: AddrFamily, af2: AddrFamily) -> Result<AddrFamily> {
         }
     }
 }
-
-
 
 
 #[cfg(test)]
@@ -403,8 +399,6 @@ mod filter_rule_tests {
         );
     }
 }
-
-
 
 
 // Implementations to convert types that are not ours into their FFI representation

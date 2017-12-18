@@ -5,7 +5,7 @@
 
 set -u
 
-VERSION="0.2.16"
+VERSION="0.3.2"
 INSTALL_CMD="cargo install --vers $VERSION --force rustfmt-nightly"
 
 function correct_rustfmt() {

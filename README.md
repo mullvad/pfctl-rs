@@ -9,7 +9,7 @@ variant for now. If it can be made to work on more BSD systems that would be gre
 has been put into that so far.
 
 Reading and writing to `/dev/pf` requires root permissions. So any program using this crate
-must run as the super user, otherwise creating the `PfCtl` instance will fail with a
+must run as the superuser, otherwise creating the `PfCtl` instance will fail with a
 "Permission denied" error.
 
 ## Usage and examples
