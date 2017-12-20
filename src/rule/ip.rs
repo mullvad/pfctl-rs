@@ -10,7 +10,7 @@ use {AddrFamily, Result};
 
 use conversion::CopyTo;
 use ffi;
-pub use ipnetwork::{IpNetwork, IpNetworkError, Ipv4Network, Ipv6Network};
+use ipnetwork::{IpNetwork, Ipv4Network, Ipv6Network};
 use pooladdr::{PoolAddr, PoolAddrList};
 
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};

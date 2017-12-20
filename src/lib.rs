@@ -67,8 +67,8 @@ extern crate errno;
 extern crate error_chain;
 #[macro_use]
 extern crate ioctl_sys;
-extern crate ipnetwork;
 extern crate libc;
+pub extern crate ipnetwork;
 
 #[cfg(test)]
 #[macro_use]
