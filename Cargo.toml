@@ -24,9 +24,10 @@ ipnetwork = "0.12"
 
 [dev-dependencies]
 lazy_static = "1.0"
-pfctl_test = { path = "tests/pfctl_test" }
 assert_matches = "1.1.0"
 uuid = { version = "0.5", features = ["v4"] }
+scopeguard = "0.3.2"
+
 
 [build-dependencies]
 bindgen = "0.32"

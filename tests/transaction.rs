@@ -1,11 +1,15 @@
 extern crate pfctl;
+#[macro_use]
+extern crate error_chain;
 
 #[macro_use]
 extern crate assert_matches;
 
 #[macro_use]
-extern crate pfctl_test;
-use pfctl_test::pfcli;
+#[allow(dead_code)]
+mod helper;
+use helper::pfcli;
+
 use std::net::Ipv4Addr;
 
 const ANCHOR1_NAME: &'static str = "pfctl-rs.integration.testing.transactions-1";
