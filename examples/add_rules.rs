@@ -10,7 +10,7 @@
 extern crate error_chain;
 extern crate pfctl;
 
-use pfctl::{FilterRuleBuilder, PfCtl, RedirectRuleBuilder};
+use pfctl::{FilterRuleBuilder, PfCtl, RedirectRuleBuilder, Ip, IpNetwork, Ipv4Network};
 use std::net::Ipv4Addr;
 
 error_chain!{}
@@ -44,10 +44,10 @@ fn run() -> Result<()> {
         .unwrap();
 
     // Block packets from the entire 10.0.0.0/8 private network.
-    let private_net = pfctl::Ipv4Network::new(Ipv4Addr::new(10, 0, 0, 0), 8);
+    let private_net = Ipv4Network::new(Ipv4Addr::new(10, 0, 0, 0), 8);
     let block_a_private_net_rule = FilterRuleBuilder::default()
         .action(pfctl::FilterRuleAction::Drop)
-        .from(pfctl::Ip::from(pfctl::IpNetwork::V4(private_net)))
+        .from(Ip::from(IpNetwork::V4(private_net)))
         .build()
         .unwrap();
 
