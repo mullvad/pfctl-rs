@@ -1,11 +1,14 @@
 extern crate pfctl;
+#[macro_use]
+extern crate error_chain;
 
 #[macro_use]
 extern crate assert_matches;
 
 #[macro_use]
-extern crate pfctl_test;
-use pfctl_test::pfcli;
+mod helper;
+use helper::pfcli;
+
 use std::net::Ipv4Addr;
 
 static ANCHOR_NAME: &'static str = "pfctl-rs.integration.testing.filter-rules";
