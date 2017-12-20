@@ -1,8 +1,5 @@
 pub extern crate scopeguard;
 
-#[macro_use]
-extern crate error_chain;
-
 pub mod pfcli;
 
 mod errors {
@@ -41,11 +38,11 @@ macro_rules! test {
     ($name:ident $block:block) => (
         #[test]
         fn $name() {
-            let mut pf_state = $crate::PfState::new();
+            let mut pf_state = helper::PfState::new();
             pf_state.save().unwrap();
 
-            let _guard1 = $crate::scopeguard::guard((), |_| pf_state.restore().unwrap());
-            let _guard2 = $crate::scopeguard::guard((), |_| after_each());
+            let _guard1 = helper::scopeguard::guard((), |_| pf_state.restore().unwrap());
+            let _guard2 = helper::scopeguard::guard((), |_| after_each());
 
             before_each();
             $block;

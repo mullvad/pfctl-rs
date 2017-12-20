@@ -10,7 +10,7 @@
 extern crate error_chain;
 extern crate pfctl;
 
-use pfctl::{FilterRuleBuilder, PfCtl, RedirectRuleBuilder};
+use pfctl::{FilterRuleBuilder, PfCtl, RedirectRuleBuilder, ipnetwork};
 use std::net::Ipv4Addr;
 
 error_chain!{}
@@ -43,6 +43,14 @@ fn run() -> Result<()> {
         .build()
         .unwrap();
 
+    // Block packets from the entire 10.0.0.0/8 private network.
+    let private_net = ipnetwork::Ipv4Network::new(Ipv4Addr::new(10, 0, 0, 0), 8).unwrap();
+    let block_a_private_net_rule = FilterRuleBuilder::default()
+        .action(pfctl::FilterRuleAction::Drop)
+        .from(pfctl::Ip::from(ipnetwork::IpNetwork::V4(private_net)))
+        .build()
+        .unwrap();
+
     let redirect_incoming_tcp_from_port_3000_to_4000 = RedirectRuleBuilder::default()
         .action(pfctl::RedirectRuleAction::Redirect)
         .af(pfctl::AddrFamily::Ipv4)
@@ -62,6 +70,8 @@ fn run() -> Result<()> {
     pf.add_rule(ANCHOR_NAME, &pass_all_ipv4_quick_rule)
         .chain_err(|| "Unable to add rule")?;
     pf.add_rule(ANCHOR_NAME, &pass_all_ipv6_on_utun0_rule)
+        .chain_err(|| "Unable to add rule")?;
+    pf.add_rule(ANCHOR_NAME, &block_a_private_net_rule)
         .chain_err(|| "Unable to add rule")?;
     pf.add_redirect_rule(ANCHOR_NAME, &redirect_incoming_tcp_from_port_3000_to_4000)
         .chain_err(|| "Unable to add redirect rule")?;

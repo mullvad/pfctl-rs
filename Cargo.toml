@@ -4,9 +4,10 @@ version = "0.1.0"
 authors = ["Mullvad VPN <admin@mullvad.net>", "Linus Färnstrand <faern@faern.net>", "Andrej Mihajlov <and@mullvad.net>"]
 license = "MIT/Apache-2.0"
 description = "Library for interfacing with the Packet Filter (PF) firewall on macOS"
+repository = "https://github.com/mullvad/pfctl-rs"
 readme = "README.md"
-keywords = ["pf", "pfctl", "firewall", "macos", "network"]
-categories = ["network-programming", "os", "os::unix-apis", "api-bindings", "command-line-utilities"]
+keywords = ["pf", "firewall", "macos", "packet", "filter"]
+categories = ["network-programming", "os", "os::macos-apis", "api-bindings"]
 build = "build.rs"
 
 [badges]
@@ -23,9 +24,10 @@ ipnetwork = "0.12"
 
 [dev-dependencies]
 lazy_static = "1.0"
-pfctl_test = { path = "tests/pfctl_test" }
 assert_matches = "1.1.0"
 uuid = { version = "0.5", features = ["v4"] }
+scopeguard = "0.3.2"
+
 
 [build-dependencies]
 bindgen = "0.32"
