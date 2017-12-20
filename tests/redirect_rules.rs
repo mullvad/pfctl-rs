@@ -4,8 +4,9 @@ extern crate pfctl;
 extern crate assert_matches;
 
 #[macro_use]
-extern crate pfctl_test;
-use pfctl_test::pfcli;
+mod helper;
+use helper::pfcli;
+
 use std::net::{Ipv4Addr, Ipv6Addr};
 
 static ANCHOR_NAME: &'static str = "pfctl-rs.integration.testing.redirect-rules";

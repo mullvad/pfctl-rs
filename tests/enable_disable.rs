@@ -4,8 +4,8 @@ extern crate pfctl;
 extern crate assert_matches;
 
 #[macro_use]
-extern crate pfctl_test;
-use pfctl_test::pfcli;
+mod helper;
+use helper::pfcli;
 
 fn before_each() {}
 fn after_each() {}
