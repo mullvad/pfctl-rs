@@ -10,9 +10,7 @@
 #[allow(non_upper_case_globals)]
 #[allow(non_snake_case)]
 #[allow(dead_code)]
-pub mod pfvar {
-    include!(concat!(env!("OUT_DIR"), "/pfvar.rs"));
-}
+pub mod pfvar;
 
 pub mod tcp {
     use std::os::raw::c_uint;
