@@ -1,6 +1,6 @@
-extern crate pfctl;
 #[macro_use]
 extern crate error_chain;
+extern crate pfctl;
 
 #[macro_use]
 extern crate assert_matches;
