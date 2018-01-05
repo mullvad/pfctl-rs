@@ -2,23 +2,17 @@ extern crate bindgen;
 
 use std::env;
 use std::path::Path;
-use std::process::Command;
-use std::str;
 
+#[cfg(target_os = "macos")]
 fn main() {
     let out_dir = env::var("OUT_DIR").expect("OUT_DIR missing from environment");
     println!("OUT_DIR: {}", out_dir);
-    let sdk_path = get_macos_sdk_path();
-    println!("sdk_path: {}", sdk_path);
 
     let _ = bindgen::builder()
         .header("ffi/pfvar.h")
         .clang_arg("-DPRIVATE")
-        .clang_arg(format!("-I{}/usr/include", sdk_path))
-        .clang_arg(format!(
-            "-I{}/System/Library/Frameworks/Kernel.framework/Versions/A/Headers",
-            sdk_path
-        ))
+        .clang_arg("-I/usr/include")
+        .clang_arg("-I/System/Library/Frameworks/Kernel.framework/Versions/A/Headers")
         .whitelist_type("pf_status")
         .whitelist_type("pfioc_rule")
         .whitelist_type("pfioc_pooladdr")
@@ -32,11 +26,7 @@ fn main() {
         .expect("Unable to write pfvar.rs");
 }
 
-fn get_macos_sdk_path() -> String {
-    let output = Command::new("xcodebuild")
-        .args(&["-sdk", "macosx", "Path", "-version"])
-        .output()
-        .expect("Unable to get macOS SDK path with \"xcodebuild\"");
-    let stdout = str::from_utf8(&output.stdout).expect("xcodebuild did not print valid utf-8");
-    stdout.trim().to_owned()
+#[cfg(not(target_os = "macos"))]
+fn main() {
+    panic!("This crate can only be built on macOS");
 }

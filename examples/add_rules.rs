@@ -10,7 +10,7 @@
 extern crate error_chain;
 extern crate pfctl;
 
-use pfctl::{FilterRuleBuilder, PfCtl, RedirectRuleBuilder, ipnetwork};
+use pfctl::{ipnetwork, FilterRuleBuilder, PfCtl, RedirectRuleBuilder};
 use std::net::Ipv4Addr;
 
 error_chain!{}
