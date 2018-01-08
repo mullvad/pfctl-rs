@@ -20,10 +20,6 @@
 //! variant for now. If it can be made to work on more BSD systems that would be great, but no work
 //! has been put into that so far.
 //!
-//! The build script in this crate has to find the macOS SDK header files, to do this it uses the
-//! `xcodebuild` command line tool. So this crate can only compile on a macOS system with the
-//! Xcode CLI tools installed for now.
-//!
 //! # Usage and examples
 //!
 //! A lot of examples of how to use the various features of this crate can be found in the
