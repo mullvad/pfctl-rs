@@ -180,8 +180,7 @@ impl Transaction {
         anchor: &str,
         ruleset_kind: RulesetKind,
     ) -> Result<ffi::pfvar::pfioc_trans_pfioc_trans_e> {
-        let mut pfioc_trans_e =
-            unsafe { mem::zeroed::<ffi::pfvar::pfioc_trans_pfioc_trans_e>() };
+        let mut pfioc_trans_e = unsafe { mem::zeroed::<ffi::pfvar::pfioc_trans_pfioc_trans_e>() };
         pfioc_trans_e.rs_num = ruleset_kind.into();
         anchor
             .try_copy_to(&mut pfioc_trans_e.anchor[..])
