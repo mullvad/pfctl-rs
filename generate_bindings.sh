@@ -3,6 +3,9 @@
 # Please always have the latest version of bindgen and rustfmt installed before using this script
 
 SDK_PATH=`xcodebuild -sdk macosx Path -version`
+echo "Using macOS SDK at:"
+echo "    $SDK_PATH"
+echo ""
 
 bindgen \
     --whitelist-type pf_status \
