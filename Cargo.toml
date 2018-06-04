@@ -19,7 +19,7 @@ error-chain = "0.11"
 ioctl-sys = "0.5.2"
 libc = "0.2.29"
 derive_builder = "0.5"
-ipnetwork = "0.12"
+ipnetwork = "0.13"
 
 [dev-dependencies]
 lazy_static = "1.0"
