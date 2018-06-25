@@ -60,7 +60,7 @@
 extern crate derive_builder;
 extern crate errno;
 #[macro_use]
-extern crate error_chain;
+pub extern crate error_chain;
 #[macro_use]
 extern crate ioctl_sys;
 extern crate libc;
