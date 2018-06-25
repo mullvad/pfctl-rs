@@ -15,6 +15,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [unreleased]
 
 
+## [0.2.0] - 2018-06-25
+### Changed
+- Upgrade re-exported dependency ipnetwork to 0.13.
+- Upgrade error-chain to 0.12 and re-export it.
+
+
 ## [0.1.1] - 2018-01-08
 ### Changed
 - Removed building the C bindings in build.rs. Instead commit the generated bindings directly in
