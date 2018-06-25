@@ -8,9 +8,9 @@
 
 use super::{AddrFamily, Ip, Port};
 
-use Result;
 use conversion::{CopyTo, TryCopyTo};
 use ffi;
+use Result;
 
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
 

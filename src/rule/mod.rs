@@ -6,10 +6,10 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use {ErrorKind, Result, ResultExt};
 use conversion::{CopyTo, TryCopyTo};
 use ffi;
 use ipnetwork::IpNetwork;
+use {ErrorKind, Result, ResultExt};
 
 use std::mem;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
@@ -56,18 +56,30 @@ pub use self::rule_log::*;
 #[builder(build_fn(name = "build_internal"))]
 pub struct FilterRule {
     action: FilterRuleAction,
-    #[builder(default)] direction: Direction,
-    #[builder(default)] quick: bool,
-    #[builder(default)] log: RuleLogSet,
-    #[builder(default)] route: Route,
-    #[builder(default)] keep_state: StatePolicy,
-    #[builder(default)] interface: Interface,
-    #[builder(default)] proto: Proto,
-    #[builder(default)] af: AddrFamily,
-    #[builder(default)] from: Endpoint,
-    #[builder(default)] to: Endpoint,
-    #[builder(default)] tcp_flags: TcpFlags,
-    #[builder(default)] label: String,
+    #[builder(default)]
+    direction: Direction,
+    #[builder(default)]
+    quick: bool,
+    #[builder(default)]
+    log: RuleLogSet,
+    #[builder(default)]
+    route: Route,
+    #[builder(default)]
+    keep_state: StatePolicy,
+    #[builder(default)]
+    interface: Interface,
+    #[builder(default)]
+    proto: Proto,
+    #[builder(default)]
+    af: AddrFamily,
+    #[builder(default)]
+    from: Endpoint,
+    #[builder(default)]
+    to: Endpoint,
+    #[builder(default)]
+    tcp_flags: TcpFlags,
+    #[builder(default)]
+    label: String,
 }
 
 impl FilterRuleBuilder {
@@ -138,15 +150,24 @@ impl TryCopyTo<ffi::pfvar::pf_rule> for FilterRule {
 #[builder(build_fn(name = "build_internal"))]
 pub struct RedirectRule {
     action: RedirectRuleAction,
-    #[builder(default)] direction: Direction,
-    #[builder(default)] quick: bool,
-    #[builder(default)] log: RuleLogSet,
-    #[builder(default)] interface: Interface,
-    #[builder(default)] proto: Proto,
-    #[builder(default)] af: AddrFamily,
-    #[builder(default)] from: Endpoint,
-    #[builder(default)] to: Endpoint,
-    #[builder(default)] label: String,
+    #[builder(default)]
+    direction: Direction,
+    #[builder(default)]
+    quick: bool,
+    #[builder(default)]
+    log: RuleLogSet,
+    #[builder(default)]
+    interface: Interface,
+    #[builder(default)]
+    proto: Proto,
+    #[builder(default)]
+    af: AddrFamily,
+    #[builder(default)]
+    from: Endpoint,
+    #[builder(default)]
+    to: Endpoint,
+    #[builder(default)]
+    label: String,
     redirect_to: Endpoint,
 }
 

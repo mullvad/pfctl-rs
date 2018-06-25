@@ -39,7 +39,8 @@
 //! // Add an anchor rule for packet filtering rules into PF. This will fail if it already exists,
 //! // use `try_add_anchor` to avoid that:
 //! let anchor_name = "testing-out-pfctl";
-//! pf.add_anchor(anchor_name, pfctl::AnchorKind::Filter).unwrap();
+//! pf.add_anchor(anchor_name, pfctl::AnchorKind::Filter)
+//!     .unwrap();
 //!
 //! // Create a packet filtering rule matching all packets on the "lo0" interface and allowing
 //! // them to pass:
@@ -63,8 +64,8 @@ extern crate errno;
 pub extern crate error_chain;
 #[macro_use]
 extern crate ioctl_sys;
-extern crate libc;
 pub extern crate ipnetwork;
+extern crate libc;
 
 #[cfg(test)]
 #[macro_use]
@@ -137,7 +138,7 @@ macro_rules! ignore_error_kind {
             Err($crate::Error($kind, _)) => Ok(()),
             result => result,
         }
-    }
+    };
 }
 
 
