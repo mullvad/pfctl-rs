@@ -16,6 +16,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 
 ## [0.2.0] - 2018-06-25
+### Added
+- Travis CI job for the oldest supported Rust version, currently 1.26.0.
+
 ### Changed
 - Upgrade re-exported dependency ipnetwork to 0.13.
 - Upgrade error-chain to 0.12 and re-export it.
