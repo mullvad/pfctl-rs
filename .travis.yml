@@ -18,7 +18,9 @@ script:
   - sudo chmod -R o+w target/
   # Format only on nightly, since that is where rustfmt-nightly compiles
   - if [ "${TRAVIS_RUST_VERSION}" = "nightly" ]; then
-      ./format.sh --write-mode=diff;
+      rustup component add rustfmt-preview;
+      rustfmt --version;
+      cargo fmt -- --check --unstable-features;
     else
       echo "Not checking formatting on this build";
     fi
