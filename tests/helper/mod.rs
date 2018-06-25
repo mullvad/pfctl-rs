@@ -35,7 +35,7 @@ impl PfState {
 
 #[macro_export]
 macro_rules! test {
-    ($name:ident $block:block) => (
+    ($name:ident $block:block) => {
         #[test]
         fn $name() {
             let mut pf_state = helper::PfState::new();
@@ -47,5 +47,5 @@ macro_rules! test {
             before_each();
             $block;
         }
-    )
+    };
 }

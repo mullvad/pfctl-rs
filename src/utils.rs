@@ -6,9 +6,9 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use {AnchorKind, ErrorKind, PoolAddr, Result, ResultExt};
 use conversion::TryCopyTo;
 use ffi;
+use {AnchorKind, ErrorKind, PoolAddr, Result, ResultExt};
 
 use std::fs::{File, OpenOptions};
 use std::mem;

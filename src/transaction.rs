@@ -6,11 +6,11 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use {ErrorKind, Result, ResultExt};
-use {FilterRule, PoolAddrList, RedirectRule, RulesetKind};
 use conversion::TryCopyTo;
 use ffi;
 use std::collections::HashMap;
+use {ErrorKind, Result, ResultExt};
+use {FilterRule, PoolAddrList, RedirectRule, RulesetKind};
 
 use std::mem;
 use std::os::unix::io::{AsRawFd, RawFd};
@@ -44,7 +44,8 @@ impl Transaction {
         let mut pfioc_trans = unsafe { mem::zeroed::<ffi::pfvar::pfioc_trans>() };
 
         // partition changes by ruleset kind
-        let filter_changes: Vec<(String, Vec<FilterRule>)> = self.change_by_anchor
+        let filter_changes: Vec<(String, Vec<FilterRule>)> = self
+            .change_by_anchor
             .iter_mut()
             .filter_map(|(anchor, change)| {
                 change
@@ -53,7 +54,8 @@ impl Transaction {
                     .map(|rules| (anchor.clone(), rules))
             })
             .collect();
-        let redirect_changes: Vec<(String, Vec<RedirectRule>)> = self.change_by_anchor
+        let redirect_changes: Vec<(String, Vec<RedirectRule>)> = self
+            .change_by_anchor
             .iter_mut()
             .filter_map(|(anchor, change)| {
                 change

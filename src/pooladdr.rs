@@ -6,10 +6,10 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use {Interface, Ip, Result};
 use conversion::{CopyTo, TryCopyTo};
 use ffi;
 use std::mem;
+use {Interface, Ip, Result};
 
 use std::ptr;
 use std::vec::Vec;
