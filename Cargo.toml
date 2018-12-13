@@ -8,6 +8,7 @@ repository = "https://github.com/mullvad/pfctl-rs"
 readme = "README.md"
 keywords = ["pf", "firewall", "macos", "packet", "filter"]
 categories = ["network-programming", "os", "os::macos-apis", "api-bindings"]
+edition = "2018"
 
 [badges]
 travis-ci = { repository = "mullvad/pfctl-rs" }
@@ -22,7 +23,6 @@ derive_builder = "0.5"
 ipnetwork = "0.13"
 
 [dev-dependencies]
-lazy_static = "1.0"
 assert_matches = "1.1.0"
 uuid = { version = "0.6", features = ["v4"] }
 scopeguard = "0.3.2"

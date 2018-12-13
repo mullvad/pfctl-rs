@@ -6,13 +6,10 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-extern crate pfctl;
-
 #[macro_use]
 extern crate error_chain;
 
 use pfctl::PfCtl;
-
 use std::net::Ipv4Addr;
 
 error_chain! {}

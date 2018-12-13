@@ -8,7 +8,6 @@
 
 #[macro_use]
 extern crate error_chain;
-extern crate pfctl;
 
 use pfctl::PfCtl;
 use std::env;

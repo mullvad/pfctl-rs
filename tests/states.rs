@@ -1,15 +1,12 @@
 #[macro_use]
 extern crate error_chain;
-extern crate pfctl;
-
-#[macro_use]
-extern crate assert_matches;
 
 #[macro_use]
 #[allow(dead_code)]
 mod helper;
-use crate::helper::pfcli;
 
+use crate::helper::pfcli;
+use assert_matches::assert_matches;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, UdpSocket};
 
 static ANCHOR_NAME: &'static str = "pfctl-rs.integration.testing.states";

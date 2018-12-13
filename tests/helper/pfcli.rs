@@ -1,5 +1,4 @@
-use std::process::Command;
-use std::str;
+use std::{process::Command, str};
 
 mod errors {
     error_chain! {}

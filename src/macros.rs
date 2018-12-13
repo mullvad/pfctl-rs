@@ -11,7 +11,7 @@ pub const IOCTL_ERROR: i32 = -1;
 /// Macro for taking an expression with an ioctl call, perform it and return a Rust ´Result´.
 macro_rules! ioctl_guard {
     ($func:expr) => {
-        ioctl_guard!($func, $crate::libc::EEXIST)
+        ioctl_guard!($func, libc::EEXIST)
     };
     ($func:expr, $already_active:expr) => {
         if unsafe { $func } == $crate::macros::IOCTL_ERROR {
