@@ -6,7 +6,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use ffi;
+use crate::ffi;
 
 /// Enum describing what should happen to a packet that matches a filter rule.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

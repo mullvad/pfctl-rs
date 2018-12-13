@@ -6,9 +6,9 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use conversion::TryCopyTo;
-use ffi;
-use {AnchorKind, ErrorKind, PoolAddr, Result, ResultExt};
+use crate::conversion::TryCopyTo;
+use crate::ffi;
+use crate::{AnchorKind, ErrorKind, PoolAddr, Result, ResultExt};
 
 use std::fs::{File, OpenOptions};
 use std::mem;

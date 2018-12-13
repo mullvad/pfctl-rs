@@ -6,15 +6,15 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use conversion::TryCopyTo;
-use ffi;
+use crate::conversion::TryCopyTo;
+use crate::ffi;
+use crate::{ErrorKind, Result, ResultExt};
+use crate::{FilterRule, PoolAddrList, RedirectRule, RulesetKind};
 use std::collections::HashMap;
-use {ErrorKind, Result, ResultExt};
-use {FilterRule, PoolAddrList, RedirectRule, RulesetKind};
 
+use crate::utils;
 use std::mem;
 use std::os::unix::io::{AsRawFd, RawFd};
-use utils;
 
 /// Structure that allows to manipulate rules in batches
 #[derive(Debug)]

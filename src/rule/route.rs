@@ -6,8 +6,8 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use ffi;
-use pooladdr::PoolAddr;
+use crate::ffi;
+use crate::pooladdr::PoolAddr;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Route {

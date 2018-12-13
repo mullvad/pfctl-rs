@@ -87,19 +87,19 @@ mod macros;
 mod utils;
 
 mod rule;
-pub use rule::*;
+pub use crate::rule::*;
 
 mod pooladdr;
-pub use pooladdr::*;
+pub use crate::pooladdr::*;
 
 mod anchor;
-pub use anchor::*;
+pub use crate::anchor::*;
 
 mod ruleset;
-pub use ruleset::*;
+pub use crate::ruleset::*;
 
 mod transaction;
-pub use transaction::*;
+pub use crate::transaction::*;
 
 mod errors {
     error_chain! {
@@ -127,7 +127,7 @@ mod errors {
         }
     }
 }
-pub use errors::*;
+pub use crate::errors::*;
 
 
 /// Returns the given input result, except if it is an `Err` matching the given `ErrorKind`,
@@ -152,10 +152,10 @@ mod conversion {
 
     /// Internal trait for all types that can try to write their value into another type.
     pub trait TryCopyTo<T: ?Sized> {
-        fn try_copy_to(&self, dst: &mut T) -> ::Result<()>;
+        fn try_copy_to(&self, dst: &mut T) -> crate::Result<()>;
     }
 }
-use conversion::*;
+use crate::conversion::*;
 
 
 /// Internal function to safely compare Rust string with raw C string slice

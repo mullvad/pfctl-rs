@@ -6,10 +6,10 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use conversion::{CopyTo, TryCopyTo};
-use ffi;
+use crate::conversion::{CopyTo, TryCopyTo};
+use crate::ffi;
+use crate::{ErrorKind, Result, ResultExt};
 use ipnetwork::IpNetwork;
-use {ErrorKind, Result, ResultExt};
 
 use std::mem;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};

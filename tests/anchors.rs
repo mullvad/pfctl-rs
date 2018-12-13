@@ -8,7 +8,7 @@ extern crate assert_matches;
 #[macro_use]
 #[allow(dead_code)]
 mod helper;
-use helper::pfcli;
+use crate::helper::pfcli;
 
 extern crate uuid;
 use uuid::Uuid;
