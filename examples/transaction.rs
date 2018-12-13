@@ -15,7 +15,7 @@ use pfctl::PfCtl;
 
 use std::net::Ipv4Addr;
 
-error_chain!{}
+error_chain! {}
 quick_main!(run);
 
 static ANCHOR_NAME: &str = "test.anchor";

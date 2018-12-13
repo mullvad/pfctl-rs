@@ -12,7 +12,7 @@ extern crate pfctl;
 
 use pfctl::PfCtl;
 
-error_chain!{}
+error_chain! {}
 quick_main!(run);
 
 fn run() -> Result<()> {

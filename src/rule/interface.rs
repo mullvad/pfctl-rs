@@ -41,6 +41,7 @@ impl TryCopyTo<[i8]> for Interface {
         match *self {
             Interface::Any => "",
             Interface::Name(InterfaceName(ref name)) => &name[..],
-        }.try_copy_to(dst)
+        }
+        .try_copy_to(dst)
     }
 }

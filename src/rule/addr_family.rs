@@ -39,6 +39,7 @@ impl fmt::Display for AddrFamily {
             AddrFamily::Any => "any",
             AddrFamily::Ipv4 => "IPv4",
             AddrFamily::Ipv6 => "IPv6",
-        }.fmt(f)
+        }
+        .fmt(f)
     }
 }

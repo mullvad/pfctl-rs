@@ -13,7 +13,7 @@ extern crate pfctl;
 use pfctl::PfCtl;
 use std::env;
 
-error_chain!{}
+error_chain! {}
 quick_main!(run);
 
 fn run() -> Result<()> {

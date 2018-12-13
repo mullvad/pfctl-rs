@@ -2,7 +2,7 @@ use std::process::Command;
 use std::str;
 
 mod errors {
-    error_chain!{}
+    error_chain! {}
 }
 use self::errors::*;
 
