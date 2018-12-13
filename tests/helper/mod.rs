@@ -1,4 +1,4 @@
-pub extern crate scopeguard;
+pub use scopeguard;
 
 pub mod pfcli;
 

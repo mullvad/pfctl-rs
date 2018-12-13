@@ -58,27 +58,16 @@
 //! [examples]: https://github.com/mullvad/pfctl-rs/tree/master/examples
 
 #[macro_use]
-extern crate derive_builder;
-extern crate errno;
-#[macro_use]
 pub extern crate error_chain;
-#[macro_use]
-extern crate ioctl_sys;
-pub extern crate ipnetwork;
-extern crate libc;
 
-#[cfg(test)]
-#[macro_use]
-extern crate assert_matches;
+use std::{
+    ffi::CStr,
+    fs::File,
+    mem,
+    os::unix::io::{AsRawFd, RawFd},
+};
 
-#[cfg(test)]
-#[macro_use]
-extern crate lazy_static;
-
-use std::ffi::CStr;
-use std::fs::File;
-use std::mem;
-use std::os::unix::io::{AsRawFd, RawFd};
+pub use ipnetwork;
 
 mod ffi;
 
@@ -415,6 +404,7 @@ fn setup_pfioc_state_kill(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use assert_matches::assert_matches;
     use std::ffi::CString;
 
     #[test]

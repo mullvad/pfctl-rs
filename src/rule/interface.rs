@@ -6,8 +6,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use crate::conversion::TryCopyTo;
-use crate::Result;
+use crate::{conversion::TryCopyTo, Result};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct InterfaceName(String);

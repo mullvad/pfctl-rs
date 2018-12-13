@@ -7,11 +7,10 @@
 // except according to those terms.
 
 use super::{AddrFamily, Ip, Port};
-
-use crate::conversion::{CopyTo, TryCopyTo};
-use crate::ffi;
-use crate::Result;
-
+use crate::{
+    conversion::{CopyTo, TryCopyTo},
+    ffi, Result,
+};
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]

@@ -8,7 +8,6 @@
 
 #[macro_use]
 extern crate error_chain;
-extern crate pfctl;
 
 use pfctl::{ipnetwork, FilterRuleBuilder, PfCtl, RedirectRuleBuilder};
 use std::net::Ipv4Addr;

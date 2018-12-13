@@ -6,9 +6,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use crate::conversion::TryCopyTo;
-use crate::ffi;
-use crate::{ErrorKind, Result};
+use crate::{conversion::TryCopyTo, ffi, ErrorKind, Result};
 
 // Port range representation
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

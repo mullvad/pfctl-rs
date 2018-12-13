@@ -6,13 +6,11 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use crate::conversion::{CopyTo, TryCopyTo};
-use crate::ffi;
-use crate::{Interface, Ip, Result};
-use std::mem;
-
-use std::ptr;
-use std::vec::Vec;
+use crate::{
+    conversion::{CopyTo, TryCopyTo},
+    ffi, Interface, Ip, Result,
+};
+use std::{mem, ptr, vec::Vec};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct PoolAddr {
