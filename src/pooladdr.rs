@@ -63,7 +63,7 @@ impl TryCopyTo<ffi::pfvar::pf_pooladdr> for PoolAddr {
 /// One should never use `pf_palist` produced by this class past the lifetime expiration of it.
 pub struct PoolAddrList {
     list: ffi::pfvar::pf_palist,
-    pool: Box<[ffi::pfvar::pf_pooladdr]>,
+    _pool: Box<[ffi::pfvar::pf_pooladdr]>,
 }
 
 impl PoolAddrList {
@@ -74,7 +74,7 @@ impl PoolAddrList {
 
         Ok(PoolAddrList {
             list,
-            pool: pool.into_boxed_slice(),
+            _pool: pool.into_boxed_slice(),
         })
     }
 
