@@ -6,7 +6,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use ffi;
+use crate::ffi;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TcpFlag {

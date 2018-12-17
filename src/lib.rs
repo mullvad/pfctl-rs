@@ -58,27 +58,16 @@
 //! [examples]: https://github.com/mullvad/pfctl-rs/tree/master/examples
 
 #[macro_use]
-extern crate derive_builder;
-extern crate errno;
-#[macro_use]
 pub extern crate error_chain;
-#[macro_use]
-extern crate ioctl_sys;
-pub extern crate ipnetwork;
-extern crate libc;
 
-#[cfg(test)]
-#[macro_use]
-extern crate assert_matches;
+use std::{
+    ffi::CStr,
+    fs::File,
+    mem,
+    os::unix::io::{AsRawFd, RawFd},
+};
 
-#[cfg(test)]
-#[macro_use]
-extern crate lazy_static;
-
-use std::ffi::CStr;
-use std::fs::File;
-use std::mem;
-use std::os::unix::io::{AsRawFd, RawFd};
+pub use ipnetwork;
 
 mod ffi;
 
@@ -87,19 +76,19 @@ mod macros;
 mod utils;
 
 mod rule;
-pub use rule::*;
+pub use crate::rule::*;
 
 mod pooladdr;
-pub use pooladdr::*;
+pub use crate::pooladdr::*;
 
 mod anchor;
-pub use anchor::*;
+pub use crate::anchor::*;
 
 mod ruleset;
-pub use ruleset::*;
+pub use crate::ruleset::*;
 
 mod transaction;
-pub use transaction::*;
+pub use crate::transaction::*;
 
 mod errors {
     error_chain! {
@@ -127,7 +116,7 @@ mod errors {
         }
     }
 }
-pub use errors::*;
+pub use crate::errors::*;
 
 
 /// Returns the given input result, except if it is an `Err` matching the given `ErrorKind`,
@@ -152,10 +141,10 @@ mod conversion {
 
     /// Internal trait for all types that can try to write their value into another type.
     pub trait TryCopyTo<T: ?Sized> {
-        fn try_copy_to(&self, dst: &mut T) -> ::Result<()>;
+        fn try_copy_to(&self, dst: &mut T) -> crate::Result<()>;
     }
 }
-use conversion::*;
+use crate::conversion::*;
 
 
 /// Internal function to safely compare Rust string with raw C string slice
@@ -415,6 +404,7 @@ fn setup_pfioc_state_kill(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use assert_matches::assert_matches;
     use std::ffi::CString;
 
     #[test]

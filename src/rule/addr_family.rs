@@ -6,8 +6,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use ffi;
-
+use crate::ffi;
 use std::fmt;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -34,11 +33,12 @@ impl From<AddrFamily> for u8 {
 }
 
 impl fmt::Display for AddrFamily {
-    fn fmt(&self, f: &mut fmt::Formatter) -> ::std::result::Result<(), fmt::Error> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> ::std::result::Result<(), fmt::Error> {
         match *self {
             AddrFamily::Any => "any",
             AddrFamily::Ipv4 => "IPv4",
             AddrFamily::Ipv6 => "IPv6",
-        }.fmt(f)
+        }
+        .fmt(f)
     }
 }

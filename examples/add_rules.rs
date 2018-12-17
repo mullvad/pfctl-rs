@@ -8,12 +8,11 @@
 
 #[macro_use]
 extern crate error_chain;
-extern crate pfctl;
 
 use pfctl::{ipnetwork, FilterRuleBuilder, PfCtl, RedirectRuleBuilder};
 use std::net::Ipv4Addr;
 
-error_chain!{}
+error_chain! {}
 quick_main!(run);
 
 static ANCHOR_NAME: &str = "test.anchor";

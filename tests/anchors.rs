@@ -1,16 +1,12 @@
 #[macro_use]
 extern crate error_chain;
-extern crate pfctl;
-
-#[macro_use]
-extern crate assert_matches;
 
 #[macro_use]
 #[allow(dead_code)]
 mod helper;
-use helper::pfcli;
 
-extern crate uuid;
+use crate::helper::pfcli;
+use assert_matches::assert_matches;
 use uuid::Uuid;
 
 fn unique_anchor() -> String {

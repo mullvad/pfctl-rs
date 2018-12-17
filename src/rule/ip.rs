@@ -6,13 +6,13 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use {AddrFamily, Result};
-
-use conversion::CopyTo;
-use ffi;
+use crate::{
+    conversion::CopyTo,
+    ffi,
+    pooladdr::{PoolAddr, PoolAddrList},
+    AddrFamily, Result,
+};
 use ipnetwork::{IpNetwork, Ipv4Network, Ipv6Network};
-use pooladdr::{PoolAddr, PoolAddrList};
-
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

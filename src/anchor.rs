@@ -6,7 +6,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use ffi;
+use crate::ffi;
 
 /// Enum describing the kinds of anchors
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

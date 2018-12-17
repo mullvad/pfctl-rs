@@ -1,9 +1,9 @@
-pub extern crate scopeguard;
+pub use scopeguard;
 
 pub mod pfcli;
 
 mod errors {
-    error_chain!{}
+    error_chain! {}
 }
 use self::errors::*;
 

@@ -6,8 +6,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use conversion::TryCopyTo;
-use Result;
+use crate::{conversion::TryCopyTo, Result};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct InterfaceName(String);
@@ -41,6 +40,7 @@ impl TryCopyTo<[i8]> for Interface {
         match *self {
             Interface::Any => "",
             Interface::Name(InterfaceName(ref name)) => &name[..],
-        }.try_copy_to(dst)
+        }
+        .try_copy_to(dst)
     }
 }

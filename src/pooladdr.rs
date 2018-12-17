@@ -6,13 +6,11 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use conversion::{CopyTo, TryCopyTo};
-use ffi;
-use std::mem;
-use {Interface, Ip, Result};
-
-use std::ptr;
-use std::vec::Vec;
+use crate::{
+    conversion::{CopyTo, TryCopyTo},
+    ffi, Interface, Ip, Result,
+};
+use std::{mem, ptr, vec::Vec};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct PoolAddr {
@@ -65,7 +63,7 @@ impl TryCopyTo<ffi::pfvar::pf_pooladdr> for PoolAddr {
 /// One should never use `pf_palist` produced by this class past the lifetime expiration of it.
 pub struct PoolAddrList {
     list: ffi::pfvar::pf_palist,
-    pool: Box<[ffi::pfvar::pf_pooladdr]>,
+    _pool: Box<[ffi::pfvar::pf_pooladdr]>,
 }
 
 impl PoolAddrList {
@@ -76,7 +74,7 @@ impl PoolAddrList {
 
         Ok(PoolAddrList {
             list,
-            pool: pool.into_boxed_slice(),
+            _pool: pool.into_boxed_slice(),
         })
     }
 

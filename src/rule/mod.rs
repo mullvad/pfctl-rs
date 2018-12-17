@@ -6,13 +6,16 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use conversion::{CopyTo, TryCopyTo};
-use ffi;
+use crate::{
+    conversion::{CopyTo, TryCopyTo},
+    ffi, ErrorKind, Result, ResultExt,
+};
+use derive_builder::Builder;
 use ipnetwork::IpNetwork;
-use {ErrorKind, Result, ResultExt};
-
-use std::mem;
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+use std::{
+    mem,
+    net::{IpAddr, Ipv4Addr, Ipv6Addr},
+};
 
 mod addr_family;
 pub use self::addr_family::*;
@@ -231,11 +234,6 @@ fn compatible_af(af1: AddrFamily, af2: AddrFamily) -> Result<AddrFamily> {
 mod filter_rule_tests {
     use super::*;
 
-    lazy_static! {
-        static ref IPV4: Ipv4Addr = Ipv4Addr::new(0, 0, 0, 0);
-        static ref IPV6: Ipv6Addr = Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0);
-    }
-
     #[test]
     fn correct_af_default() {
         let testee = FilterRuleBuilder::default()
@@ -249,8 +247,16 @@ mod filter_rule_tests {
     fn af_incompatible_from_to() {
         let mut testee = FilterRuleBuilder::default();
         testee.action(FilterRuleAction::Pass);
-        let from4to6 = testee.from(*IPV4).to(*IPV6).build().unwrap();
-        let from6to4 = testee.from(*IPV6).to(*IPV4).build().unwrap();
+        let from4to6 = testee
+            .from(Ipv4Addr::UNSPECIFIED)
+            .to(Ipv6Addr::UNSPECIFIED)
+            .build()
+            .unwrap();
+        let from6to4 = testee
+            .from(Ipv6Addr::UNSPECIFIED)
+            .to(Ipv4Addr::UNSPECIFIED)
+            .build()
+            .unwrap();
         assert!(from4to6.get_af().is_err());
         assert!(from6to4.get_af().is_err());
     }
@@ -258,7 +264,9 @@ mod filter_rule_tests {
     #[test]
     fn af_compatibility_ipv4() {
         let mut testee = FilterRuleBuilder::default();
-        testee.action(FilterRuleAction::Pass).from(*IPV4);
+        testee
+            .action(FilterRuleAction::Pass)
+            .from(Ipv4Addr::UNSPECIFIED);
         assert_eq!(
             AddrFamily::Ipv4,
             testee
@@ -277,20 +285,20 @@ mod filter_rule_tests {
                 .get_af()
                 .unwrap()
         );
-        assert!(
-            testee
-                .af(AddrFamily::Ipv6)
-                .build()
-                .unwrap()
-                .get_af()
-                .is_err()
-        );
+        assert!(testee
+            .af(AddrFamily::Ipv6)
+            .build()
+            .unwrap()
+            .get_af()
+            .is_err());
     }
 
     #[test]
     fn af_compatibility_ipv6() {
         let mut testee = FilterRuleBuilder::default();
-        testee.action(FilterRuleAction::Pass).to(*IPV6);
+        testee
+            .action(FilterRuleAction::Pass)
+            .to(Ipv6Addr::UNSPECIFIED);
         assert_eq!(
             AddrFamily::Ipv6,
             testee
@@ -309,14 +317,12 @@ mod filter_rule_tests {
                 .get_af()
                 .unwrap()
         );
-        assert!(
-            testee
-                .af(AddrFamily::Ipv4)
-                .build()
-                .unwrap()
-                .get_af()
-                .is_err()
-        );
+        assert!(testee
+            .af(AddrFamily::Ipv4)
+            .build()
+            .unwrap()
+            .get_af()
+            .is_err());
     }
 
     #[test]
@@ -379,16 +385,14 @@ mod filter_rule_tests {
 
     #[test]
     fn state_policy_incompatible_modulate() {
-        assert!(
-            FilterRuleBuilder::default()
-                .action(FilterRuleAction::Pass)
-                .keep_state(StatePolicy::Modulate)
-                .proto(Proto::Udp)
-                .build()
-                .unwrap()
-                .validate_state_policy()
-                .is_err()
-        );
+        assert!(FilterRuleBuilder::default()
+            .action(FilterRuleAction::Pass)
+            .keep_state(StatePolicy::Modulate)
+            .proto(Proto::Udp)
+            .build()
+            .unwrap()
+            .validate_state_policy()
+            .is_err());
     }
 
     #[test]
@@ -408,16 +412,14 @@ mod filter_rule_tests {
 
     #[test]
     fn state_policy_incompatible_synproxy() {
-        assert!(
-            FilterRuleBuilder::default()
-                .action(FilterRuleAction::Pass)
-                .keep_state(StatePolicy::SynProxy)
-                .proto(Proto::Udp)
-                .build()
-                .unwrap()
-                .validate_state_policy()
-                .is_err()
-        );
+        assert!(FilterRuleBuilder::default()
+            .action(FilterRuleAction::Pass)
+            .keep_state(StatePolicy::SynProxy)
+            .proto(Proto::Udp)
+            .build()
+            .unwrap()
+            .validate_state_policy()
+            .is_err());
     }
 }
 

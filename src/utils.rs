@@ -6,13 +6,12 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use conversion::TryCopyTo;
-use ffi;
-use {AnchorKind, ErrorKind, PoolAddr, Result, ResultExt};
-
-use std::fs::{File, OpenOptions};
-use std::mem;
-use std::os::unix::io::RawFd;
+use crate::{conversion::TryCopyTo, ffi, AnchorKind, ErrorKind, PoolAddr, Result, ResultExt};
+use std::{
+    fs::{File, OpenOptions},
+    mem,
+    os::unix::io::RawFd,
+};
 
 /// The path to the PF device file this library will use to communicate with PF.
 const PF_DEV_PATH: &'static str = "/dev/pf";

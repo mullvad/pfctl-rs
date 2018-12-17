@@ -559,7 +559,7 @@ fn bindgen_test_layout_pf_addr_wrap__bindgen_ty_1() {
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub union pf_addr_wrap__bindgen_ty_2 {
-    pub dyn: *mut ::std::os::raw::c_void,
+    pub r#dyn: *mut ::std::os::raw::c_void,
     pub tbl: *mut ::std::os::raw::c_void,
     pub dyncnt: ::std::os::raw::c_int,
     pub tblcnt: ::std::os::raw::c_int,
@@ -578,13 +578,15 @@ fn bindgen_test_layout_pf_addr_wrap__bindgen_ty_2() {
         concat!("Alignment of ", stringify!(pf_addr_wrap__bindgen_ty_2))
     );
     assert_eq!(
-        unsafe { &(*(::std::ptr::null::<pf_addr_wrap__bindgen_ty_2>())).dyn as *const _ as usize },
+        unsafe {
+            &(*(::std::ptr::null::<pf_addr_wrap__bindgen_ty_2>())).r#dyn as *const _ as usize
+        },
         0usize,
         concat!(
             "Offset of field: ",
             stringify!(pf_addr_wrap__bindgen_ty_2),
             "::",
-            stringify!(dyn)
+            stringify!(r#dyn)
         )
     );
     assert_eq!(

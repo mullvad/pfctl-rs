@@ -13,6 +13,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 * **Security**: in case of vulnerabilities.
 
 ## [unreleased]
+### Changed
+- Upgraded the crate to Rust 2018. Minimum Rust version is now 1.31.0
 
 
 ## [0.2.0] - 2018-06-25
