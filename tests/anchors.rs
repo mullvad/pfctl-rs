@@ -12,7 +12,7 @@ use uuid::Uuid;
 fn unique_anchor() -> String {
     format!(
         "pfctl-rs.integration.testing.{}",
-        Uuid::new_v4().simple().to_string()
+        Uuid::new_v4().to_simple().to_string()
     )
 }
 

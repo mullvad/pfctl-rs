@@ -1,6 +1,6 @@
 [package]
 name = "pfctl"
-version = "0.2.1"
+version = "0.3.0"
 authors = ["Mullvad VPN <admin@mullvad.net>", "Linus Färnstrand <faern@faern.net>", "Andrej Mihajlov <and@mullvad.net>"]
 license = "MIT/Apache-2.0"
 description = "Library for interfacing with the Packet Filter (PF) firewall on macOS"
@@ -19,10 +19,10 @@ errno = "0.2"
 error-chain = "0.12"
 ioctl-sys = "0.5.2"
 libc = "0.2.29"
-derive_builder = "0.5"
-ipnetwork = "0.14"
+derive_builder = "0.7"
+ipnetwork = "0.15"
 
 [dev-dependencies]
 assert_matches = "1.1.0"
-uuid = { version = "0.6", features = ["v4"] }
-scopeguard = "0.3.2"
+uuid = { version = "0.7", features = ["v4"] }
+scopeguard = "1.0"
