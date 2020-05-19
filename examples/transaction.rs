@@ -26,12 +26,12 @@ fn run() -> Result<()> {
 
     // Create some firewall rules that we want to set in one atomic transaction.
     let trans_rule1 = pfctl::FilterRuleBuilder::default()
-        .action(pfctl::FilterRuleAction::Drop)
+        .action(pfctl::FilterRuleAction::Drop(pfctl::DropAction::Drop))
         .from(Ipv4Addr::new(192, 168, 234, 1))
         .build()
         .unwrap();
     let trans_rule2 = pfctl::FilterRuleBuilder::default()
-        .action(pfctl::FilterRuleAction::Drop)
+        .action(pfctl::FilterRuleAction::Drop(pfctl::DropAction::Drop))
         .from(Ipv4Addr::new(192, 168, 234, 2))
         .to(pfctl::Port::from(80))
         .build()

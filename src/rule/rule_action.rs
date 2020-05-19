@@ -12,14 +12,48 @@ use crate::ffi;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum FilterRuleAction {
     Pass,
+    Drop(DropAction),
+}
+
+/// Action to take for [`FilterRuleAction::Drop`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum DropAction {
+    /// Silently drop the packet.
     Drop,
+    /// Return a TCP RST or ICMP reject packet.
+    Return,
+    /// Return a TCP RST packet.
+    ReturnRst,
+    /// Return an ICMP reject packet.
+    ReturnIcmp,
+}
+
+impl FilterRuleAction {
+    pub fn rule_flags(&self) -> u32 {
+        match *self {
+            FilterRuleAction::Pass => 0u32,
+            FilterRuleAction::Drop(action) => action.into(),
+        }
+    }
 }
 
 impl From<FilterRuleAction> for u8 {
     fn from(rule_action: FilterRuleAction) -> Self {
         match rule_action {
             FilterRuleAction::Pass => ffi::pfvar::PF_PASS as u8,
-            FilterRuleAction::Drop => ffi::pfvar::PF_DROP as u8,
+            FilterRuleAction::Drop(_) => ffi::pfvar::PF_DROP as u8,
+        }
+    }
+}
+
+impl From<DropAction> for u32 {
+    fn from(drop_action: DropAction) -> Self {
+        use crate::ffi::pfvar::*;
+        match drop_action {
+            DropAction::Drop => PFRULE_DROP,
+            DropAction::Return => PFRULE_RETURN,
+            DropAction::ReturnRst => PFRULE_RETURNRST,
+            DropAction::ReturnIcmp => PFRULE_RETURNICMP,
         }
     }
 }

@@ -133,6 +133,8 @@ impl TryCopyTo<ffi::pfvar::pf_rule> for FilterRule {
         pf_rule.keep_state = self.validate_state_policy()?.into();
         pf_rule.flags = (&self.tcp_flags.check).into();
         pf_rule.flagset = (&self.tcp_flags.mask).into();
+        pf_rule.rule_flag = self.action.rule_flags();
+
         self.interface
             .try_copy_to(&mut pf_rule.ifname)
             .chain_err(|| ErrorKind::InvalidArgument("Incompatible interface name"))?;
