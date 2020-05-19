@@ -50,6 +50,9 @@ pub use self::tcp_flags::*;
 mod rule_action;
 pub use self::rule_action::*;
 
+mod rule_flags;
+pub use self::rule_flags::*;
+
 mod rule_log;
 pub use self::rule_log::*;
 
@@ -81,6 +84,8 @@ pub struct FilterRule {
     to: Endpoint,
     #[builder(default)]
     tcp_flags: TcpFlags,
+    #[builder(default)]
+    rule_flag: RuleFlagSet,
     #[builder(default)]
     label: String,
 }
@@ -133,6 +138,7 @@ impl TryCopyTo<ffi::pfvar::pf_rule> for FilterRule {
         pf_rule.keep_state = self.validate_state_policy()?.into();
         pf_rule.flags = (&self.tcp_flags.check).into();
         pf_rule.flagset = (&self.tcp_flags.mask).into();
+        pf_rule.rule_flag = (&self.rule_flag).into();
         self.interface
             .try_copy_to(&mut pf_rule.ifname)
             .chain_err(|| ErrorKind::InvalidArgument("Incompatible interface name"))?;
