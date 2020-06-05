@@ -394,10 +394,8 @@ fn setup_pfioc_state_kill(
     pfioc_state_kill.psk_proto = pfsync_state.proto;
     pfioc_state_kill.psk_proto_variant = pfsync_state.proto_variant;
     pfioc_state_kill.psk_ifname = pfsync_state.ifname;
-    unsafe {
-        pfioc_state_kill.psk_src.addr.v.a.addr = pfsync_state.lan.addr;
-        pfioc_state_kill.psk_dst.addr.v.a.addr = pfsync_state.ext_lan.addr;
-    }
+    pfioc_state_kill.psk_src.addr.v.a.addr = pfsync_state.lan.addr;
+    pfioc_state_kill.psk_dst.addr.v.a.addr = pfsync_state.ext_lan.addr;
 }
 
 
