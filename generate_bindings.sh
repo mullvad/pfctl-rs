@@ -15,6 +15,7 @@ bindgen \
     --whitelist-type pfioc_states \
     --whitelist-type pfioc_state_kill \
     --whitelist-var PF_.* \
+    --whitelist-var PFRULE_.* \
     -o ./src/ffi/pfvar.rs ./ffi/pfvar.h -- \
     -DPRIVATE \
     -I$SDK_PATH/usr/include \

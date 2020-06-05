@@ -45,7 +45,7 @@ fn run() -> Result<()> {
     // Block packets from the entire 10.0.0.0/8 private network.
     let private_net = ipnetwork::Ipv4Network::new(Ipv4Addr::new(10, 0, 0, 0), 8).unwrap();
     let block_a_private_net_rule = FilterRuleBuilder::default()
-        .action(pfctl::FilterRuleAction::Drop)
+        .action(pfctl::FilterRuleAction::Drop(pfctl::DropAction::Drop))
         .from(pfctl::Ip::from(ipnetwork::IpNetwork::V4(private_net)))
         .build()
         .unwrap();
