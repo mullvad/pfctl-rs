@@ -191,7 +191,6 @@ impl Transaction {
     }
 }
 
-
 /// Structure that describes anchor rules manipulation allowing for targeted changes in anchors.
 /// The rules set to this structure will replace the active rules by transaction.
 /// Not setting either of rules will leave active rules untouched by transaction.

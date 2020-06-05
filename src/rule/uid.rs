@@ -19,7 +19,6 @@ pub enum Id {
     Range(u32, u32, IdRangeModifier),
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Uid(pub Id);
 
@@ -34,7 +33,6 @@ impl From<u32> for Uid {
         Uid(Id::One(uid, IdUnaryModifier::Equal))
     }
 }
-
 
 impl From<Id> for Uid {
     fn from(id: Id) -> Self {

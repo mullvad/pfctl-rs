@@ -13,10 +13,8 @@ use crate::{
     Result,
 };
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Gid(pub Id);
-
 
 impl Default for Gid {
     fn default() -> Self {

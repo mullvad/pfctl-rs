@@ -58,7 +58,6 @@ impl From<DropAction> for u32 {
     }
 }
 
-
 /// Enum describing what should happen to a packet that matches a redirect rule.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RedirectRuleAction {
