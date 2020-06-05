@@ -84,7 +84,6 @@ impl TryCopyTo<ffi::pfvar::pf_pool> for Port {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PortUnaryModifier {
     Equal,
@@ -107,7 +106,6 @@ impl From<PortUnaryModifier> for u8 {
         }
     }
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum PortRangeModifier {

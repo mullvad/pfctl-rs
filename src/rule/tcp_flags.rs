@@ -43,7 +43,6 @@ impl From<TcpFlag> for u8 {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
 pub struct TcpFlagSet(Vec<TcpFlag>);
 
@@ -52,7 +51,6 @@ impl<'a> From<&'a TcpFlagSet> for u8 {
         set.0.iter().fold(0, |acc, &x| (acc | u8::from(x)))
     }
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
 pub struct TcpFlags {
