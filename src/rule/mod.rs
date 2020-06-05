@@ -473,7 +473,7 @@ impl CopyTo<ffi::pfvar::in6_addr> for Ipv6Addr {
     fn copy_to(&self, in6_addr: &mut ffi::pfvar::in6_addr) {
         let segments = self.segments();
         let dst_segments = unsafe { in6_addr.__u6_addr.__u6_addr16.as_mut() };
-        for (dst_segment, segment) in dst_segments.iter_mut().zip(segments.into_iter()) {
+        for (dst_segment, segment) in dst_segments.iter_mut().zip(segments.iter()) {
             *dst_segment = segment.to_be();
         }
     }
