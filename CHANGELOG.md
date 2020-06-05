@@ -13,6 +13,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 * **Security**: in case of vulnerabilities.
 
 ## [unreleased]
+### Changed
+- Minimum Rust version is now 1.38.0
 
 
 ## [0.3.0] - 2019-09-13
