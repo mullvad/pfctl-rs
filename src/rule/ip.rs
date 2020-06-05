@@ -41,7 +41,6 @@ impl Ip {
     }
 }
 
-
 impl Default for Ip {
     fn default() -> Self {
         Ip::Any
