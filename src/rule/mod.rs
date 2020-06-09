@@ -53,6 +53,12 @@ pub use self::rule_action::*;
 mod rule_log;
 pub use self::rule_log::*;
 
+mod uid;
+pub use self::uid::*;
+
+mod gid;
+pub use self::gid::*;
+
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Builder)]
 #[builder(setter(into))]
@@ -83,6 +89,10 @@ pub struct FilterRule {
     tcp_flags: TcpFlags,
     #[builder(default)]
     label: String,
+    #[builder(default)]
+    user: Uid,
+    #[builder(default)]
+    group: Gid,
 }
 
 impl FilterRuleBuilder {
@@ -144,6 +154,8 @@ impl TryCopyTo<ffi::pfvar::pf_rule> for FilterRule {
         self.from.try_copy_to(&mut pf_rule.src)?;
         self.to.try_copy_to(&mut pf_rule.dst)?;
         self.label.try_copy_to(&mut pf_rule.label)?;
+        self.user.try_copy_to(&mut pf_rule.uid)?;
+        self.group.try_copy_to(&mut pf_rule.gid)?;
 
         Ok(())
     }
@@ -173,6 +185,10 @@ pub struct RedirectRule {
     to: Endpoint,
     #[builder(default)]
     label: String,
+    #[builder(default)]
+    user: Uid,
+    #[builder(default)]
+    group: Gid,
     redirect_to: Endpoint,
 }
 
@@ -213,6 +229,8 @@ impl TryCopyTo<ffi::pfvar::pf_rule> for RedirectRule {
         self.from.try_copy_to(&mut pf_rule.src)?;
         self.to.try_copy_to(&mut pf_rule.dst)?;
         self.label.try_copy_to(&mut pf_rule.label)?;
+        self.user.try_copy_to(&mut pf_rule.uid)?;
+        self.group.try_copy_to(&mut pf_rule.gid)?;
 
         Ok(())
     }
@@ -455,7 +473,7 @@ impl CopyTo<ffi::pfvar::in6_addr> for Ipv6Addr {
     fn copy_to(&self, in6_addr: &mut ffi::pfvar::in6_addr) {
         let segments = self.segments();
         let dst_segments = unsafe { in6_addr.__u6_addr.__u6_addr16.as_mut() };
-        for (dst_segment, segment) in dst_segments.iter_mut().zip(segments.into_iter()) {
+        for (dst_segment, segment) in dst_segments.iter_mut().zip(segments.iter()) {
             *dst_segment = segment.to_be();
         }
     }
