@@ -22,15 +22,9 @@ impl Default for Gid {
     }
 }
 
-impl From<u32> for Gid {
-    fn from(gid: u32) -> Self {
-        Gid(Id::One(gid, IdUnaryModifier::Equal))
-    }
-}
-
-impl From<Id> for Gid {
-    fn from(id: Id) -> Self {
-        Gid(id)
+impl<T: Into<Id>> From<T> for Gid {
+    fn from(id: T) -> Self {
+        Gid(id.into())
     }
 }
 

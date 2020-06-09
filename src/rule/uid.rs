@@ -19,6 +19,12 @@ pub enum Id {
     Range(u32, u32, IdRangeModifier),
 }
 
+impl From<u32> for Id {
+    fn from(uid: u32) -> Self {
+        Id::One(uid, IdUnaryModifier::Equal)
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Uid(pub Id);
 
@@ -28,15 +34,9 @@ impl Default for Uid {
     }
 }
 
-impl From<u32> for Uid {
-    fn from(uid: u32) -> Self {
-        Uid(Id::One(uid, IdUnaryModifier::Equal))
-    }
-}
-
-impl From<Id> for Uid {
-    fn from(id: Id) -> Self {
-        Uid(id)
+impl<T: Into<Id>> From<T> for Uid {
+    fn from(id: T) -> Self {
+        Uid(id.into())
     }
 }
 
