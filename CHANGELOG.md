@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [unreleased]
 ### Added
 - Add support for user and group IDs to rules.
+- Add option to reject packets instead of simply dropping them.
 
 ### Changed
 - Minimum Rust version is now 1.38.0
