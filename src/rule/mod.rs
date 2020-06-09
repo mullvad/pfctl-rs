@@ -59,7 +59,6 @@ pub use self::uid::*;
 mod gid;
 pub use self::gid::*;
 
-
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Builder)]
 #[builder(setter(into))]
 #[builder(build_fn(name = "build_internal"))]
@@ -161,7 +160,6 @@ impl TryCopyTo<ffi::pfvar::pf_rule> for FilterRule {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Builder)]
 #[builder(setter(into))]
 #[builder(build_fn(name = "build_internal"))]
@@ -236,7 +234,6 @@ impl TryCopyTo<ffi::pfvar::pf_rule> for RedirectRule {
     }
 }
 
-
 fn compatible_af(af1: AddrFamily, af2: AddrFamily) -> Result<AddrFamily> {
     match (af1, af2) {
         (af1, af2) if af1 == af2 => Ok(af1),
@@ -248,7 +245,6 @@ fn compatible_af(af1: AddrFamily, af2: AddrFamily) -> Result<AddrFamily> {
         }
     }
 }
-
 
 #[cfg(test)]
 mod filter_rule_tests {
@@ -442,7 +438,6 @@ mod filter_rule_tests {
             .is_err());
     }
 }
-
 
 // Implementations to convert types that are not ours into their FFI representation
 

@@ -118,7 +118,6 @@ mod errors {
 }
 pub use crate::errors::*;
 
-
 /// Returns the given input result, except if it is an `Err` matching the given `ErrorKind`,
 /// then it returns `Ok(())` instead, so the error is ignored.
 macro_rules! ignore_error_kind {
@@ -129,7 +128,6 @@ macro_rules! ignore_error_kind {
         }
     };
 }
-
 
 /// Module for types and traits dealing with translating between Rust and FFI.
 mod conversion {
@@ -146,14 +144,12 @@ mod conversion {
 }
 use crate::conversion::*;
 
-
 /// Internal function to safely compare Rust string with raw C string slice
 fn compare_cstr_safe(s: &str, cchars: &[std::os::raw::c_char]) -> Result<bool> {
     ensure!(cchars.iter().any(|&c| c == 0), "Not null terminated");
     let cs = unsafe { CStr::from_ptr(cchars.as_ptr()) };
     Ok(s.as_bytes() == cs.to_bytes())
 }
-
 
 /// Struct communicating with the PF firewall.
 pub struct PfCtl {
@@ -367,7 +363,6 @@ impl PfCtl {
     }
 }
 
-
 /// Creates pfioc_states and returns a tuple of pfioc_states and vector of pfsync_state with the
 /// given number of elements.
 /// Since pfioc_states uses raw memory pointer to Vec<pfsync_state>, make sure that
@@ -397,7 +392,6 @@ fn setup_pfioc_state_kill(
     pfioc_state_kill.psk_src.addr.v.a.addr = pfsync_state.lan.addr;
     pfioc_state_kill.psk_dst.addr.v.a.addr = pfsync_state.ext_lan.addr;
 }
-
 
 #[cfg(test)]
 mod tests {

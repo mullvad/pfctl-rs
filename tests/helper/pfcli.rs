@@ -98,7 +98,6 @@ pub fn get_all_states() -> Result<Vec<String>> {
     Ok(states)
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum FlushOptions {
     All,
