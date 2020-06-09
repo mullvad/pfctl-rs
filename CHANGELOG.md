@@ -13,12 +13,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 * **Security**: in case of vulnerabilities.
 
 ## [unreleased]
+
+
+## [0.4.0] - 2020-06-09
 ### Added
 - Add support for user and group IDs to rules.
 - Add option to reject packets instead of simply dropping them.
 
 ### Changed
 - Minimum Rust version is now 1.38.0
+- Upgrade publicly re-exported dependency `ipnetwork` to 0.16.0.
 
 
 ## [0.3.0] - 2019-09-13
