@@ -57,6 +57,8 @@
 //! [integration tests]: https://github.com/mullvad/pfctl-rs/tree/master/tests
 //! [examples]: https://github.com/mullvad/pfctl-rs/tree/master/examples
 
+#![deny(rust_2018_idioms)]
+
 #[macro_use]
 pub extern crate error_chain;
 
