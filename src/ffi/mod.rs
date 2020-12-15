@@ -6,7 +6,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use ioctl_sys::{io, ioc, ioctl, iorw};
+use ioctl_sys::ioctl;
 
 #[allow(non_camel_case_types)]
 #[allow(non_upper_case_globals)]
