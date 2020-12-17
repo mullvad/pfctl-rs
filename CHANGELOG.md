@@ -14,6 +14,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [unreleased]
 
+### Changed
+- Upgrade ioctl-sys to 0.6.0.
+- Minimum Rust version is now 1.40.0
 
 ## [0.4.0] - 2020-06-09
 ### Added
