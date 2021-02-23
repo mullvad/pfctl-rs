@@ -162,7 +162,7 @@ impl PfCtl {
     /// Returns a new `PfCtl` if opening the PF device file succeeded.
     pub fn new() -> Result<Self> {
         let file = utils::open_pf()?;
-        Ok(PfCtl { file: file })
+        Ok(PfCtl { file })
     }
 
     /// Tries to enable PF. If the firewall is already enabled it will return an
@@ -290,7 +290,7 @@ impl PfCtl {
     /// ErrorKind::AnchorDoesNotExist if anchor does not exist.
     pub fn clear_states(&mut self, anchor_name: &str, kind: AnchorKind) -> Result<u32> {
         let pfsync_states = self.get_states()?;
-        if pfsync_states.len() > 0 {
+        if !pfsync_states.is_empty() {
             self.with_anchor_rule(anchor_name, kind, |anchor_rule| {
                 pfsync_states
                     .iter()

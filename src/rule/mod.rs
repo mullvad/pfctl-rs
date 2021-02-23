@@ -12,10 +12,7 @@ use crate::{
 };
 use derive_builder::Builder;
 use ipnetwork::IpNetwork;
-use std::{
-    mem,
-    net::{IpAddr, Ipv4Addr, Ipv6Addr},
-};
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 mod addr_family;
 pub use self::addr_family::*;
@@ -478,7 +475,7 @@ impl<T: AsRef<str>> TryCopyTo<[i8]> for T {
     /// Safely copy a Rust string into a raw buffer. Returning an error if the string could not
     /// be copied to the buffer.
     fn try_copy_to(&self, dst: &mut [i8]) -> Result<()> {
-        let src_i8: &[i8] = unsafe { mem::transmute(self.as_ref().as_bytes()) };
+        let src_i8: &[i8] = unsafe { &*(self.as_ref().as_bytes() as *const _ as *const _) };
 
         ensure!(
             src_i8.len() < dst.len(),

@@ -105,7 +105,7 @@ impl PoolAddrList {
 
     fn create_palist(pool: &mut Vec<ffi::pfvar::pf_pooladdr>) -> ffi::pfvar::pf_palist {
         let mut list = unsafe { mem::zeroed::<ffi::pfvar::pf_palist>() };
-        if pool.len() > 0 {
+        if !pool.is_empty() {
             let mut first_elem = pool[0];
             let mut last_elem = pool[pool.len() - 1];
 
