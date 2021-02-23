@@ -14,7 +14,7 @@ use std::{
 };
 
 /// The path to the PF device file this library will use to communicate with PF.
-const PF_DEV_PATH: &'static str = "/dev/pf";
+const PF_DEV_PATH: &str = "/dev/pf";
 
 /// Open PF virtual device
 pub fn open_pf() -> Result<File> {
