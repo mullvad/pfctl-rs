@@ -17,7 +17,6 @@ script:
   - cargo build --verbose
   - sudo cargo test --verbose -- --test-threads=1
   - sudo chmod -R o+w target/
-  # Format only on nightly, since that is where rustfmt-nightly compiles
   - if [ "${TRAVIS_RUST_VERSION}" = "stable" ]; then
       rustup component add rustfmt;
       rustfmt --version;
