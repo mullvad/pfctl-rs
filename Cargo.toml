@@ -1,6 +1,6 @@
 [package]
 name = "pfctl"
-version = "0.4.0"
+version = "0.4.1"
 authors = ["Mullvad VPN"]
 license = "MIT/Apache-2.0"
 description = "Library for interfacing with the Packet Filter (PF) firewall on macOS"

@@ -14,9 +14,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [unreleased]
 
+
+## [0.4.1] - 2021-02-23
 ### Changed
 - Upgrade ioctl-sys to 0.6.0. This adds support for Apple Silicon (M1).
 - Minimum Rust version is now 1.42.0. A dependency use subslice pattern.
+
 
 ## [0.4.0] - 2020-06-09
 ### Added
