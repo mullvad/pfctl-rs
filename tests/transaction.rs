@@ -123,7 +123,7 @@ fn verify_redirect_marker(anchor: &str) {
     );
 }
 
-/// Test that replaces filter and redirect rules in single anchor
+// Test that replaces filter and redirect rules in single anchor
 test!(replace_many_rulesets_in_one_anchor {
     let mut pf = pfctl::PfCtl::new().unwrap();
 
@@ -137,16 +137,16 @@ test!(replace_many_rulesets_in_one_anchor {
     verify_redirect_rules(ANCHOR1_NAME);
 });
 
-/// Test that adds two different marker rules in two different anchors then runs transaction that
-/// replaces the remaining rulesets leaving rulesets with marker rules untouched. (See figure below)
-///
-///            filter      redirect
-/// anchor1:     N            Y
-/// anchor2:     Y            N
-///
-/// Legend:
-/// (Y) - rulesets replaced by transaction
-/// (N) - rulesets untouched by transaction
+// Test that adds two different marker rules in two different anchors then runs transaction that
+// replaces the remaining rulesets leaving rulesets with marker rules untouched. (See figure below)
+//
+//            filter      redirect
+// anchor1:     N            Y
+// anchor2:     Y            N
+//
+// Legend:
+// (Y) - rulesets replaced by transaction
+// (N) - rulesets untouched by transaction
 test!(replace_one_ruleset_in_many_anchors {
     let mut pf = pfctl::PfCtl::new().unwrap();
 
