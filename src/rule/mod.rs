@@ -23,6 +23,12 @@ pub use self::direction::*;
 mod endpoint;
 pub use self::endpoint::*;
 
+mod gid;
+pub use self::gid::*;
+
+mod icmp;
+pub use self::icmp::*;
+
 mod ip;
 pub use self::ip::*;
 
@@ -52,9 +58,6 @@ pub use self::rule_log::*;
 
 mod uid;
 pub use self::uid::*;
-
-mod gid;
-pub use self::gid::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Builder)]
 #[builder(setter(into))]
@@ -89,6 +92,8 @@ pub struct FilterRule {
     user: Uid,
     #[builder(default)]
     group: Gid,
+    #[builder(default)]
+    icmp_type: Option<IcmpType>,
 }
 
 impl FilterRuleBuilder {
@@ -152,6 +157,9 @@ impl TryCopyTo<ffi::pfvar::pf_rule> for FilterRule {
         self.label.try_copy_to(&mut pf_rule.label)?;
         self.user.try_copy_to(&mut pf_rule.uid)?;
         self.group.try_copy_to(&mut pf_rule.gid)?;
+        if let Some(icmp_type) = self.icmp_type {
+            icmp_type.copy_to(pf_rule);
+        }
 
         Ok(())
     }

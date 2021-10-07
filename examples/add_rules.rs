@@ -41,6 +41,13 @@ fn run() -> Result<()> {
         .interface("utun0")
         .build()
         .unwrap();
+    let pass_all_icmp_echo_req = FilterRuleBuilder::default()
+        .action(pfctl::FilterRuleAction::Pass)
+        .af(pfctl::AddrFamily::Ipv4)
+        .proto(pfctl::Proto::Icmp)
+        .icmp_type(pfctl::IcmpType::EchoReq)
+        .build()
+        .unwrap();
 
     // Block packets from the entire 10.0.0.0/8 private network.
     let private_net = ipnetwork::Ipv4Network::new(Ipv4Addr::new(10, 0, 0, 0), 8).unwrap();
@@ -71,6 +78,8 @@ fn run() -> Result<()> {
     pf.add_rule(ANCHOR_NAME, &pass_all_ipv6_on_utun0_rule)
         .chain_err(|| "Unable to add rule")?;
     pf.add_rule(ANCHOR_NAME, &block_a_private_net_rule)
+        .chain_err(|| "Unable to add rule")?;
+    pf.add_rule(ANCHOR_NAME, &pass_all_icmp_echo_req)
         .chain_err(|| "Unable to add rule")?;
     pf.add_redirect_rule(ANCHOR_NAME, &redirect_incoming_tcp_from_port_3000_to_4000)
         .chain_err(|| "Unable to add redirect rule")?;
