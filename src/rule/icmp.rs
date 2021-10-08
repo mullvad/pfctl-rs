@@ -67,12 +67,13 @@ impl IcmpType {
         }
     }
 
-    /// Returns the FFI representation of the code for this ICMP type
-    fn raw_code(&self) -> u8 {
+    /// Returns the FFI representation of the code for this ICMP type.
+    /// Returns `None` if this ICMP type does not use the code field.
+    fn raw_code(&self) -> Option<u8> {
         use IcmpType::*;
         match self {
-            Unreach(unreach_code) => *unreach_code as u8,
-            _ => 0,
+            Unreach(unreach_code) => Some(*unreach_code as u8),
+            _ => None,
         }
     }
 }
@@ -82,6 +83,9 @@ impl crate::conversion::CopyTo<crate::ffi::pfvar::pf_rule> for IcmpType {
         // The field should be set to one higher than the constants.
         // See OpenBSD implementation of the `pfctl` CLI tool for reference.
         pf_rule.type_ = self.raw_type() + 1;
-        pf_rule.code = self.raw_code() + 1;
+        pf_rule.code = match self.raw_code() {
+            Some(raw_code) => raw_code + 1,
+            None => 0,
+        };
     }
 }
