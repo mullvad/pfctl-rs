@@ -15,6 +15,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [unreleased]
 
 
+## [0.4.2] - 2021-10-08
+### Added
+- Add support for matching filter rules against ICMP type/code fields.
+
+
 ## [0.4.1] - 2021-02-23
 ### Changed
 - Upgrade ioctl-sys to 0.6.0. This adds support for Apple Silicon (M1).
