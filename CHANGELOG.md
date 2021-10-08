@@ -15,6 +15,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [unreleased]
 
 
+## [0.4.3] - 2021-10-08
+### Fixed
+- Fix bug in ICMP `code` field value. It was not possible to have rules *not*
+  checking the `code` field. It was always checked to be `0`.
+
+
 ## [0.4.2] - 2021-10-08
 ### Added
 - Add support for matching filter rules against ICMP type/code fields.
