@@ -13,6 +13,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 * **Security**: in case of vulnerabilities.
 
 ## [unreleased]
+### Added
+- Add `Icmp6Code::Redir` variant.
 
 
 ## [0.4.3] - 2021-10-08

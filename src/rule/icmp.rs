@@ -52,6 +52,8 @@ pub enum Icmp6Type {
     NeighbrSol = 135,
     /// Neighbor advertisement.
     NeighbrAdv = 136,
+    /// Shorter route exists
+    Redir = 137,
 }
 
 impl IcmpType {
