@@ -13,6 +13,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 * **Security**: in case of vulnerabilities.
 
 ## [unreleased]
+
+
+## [0.4.4] - 2021-10-08
 ### Added
 - Add `Icmp6Code::Redir` variant.
 
