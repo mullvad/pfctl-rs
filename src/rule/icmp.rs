@@ -16,6 +16,8 @@ pub enum IcmpType {
     Unreach(IcmpUnreachCode),
     /// Echo request.
     EchoReq,
+    /// Time Exceeded
+    TimeExceeded,
     /// Traceroute.
     Trace,
     /// ICMPv6
@@ -64,6 +66,7 @@ impl IcmpType {
             EchoRep => 0,
             Unreach(_) => 3,
             EchoReq => 8,
+            TimeExceeded => 11,
             Trace => 30,
             Icmp6(icmp6_type) => *icmp6_type as u8,
         }
