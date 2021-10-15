@@ -17,7 +17,7 @@ pub enum IcmpType {
     /// Echo request.
     EchoReq,
     /// Time Exceeded
-    TimeExceeded,
+    Timex(IcmpTimexCode),
     /// Traceroute.
     Trace,
     /// ICMPv6
@@ -39,6 +39,17 @@ pub enum IcmpUnreachCode {
     PortUnreach = 3,
     /// Fragmentation needed but DF bit set.
     NeedFrag = 4,
+}
+
+/// ICMP Code fields for time exceeded ICMP packets ([`IcmpType::Timex`])
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+#[repr(u8)]
+pub enum IcmpTimexCode {
+    /// Time exceeded in transit
+    Transit = 0,
+    /// Time exceeded in reassembly
+    Reassembly = 1,
 }
 
 /// Values for the `type` field in ICMPv6 packets.
@@ -66,7 +77,7 @@ impl IcmpType {
             EchoRep => 0,
             Unreach(_) => 3,
             EchoReq => 8,
-            TimeExceeded => 11,
+            Timex(_) => 11,
             Trace => 30,
             Icmp6(icmp6_type) => *icmp6_type as u8,
         }
