@@ -57,6 +57,20 @@ fn run() -> Result<()> {
         ))
         .build()
         .unwrap();
+    let pass_all_icmp_timex_transit = FilterRuleBuilder::default()
+        .action(pfctl::FilterRuleAction::Pass)
+        .af(pfctl::AddrFamily::Ipv4)
+        .proto(pfctl::Proto::Icmp)
+        .icmp_type(pfctl::IcmpType::Timex(pfctl::IcmpTimexCode::Transit))
+        .build()
+        .unwrap();
+    let pass_all_icmp_timex_reassembly = FilterRuleBuilder::default()
+        .action(pfctl::FilterRuleAction::Pass)
+        .af(pfctl::AddrFamily::Ipv4)
+        .proto(pfctl::Proto::Icmp)
+        .icmp_type(pfctl::IcmpType::Timex(pfctl::IcmpTimexCode::Reassembly))
+        .build()
+        .unwrap();
 
     // Block packets from the entire 10.0.0.0/8 private network.
     let private_net = ipnetwork::Ipv4Network::new(Ipv4Addr::new(10, 0, 0, 0), 8).unwrap();
@@ -91,6 +105,10 @@ fn run() -> Result<()> {
     pf.add_rule(ANCHOR_NAME, &pass_all_icmp_echo_req)
         .chain_err(|| "Unable to add rule")?;
     pf.add_rule(ANCHOR_NAME, &pass_all_icmp_port_unreach)
+        .chain_err(|| "Unable to add rule")?;
+    pf.add_rule(ANCHOR_NAME, &pass_all_icmp_timex_transit)
+        .chain_err(|| "Unable to add rule")?;
+    pf.add_rule(ANCHOR_NAME, &pass_all_icmp_timex_reassembly)
         .chain_err(|| "Unable to add rule")?;
     pf.add_redirect_rule(ANCHOR_NAME, &redirect_incoming_tcp_from_port_3000_to_4000)
         .chain_err(|| "Unable to add redirect rule")?;
