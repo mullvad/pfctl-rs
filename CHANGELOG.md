@@ -14,6 +14,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [unreleased]
 
+## [0.4.5] - 2022-12-28
+- Add support for Timex ICMP rules.
 
 ## [0.4.4] - 2021-10-08
 ### Added
