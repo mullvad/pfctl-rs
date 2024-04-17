@@ -311,6 +311,15 @@ impl PfCtl {
         }
     }
 
+    /// Clear states belonging to a given interface
+    pub fn clear_interface_states(&mut self, interface: Interface) -> Result<()> {
+        let mut pfioc_state_kill = unsafe { mem::zeroed::<ffi::pfvar::pfioc_state_kill>() };
+        interface
+            .try_copy_to(&mut pfioc_state_kill.psk_ifname)
+            .chain_err(|| ErrorKind::InvalidArgument("Incompatible interface name"))?;
+        ioctl_guard!(ffi::pf_clear_states(self.fd(), &mut pfioc_state_kill))
+    }
+
     /// Get all states created by stateful rules
     fn get_states(&mut self) -> Result<Vec<ffi::pfvar::pfsync_state>> {
         let num_states = self.get_num_states()?;

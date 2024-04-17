@@ -41,6 +41,8 @@ ioctl!(readwrite pf_add_rule with b'D', 4; pfvar::pfioc_rule);
 ioctl!(readwrite pf_get_rules with b'D', 6; pfvar::pfioc_rule);
 // DIOCGETRULE
 ioctl!(readwrite pf_get_rule with b'D', 7; pfvar::pfioc_rule);
+// DIOCCLRSTATES
+ioctl!(readwrite pf_clear_states with b'D', 18; pfvar::pfioc_state_kill);
 // DIOCGETSTATUS
 ioctl!(readwrite pf_get_status with b'D', 21; pfvar::pf_status);
 // DIOCGETSTATES
