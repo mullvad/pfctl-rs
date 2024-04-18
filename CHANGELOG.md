@@ -13,6 +13,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 * **Security**: in case of vulnerabilities.
 
 ## [unreleased]
+
+## [0.4.6] - 2024-04-18
 ### Added
 - Add function for clearing states related to an interface.
 
