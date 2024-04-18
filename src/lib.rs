@@ -312,6 +312,7 @@ impl PfCtl {
     }
 
     /// Clear states belonging to a given interface
+    /// Returns total number of removed states upon success
     pub fn clear_interface_states(&mut self, interface: Interface) -> Result<u32> {
         let mut pfioc_state_kill = unsafe { mem::zeroed::<ffi::pfvar::pfioc_state_kill>() };
         interface
