@@ -13,6 +13,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 * **Security**: in case of vulnerabilities.
 
 ## [unreleased]
+### Added
+- Add function for clearing states related to an interface.
 
 ## [0.4.5] - 2022-12-28
 - Add support for Timex ICMP rules.
