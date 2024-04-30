@@ -13,16 +13,16 @@ edition = "2018"
 [badges]
 travis-ci = { repository = "mullvad/pfctl-rs" }
 
-
 [dependencies]
-errno = "0.2"
-error-chain = "0.12"
-ioctl-sys = "0.6.0"
+derive_builder = "0.20"
+errno = "0.3"
+ioctl-sys = "0.8"
+ipnetwork = "0.20"
 libc = "0.2.29"
-derive_builder = "0.9"
-ipnetwork = "0.16"
+thiserror = "1"
 
 [dev-dependencies]
 assert_matches = "1.1.0"
-uuid = { version = "0.8", features = ["v4"] }
+error-chain = "0.12"
 scopeguard = "1.0"
+uuid = { version = "1", features = ["v4"] }

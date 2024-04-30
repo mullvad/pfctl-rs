@@ -12,7 +12,7 @@ use uuid::Uuid;
 fn unique_anchor() -> String {
     format!(
         "pfctl-rs.integration.testing.{}",
-        Uuid::new_v4().to_simple().to_string()
+        Uuid::new_v4().simple().to_string()
     )
 }
 
@@ -30,7 +30,7 @@ test!(add_filter_anchor {
 
     assert_matches!(
         pf.add_anchor(&anchor_name, pfctl::AnchorKind::Filter),
-        Err(pfctl::Error(pfctl::ErrorKind::StateAlreadyActive, _))
+        Err(pfctl::Error { source: pfctl::ErrorSource::StateAlreadyActive(_), .. })
     );
     assert_matches!(pf.try_add_anchor(&anchor_name, pfctl::AnchorKind::Filter), Ok(()));
 });
@@ -47,7 +47,7 @@ test!(remove_filter_anchor {
 
     assert_matches!(
         pf.remove_anchor(&anchor_name, pfctl::AnchorKind::Filter),
-        Err(pfctl::Error(pfctl::ErrorKind::AnchorDoesNotExist, _))
+        Err(pfctl::Error { source: pfctl::ErrorSource::AnchorDoesNotExist, .. })
     );
     assert_matches!(pf.try_remove_anchor(&anchor_name, pfctl::AnchorKind::Filter), Ok(()));
 });

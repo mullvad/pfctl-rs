@@ -6,7 +6,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use crate::{conversion::TryCopyTo, ffi, ErrorKind, Result};
+use crate::{conversion::TryCopyTo, ffi, ErrorSource, Result};
 
 // Port range representation
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -43,10 +43,9 @@ impl TryCopyTo<ffi::pfvar::pf_port_range> for Port {
                 pf_port_range.port[1] = 0;
             }
             Port::Range(start_port, end_port, modifier) => {
-                ensure!(
-                    start_port <= end_port,
-                    ErrorKind::InvalidArgument("Lower port is greater than upper port.")
-                );
+                if start_port > end_port {
+                    return Err(ErrorSource::LowerIsGreaterPort.into());
+                }
                 pf_port_range.op = modifier.into();
                 // convert port range to network byte order
                 pf_port_range.port[0] = start_port.to_be();
@@ -71,10 +70,9 @@ impl TryCopyTo<ffi::pfvar::pf_pool> for Port {
                 pf_pool.proxy_port[1] = 0;
             }
             Port::Range(start_port, end_port, modifier) => {
-                ensure!(
-                    start_port <= end_port,
-                    ErrorKind::InvalidArgument("Lower port is greater than upper port.")
-                );
+                if start_port > end_port {
+                    return Err(ErrorSource::LowerIsGreaterPort.into());
+                }
                 pf_pool.port_op = modifier.into();
                 pf_pool.proxy_port[0] = start_port;
                 pf_pool.proxy_port[1] = end_port;
