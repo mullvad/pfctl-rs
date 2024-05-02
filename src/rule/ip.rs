@@ -10,7 +10,7 @@ use crate::{
     conversion::CopyTo,
     ffi,
     pooladdr::{PoolAddr, PoolAddrList},
-    AddrFamily, Result,
+    AddrFamily, TryCopyToResult,
 };
 use ipnetwork::{IpNetwork, Ipv4Network, Ipv6Network};
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
@@ -36,7 +36,7 @@ impl Ip {
     }
 
     /// Returns PoolAddrList initialized with receiver
-    pub fn to_pool_addr_list(&self) -> Result<PoolAddrList> {
+    pub fn to_pool_addr_list(&self) -> TryCopyToResult<PoolAddrList> {
         PoolAddrList::new(&[PoolAddr::from(*self)])
     }
 }

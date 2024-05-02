@@ -6,7 +6,10 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use crate::{conversion::TryCopyTo, ffi, AnchorKind, ErrorKind, PoolAddr, Result, ResultExt};
+use crate::{
+    conversion::TryCopyTo, ffi, AnchorKind, Error, PoolAddr, Result, TryCopyToErrorKind,
+    TryCopyToErrorWithKind,
+};
 use std::{
     fs::{File, OpenOptions},
     mem,
@@ -22,7 +25,7 @@ pub fn open_pf() -> Result<File> {
         .read(true)
         .write(true)
         .open(PF_DEV_PATH)
-        .chain_err(|| ErrorKind::DeviceOpenError(PF_DEV_PATH))
+        .map_err(|e| Error::DeviceOpen(PF_DEV_PATH, e))
 }
 
 /// Add pool address using the pool ticket previously obtained via `get_pool_ticket()`
@@ -50,7 +53,7 @@ pub fn get_ticket(fd: RawFd, anchor: &str, kind: AnchorKind) -> Result<u32> {
     pfioc_rule.rule.action = kind.into();
     anchor
         .try_copy_to(&mut pfioc_rule.anchor[..])
-        .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
+        .map_err(|e| TryCopyToErrorWithKind::new(TryCopyToErrorKind::InvalidAnchorName, e))?;
     ioctl_guard!(ffi::pf_change_rule(fd, &mut pfioc_rule))?;
     Ok(pfioc_rule.ticket)
 }

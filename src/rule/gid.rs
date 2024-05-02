@@ -6,7 +6,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-pub use super::uid::{Id, IdUnaryModifier};
+pub use super::uid::Id;
 use crate::{
     conversion::TryCopyTo,
     ffi::pfvar::{pf_rule_gid, PF_OP_NONE},
@@ -29,7 +29,9 @@ impl<T: Into<Id>> From<T> for Gid {
 }
 
 impl TryCopyTo<pf_rule_gid> for Gid {
-    fn try_copy_to(&self, pf_rule_gid: &mut pf_rule_gid) -> Result<()> {
+    type Result = Result<()>;
+
+    fn try_copy_to(&self, pf_rule_gid: &mut pf_rule_gid) -> Self::Result {
         match self.0 {
             Id::Any => {
                 pf_rule_gid.gid[0] = 0;

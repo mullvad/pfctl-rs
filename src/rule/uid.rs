@@ -9,7 +9,7 @@
 use crate::{
     conversion::TryCopyTo,
     ffi::pfvar::{self, pf_rule_uid},
-    Result,
+    TryCopyToResult,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -41,7 +41,9 @@ impl<T: Into<Id>> From<T> for Uid {
 }
 
 impl TryCopyTo<pf_rule_uid> for Uid {
-    fn try_copy_to(&self, pf_rule_uid: &mut pf_rule_uid) -> Result<()> {
+    type Result = TryCopyToResult<()>;
+
+    fn try_copy_to(&self, pf_rule_uid: &mut pf_rule_uid) -> Self::Result {
         match self.0 {
             Id::Any => {
                 pf_rule_uid.uid[0] = 0;
