@@ -8,7 +8,7 @@
 
 use crate::{
     conversion::{CopyTo, TryCopyTo},
-    ffi, ErrorKind, Result, ResultExt,
+    ffi, Error, ErrorInfo, ErrorSource, Result,
 };
 use derive_builder::Builder;
 use ipnetwork::IpNetwork;
@@ -99,7 +99,7 @@ pub struct FilterRule {
 impl FilterRuleBuilder {
     pub fn build(&self) -> Result<FilterRule> {
         self.build_internal()
-            .map_err(|e| ErrorKind::InvalidRuleCombination(e).into())
+            .map_err(|e| ErrorSource::InvalidRuleCombination(e).into())
     }
 }
 
@@ -128,7 +128,7 @@ impl FilterRule {
                     "StatePolicy {:?} and protocol {:?} are incompatible",
                     state_policy, proto
                 );
-                bail!(ErrorKind::InvalidRuleCombination(msg));
+                Err(ErrorSource::InvalidRuleCombination(msg).into())
             }
         }
     }
@@ -148,7 +148,7 @@ impl TryCopyTo<ffi::pfvar::pf_rule> for FilterRule {
 
         self.interface
             .try_copy_to(&mut pf_rule.ifname)
-            .chain_err(|| ErrorKind::InvalidArgument("Incompatible interface name"))?;
+            .map_err(|e| Error::new(ErrorInfo::IncompatibleInterfaceName, e))?;
         pf_rule.proto = self.proto.into();
         pf_rule.af = self.get_af()?.into();
 
@@ -198,7 +198,7 @@ pub struct RedirectRule {
 impl RedirectRuleBuilder {
     pub fn build(&self) -> Result<RedirectRule> {
         self.build_internal()
-            .map_err(|e| ErrorKind::InvalidRuleCombination(e).into())
+            .map_err(|e| ErrorSource::InvalidRuleCombination(e).into())
     }
 }
 
@@ -225,7 +225,7 @@ impl TryCopyTo<ffi::pfvar::pf_rule> for RedirectRule {
         pf_rule.log = (&self.log).into();
         self.interface
             .try_copy_to(&mut pf_rule.ifname)
-            .chain_err(|| ErrorKind::InvalidArgument("Incompatible interface name"))?;
+            .map_err(|e| Error::new(ErrorInfo::IncompatibleInterfaceName, e))?;
         pf_rule.proto = self.proto.into();
         pf_rule.af = self.get_af()?.into();
 
@@ -246,7 +246,7 @@ fn compatible_af(af1: AddrFamily, af2: AddrFamily) -> Result<AddrFamily> {
         (AddrFamily::Any, af) => Ok(af),
         (af1, af2) => {
             let msg = format!("AddrFamily {} and {} are incompatible", af1, af2);
-            bail!(ErrorKind::InvalidRuleCombination(msg));
+            Err(ErrorSource::InvalidRuleCombination(msg).into())
         }
     }
 }
@@ -485,14 +485,12 @@ impl<T: AsRef<str>> TryCopyTo<[i8]> for T {
     fn try_copy_to(&self, dst: &mut [i8]) -> Result<()> {
         let src_i8: &[i8] = unsafe { &*(self.as_ref().as_bytes() as *const _ as *const _) };
 
-        ensure!(
-            src_i8.len() < dst.len(),
-            ErrorKind::InvalidArgument("String does not fit destination")
-        );
-        ensure!(
-            !src_i8.contains(&0),
-            ErrorKind::InvalidArgument("String has null byte")
-        );
+        if src_i8.len() >= dst.len() {
+            return Err(ErrorSource::StrCopyNotFits.into());
+        }
+        if src_i8.contains(&0) {
+            return Err(ErrorSource::StrCopyNullByte.into());
+        }
 
         dst[..src_i8.len()].copy_from_slice(src_i8);
         // Terminate ffi string with null byte

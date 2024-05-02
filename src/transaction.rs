@@ -7,8 +7,8 @@
 // except according to those terms.
 
 use crate::{
-    conversion::TryCopyTo, ffi, utils, ErrorKind, FilterRule, PoolAddrList, RedirectRule, Result,
-    ResultExt, RulesetKind,
+    conversion::TryCopyTo, ffi, utils, Error, ErrorInfo, FilterRule, PoolAddrList, RedirectRule,
+    Result, RulesetKind,
 };
 use std::{
     collections::HashMap,
@@ -112,7 +112,7 @@ impl Transaction {
         pfioc_rule.action = ffi::pfvar::PF_CHANGE_NONE as u32;
         anchor
             .try_copy_to(&mut pfioc_rule.anchor[..])
-            .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
+            .map_err(|e| Error::new(ErrorInfo::InvalidAnchorName, e))?;
         rule.try_copy_to(&mut pfioc_rule.rule)?;
 
         // request new address pool
@@ -124,7 +124,7 @@ impl Transaction {
             // register pool address with firewall
             utils::add_pool_address(fd, pool_addr.clone(), pool_ticket)?;
             let pool_addr_list = PoolAddrList::new(&[pool_addr.clone()])
-                .chain_err(|| ErrorKind::InvalidArgument("Invalid route target"))?;
+                .map_err(|e| Error::new(ErrorInfo::InvalidRouteTarget, e))?;
 
             pfioc_rule.rule.rpool.list = unsafe { pool_addr_list.to_palist() };
             Some(pool_addr_list)
@@ -146,7 +146,7 @@ impl Transaction {
         let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
         anchor
             .try_copy_to(&mut pfioc_rule.anchor[..])
-            .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
+            .map_err(|e| Error::new(ErrorInfo::InvalidAnchorName, e))?;
         rule.try_copy_to(&mut pfioc_rule.rule)?;
 
         // register redirect address in newly created address pool
@@ -186,7 +186,7 @@ impl Transaction {
         pfioc_trans_e.rs_num = ruleset_kind.into();
         anchor
             .try_copy_to(&mut pfioc_trans_e.anchor[..])
-            .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
+            .map_err(|e| Error::new(ErrorInfo::InvalidAnchorName, e))?;
         Ok(pfioc_trans_e)
     }
 }

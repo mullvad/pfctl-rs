@@ -10,7 +10,7 @@ use crate::{
     conversion::{CopyTo, TryCopyTo},
     ffi, Interface, Ip, Result,
 };
-use std::{mem, ptr, vec::Vec};
+use std::{mem, ptr};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct PoolAddr {

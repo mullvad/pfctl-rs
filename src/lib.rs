@@ -59,15 +59,14 @@
 
 #![deny(rust_2018_idioms)]
 
-#[macro_use]
-pub extern crate error_chain;
-
 use std::{
     ffi::CStr,
+    fmt::Display,
     fs::File,
     mem,
     os::unix::io::{AsRawFd, RawFd},
 };
+use thiserror::Error;
 
 pub use ipnetwork;
 
@@ -92,40 +91,89 @@ pub use crate::ruleset::*;
 mod transaction;
 pub use crate::transaction::*;
 
-mod errors {
-    error_chain! {
-        errors {
-            DeviceOpenError(s: &'static str) {
-                description("Unable to open PF device file")
-                display("Unable to open PF device file at '{}'", s)
-            }
-            InvalidArgument(s: &'static str) {
-                display("Invalid argument: {}", s)
-            }
-            StateAlreadyActive {
-                description("Target state is already active")
-            }
-            InvalidRuleCombination(s: String) {
-                description("Rule contains incompatible values")
-                display("Incompatible values in rule: {}", s)
-            }
-            AnchorDoesNotExist {
-                display("Anchor does not exist")
-            }
-        }
-        foreign_links {
-            IoctlError(::std::io::Error);
+#[derive(Error, Debug)]
+#[non_exhaustive]
+pub enum ErrorSource {
+    #[error("Unable to open PF device file at {}", _0)]
+    DeviceOpen(&'static str, #[source] ::std::io::Error),
+
+    #[error("Lower port is greater than upper port.")]
+    LowerIsGreaterPort,
+
+    #[error("String does not fit destination")]
+    StrCopyNotFits,
+
+    #[error("String has null byte")]
+    StrCopyNullByte,
+
+    #[error("Target state is already active")]
+    StateAlreadyActive(#[source] ::std::io::Error),
+
+    #[error("Incompatible values in rule: {}", _0)]
+    InvalidRuleCombination(String),
+
+    #[error("Anchor does not exist")]
+    AnchorDoesNotExist,
+
+    #[error("Cstr not null terminated")]
+    CstrNotTerminated,
+
+    #[error("Ioctl Error")]
+    Ioctl(#[from] ::std::io::Error),
+}
+
+#[derive(Error, Debug)]
+pub struct Error {
+    pub info: Option<ErrorInfo>,
+    #[source]
+    pub source: ErrorSource,
+}
+
+impl Error {
+    fn new(info: ErrorInfo, err: Error) -> Self {
+        Self {
+            info: Some(info),
+            source: err.source,
         }
     }
 }
-pub use crate::errors::*;
 
-/// Returns the given input result, except if it is an `Err` matching the given `ErrorKind`,
+impl Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if let Some(info) = self.info.as_ref() {
+            info.fmt(f)?;
+        }
+        Ok(())
+    }
+}
+
+impl From<ErrorSource> for Error {
+    fn from(source: ErrorSource) -> Self {
+        Self { info: None, source }
+    }
+}
+
+#[derive(Error, Debug)]
+#[non_exhaustive]
+pub enum ErrorInfo {
+    #[error("Invalid anchor name")]
+    InvalidAnchorName,
+
+    #[error("Incompatible interface name")]
+    IncompatibleInterfaceName,
+
+    #[error("Invalid route target")]
+    InvalidRouteTarget,
+}
+
+pub type Result<T> = ::std::result::Result<T, Error>;
+
+/// Returns the given input result, except if it is an `Err` matching the given `Error`,
 /// then it returns `Ok(())` instead, so the error is ignored.
 macro_rules! ignore_error_kind {
     ($result:expr, $kind:pat) => {
         match $result {
-            Err($crate::Error($kind, _)) => Ok(()),
+            Err($crate::Error { source: $kind, .. }) => Ok(()),
             result => result,
         }
     };
@@ -148,7 +196,9 @@ use crate::conversion::*;
 
 /// Internal function to safely compare Rust string with raw C string slice
 fn compare_cstr_safe(s: &str, cchars: &[std::os::raw::c_char]) -> Result<bool> {
-    ensure!(cchars.iter().any(|&c| c == 0), "Not null terminated");
+    if !(cchars.iter().any(|&c| c == 0)) {
+        return Err(ErrorSource::CstrNotTerminated.into());
+    }
     let cs = unsafe { CStr::from_ptr(cchars.as_ptr()) };
     Ok(s.as_bytes() == cs.to_bytes())
 }
@@ -174,7 +224,7 @@ impl PfCtl {
     /// Same as `enable`, but `StateAlreadyActive` errors are supressed and exchanged for
     /// `Ok(())`.
     pub fn try_enable(&mut self) -> Result<()> {
-        ignore_error_kind!(self.enable(), ErrorKind::StateAlreadyActive)
+        ignore_error_kind!(self.enable(), crate::ErrorSource::StateAlreadyActive(_))
     }
 
     /// Tries to disable PF. If the firewall is already disabled it will return an
@@ -186,7 +236,7 @@ impl PfCtl {
     /// Same as `disable`, but `StateAlreadyActive` errors are supressed and exchanged for
     /// `Ok(())`.
     pub fn try_disable(&mut self) -> Result<()> {
-        ignore_error_kind!(self.disable(), ErrorKind::StateAlreadyActive)
+        ignore_error_kind!(self.disable(), crate::ErrorSource::StateAlreadyActive(_))
     }
 
     /// Tries to determine if PF is enabled or not.
@@ -201,7 +251,7 @@ impl PfCtl {
 
         pfioc_rule.rule.action = kind.into();
         name.try_copy_to(&mut pfioc_rule.anchor_call[..])
-            .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
+            .map_err(|e| Error::new(ErrorInfo::InvalidAnchorName, e))?;
 
         ioctl_guard!(ffi::pf_insert_rule(self.fd(), &mut pfioc_rule))?;
         Ok(())
@@ -210,7 +260,10 @@ impl PfCtl {
     /// Same as `add_anchor`, but `StateAlreadyActive` errors are supressed and exchanged for
     /// `Ok(())`.
     pub fn try_add_anchor(&mut self, name: &str, kind: AnchorKind) -> Result<()> {
-        ignore_error_kind!(self.add_anchor(name, kind), ErrorKind::StateAlreadyActive)
+        ignore_error_kind!(
+            self.add_anchor(name, kind),
+            crate::ErrorSource::StateAlreadyActive(_)
+        )
     }
 
     pub fn remove_anchor(&mut self, name: &str, kind: AnchorKind) -> Result<()> {
@@ -224,7 +277,7 @@ impl PfCtl {
     pub fn try_remove_anchor(&mut self, name: &str, kind: AnchorKind) -> Result<()> {
         ignore_error_kind!(
             self.remove_anchor(name, kind),
-            ErrorKind::AnchorDoesNotExist
+            crate::ErrorSource::AnchorDoesNotExist
         )
     }
 
@@ -236,7 +289,7 @@ impl PfCtl {
         pfioc_rule.ticket = utils::get_ticket(self.fd(), &anchor, AnchorKind::Filter)?;
         anchor
             .try_copy_to(&mut pfioc_rule.anchor[..])
-            .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
+            .map_err(|e| Error::new(ErrorInfo::InvalidAnchorName, e))?;
         rule.try_copy_to(&mut pfioc_rule.rule)?;
 
         pfioc_rule.action = ffi::pfvar::PF_CHANGE_ADD_TAIL as u32;
@@ -287,7 +340,7 @@ impl PfCtl {
 
     /// Clear states created by rules in anchor.
     /// Returns total number of removed states upon success, otherwise
-    /// ErrorKind::AnchorDoesNotExist if anchor does not exist.
+    /// Error::AnchorDoesNotExist if anchor does not exist.
     pub fn clear_states(&mut self, anchor_name: &str, kind: AnchorKind) -> Result<u32> {
         let pfsync_states = self.get_states()?;
         if !pfsync_states.is_empty() {
@@ -317,7 +370,7 @@ impl PfCtl {
         let mut pfioc_state_kill = unsafe { mem::zeroed::<ffi::pfvar::pfioc_state_kill>() };
         interface
             .try_copy_to(&mut pfioc_state_kill.psk_ifname)
-            .chain_err(|| ErrorKind::InvalidArgument("Incompatible interface name"))?;
+            .map_err(|e| Error::new(ErrorInfo::IncompatibleInterfaceName, e))?;
         ioctl_guard!(ffi::pf_clear_states(self.fd(), &mut pfioc_state_kill))?;
         // psk_af holds the number of killed states
         Ok(pfioc_state_kill.psk_af as u32)
@@ -342,7 +395,7 @@ impl PfCtl {
     /// The return value from closure is transparently passed to the caller.
     ///
     /// - Returns Result<R> from call to closure on match.
-    /// - Returns `ErrorKind::AnchorDoesNotExist` on mismatch, the closure is not called in that
+    /// - Returns `Error::AnchorDoesNotExist` on mismatch, the closure is not called in that
     /// case.
     fn with_anchor_rule<F, R>(&self, name: &str, kind: AnchorKind, f: F) -> Result<R>
     where
@@ -359,7 +412,7 @@ impl PfCtl {
                 return f(pfioc_rule);
             }
         }
-        bail!(ErrorKind::AnchorDoesNotExist);
+        Err(ErrorSource::AnchorDoesNotExist.into())
     }
 
     /// Returns global number of states created by all stateful rules (see keep_state)
@@ -419,7 +472,10 @@ mod tests {
         let cchars: &[i8] = unsafe { mem::transmute(cstr.as_bytes()) };
         assert_matches!(
             compare_cstr_safe("Hello", cchars),
-            Err(ref e) if e.description() == "Not null terminated"
+            Err(Error {
+                source: ErrorSource::CstrNotTerminated,
+                ..
+            })
         );
     }
 
