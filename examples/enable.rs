@@ -21,7 +21,7 @@ fn run() -> Result<()> {
     // Try to enable the firewall. Equivalent to the CLI command "pfctl -e".
     match pf.enable() {
         Ok(_) => println!("Enabled PF"),
-        Err(pfctl::Error(pfctl::ErrorKind::StateAlreadyActive, _)) => (),
+        Err(pfctl::Error::StateAlreadyActive(_)) => (),
         err => err.chain_err(|| "Unable to enable PF")?,
     }
     Ok(())

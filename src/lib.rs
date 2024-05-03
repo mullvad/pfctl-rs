@@ -59,15 +59,14 @@
 
 #![deny(rust_2018_idioms)]
 
-#[macro_use]
-pub extern crate error_chain;
-
 use std::{
     ffi::CStr,
+    fmt::{Debug, Display},
     fs::File,
     mem,
     os::unix::io::{AsRawFd, RawFd},
 };
+use thiserror::Error;
 
 pub use ipnetwork;
 
@@ -92,40 +91,117 @@ pub use crate::ruleset::*;
 mod transaction;
 pub use crate::transaction::*;
 
-mod errors {
-    error_chain! {
-        errors {
-            DeviceOpenError(s: &'static str) {
-                description("Unable to open PF device file")
-                display("Unable to open PF device file at '{}'", s)
+#[derive(Error, Debug)]
+#[non_exhaustive]
+pub enum Error {
+    #[error("Unable to open PF device file at {}", _0)]
+    DeviceOpen(&'static str, #[source] ::std::io::Error),
+
+    #[error("Target state is already active")]
+    StateAlreadyActive(#[source] ::std::io::Error),
+
+    #[error("Incompatible values in rule: {}", _0)]
+    InvalidRuleCombination(String),
+
+    #[error("Anchor does not exist")]
+    AnchorDoesNotExist,
+
+    #[error("Cstr not null terminated")]
+    CstrNotTerminated,
+
+    #[error("TryCopyTo conversion failed")]
+    Conversion(#[from] TryCopyToErrorWithKind),
+
+    #[error("Ioctl Error")]
+    Ioctl(#[from] ::std::io::Error),
+}
+
+#[derive(Error, Debug)]
+#[non_exhaustive]
+pub enum TryCopyToError {
+    #[error("Lower port is greater than upper port.")]
+    InvalidPortRange,
+
+    #[error("Insufficient string buffer length")]
+    InsufficientStringBufferLength,
+
+    #[error("String should not contain null byte")]
+    StringContainsNullByte,
+}
+
+#[derive(Debug)]
+#[non_exhaustive]
+pub enum TryCopyToErrorKind {
+    InvalidAnchorName,
+    IncompatibleInterfaceName,
+    InvalidRouteTarget,
+}
+
+impl Display for TryCopyToErrorKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            TryCopyToErrorKind::InvalidAnchorName => write!(f, "Invalid anchor name"),
+            TryCopyToErrorKind::IncompatibleInterfaceName => {
+                write!(f, "Incompatible interface name")
             }
-            InvalidArgument(s: &'static str) {
-                display("Invalid argument: {}", s)
-            }
-            StateAlreadyActive {
-                description("Target state is already active")
-            }
-            InvalidRuleCombination(s: String) {
-                description("Rule contains incompatible values")
-                display("Incompatible values in rule: {}", s)
-            }
-            AnchorDoesNotExist {
-                display("Anchor does not exist")
-            }
-        }
-        foreign_links {
-            IoctlError(::std::io::Error);
+            TryCopyToErrorKind::InvalidRouteTarget => write!(f, "Invalid route target"),
         }
     }
 }
-pub use crate::errors::*;
 
-/// Returns the given input result, except if it is an `Err` matching the given `ErrorKind`,
+#[derive(Debug)]
+pub struct TryCopyToErrorWithKind {
+    pub kind: Option<TryCopyToErrorKind>,
+    pub source: TryCopyToError,
+}
+
+impl Display for TryCopyToErrorWithKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if let Some(kind) = self.kind.as_ref() {
+            Display::fmt(kind, f)
+        } else {
+            Display::fmt(&self.source, f)
+        }
+    }
+}
+
+impl std::error::Error for TryCopyToErrorWithKind {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        self.kind.as_ref()?;
+        Some(&self.source)
+    }
+}
+
+impl TryCopyToErrorWithKind {
+    fn new(kind: TryCopyToErrorKind, err: TryCopyToError) -> Self {
+        Self {
+            kind: Some(kind),
+            source: err,
+        }
+    }
+}
+
+impl From<TryCopyToError> for TryCopyToErrorWithKind {
+    fn from(source: TryCopyToError) -> Self {
+        Self { kind: None, source }
+    }
+}
+
+impl From<TryCopyToError> for Error {
+    fn from(source: TryCopyToError) -> Self {
+        Self::Conversion(TryCopyToErrorWithKind { kind: None, source })
+    }
+}
+
+pub type Result<T> = ::std::result::Result<T, Error>;
+pub type TryCopyToResult<T> = ::std::result::Result<T, TryCopyToError>;
+
+/// Returns the given input result, except if it is an `Err` matching the given `Error`,
 /// then it returns `Ok(())` instead, so the error is ignored.
 macro_rules! ignore_error_kind {
     ($result:expr, $kind:pat) => {
         match $result {
-            Err($crate::Error($kind, _)) => Ok(()),
+            Err($kind) => Ok(()),
             result => result,
         }
     };
@@ -141,14 +217,18 @@ mod conversion {
 
     /// Internal trait for all types that can try to write their value into another type.
     pub trait TryCopyTo<T: ?Sized> {
-        fn try_copy_to(&self, dst: &mut T) -> crate::Result<()>;
+        type Result;
+
+        fn try_copy_to(&self, dst: &mut T) -> Self::Result;
     }
 }
 use crate::conversion::*;
 
 /// Internal function to safely compare Rust string with raw C string slice
 fn compare_cstr_safe(s: &str, cchars: &[std::os::raw::c_char]) -> Result<bool> {
-    ensure!(cchars.iter().any(|&c| c == 0), "Not null terminated");
+    if !(cchars.iter().any(|&c| c == 0)) {
+        return Err(Error::CstrNotTerminated);
+    }
     let cs = unsafe { CStr::from_ptr(cchars.as_ptr()) };
     Ok(s.as_bytes() == cs.to_bytes())
 }
@@ -174,7 +254,7 @@ impl PfCtl {
     /// Same as `enable`, but `StateAlreadyActive` errors are supressed and exchanged for
     /// `Ok(())`.
     pub fn try_enable(&mut self) -> Result<()> {
-        ignore_error_kind!(self.enable(), ErrorKind::StateAlreadyActive)
+        ignore_error_kind!(self.enable(), Error::StateAlreadyActive(_))
     }
 
     /// Tries to disable PF. If the firewall is already disabled it will return an
@@ -186,7 +266,7 @@ impl PfCtl {
     /// Same as `disable`, but `StateAlreadyActive` errors are supressed and exchanged for
     /// `Ok(())`.
     pub fn try_disable(&mut self) -> Result<()> {
-        ignore_error_kind!(self.disable(), ErrorKind::StateAlreadyActive)
+        ignore_error_kind!(self.disable(), Error::StateAlreadyActive(_))
     }
 
     /// Tries to determine if PF is enabled or not.
@@ -201,7 +281,7 @@ impl PfCtl {
 
         pfioc_rule.rule.action = kind.into();
         name.try_copy_to(&mut pfioc_rule.anchor_call[..])
-            .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
+            .map_err(|e| TryCopyToErrorWithKind::new(TryCopyToErrorKind::InvalidAnchorName, e))?;
 
         ioctl_guard!(ffi::pf_insert_rule(self.fd(), &mut pfioc_rule))?;
         Ok(())
@@ -210,7 +290,7 @@ impl PfCtl {
     /// Same as `add_anchor`, but `StateAlreadyActive` errors are supressed and exchanged for
     /// `Ok(())`.
     pub fn try_add_anchor(&mut self, name: &str, kind: AnchorKind) -> Result<()> {
-        ignore_error_kind!(self.add_anchor(name, kind), ErrorKind::StateAlreadyActive)
+        ignore_error_kind!(self.add_anchor(name, kind), Error::StateAlreadyActive(_))
     }
 
     pub fn remove_anchor(&mut self, name: &str, kind: AnchorKind) -> Result<()> {
@@ -222,10 +302,7 @@ impl PfCtl {
     /// Same as `remove_anchor`, but `AnchorDoesNotExist` errors are supressed and exchanged for
     /// `Ok(())`.
     pub fn try_remove_anchor(&mut self, name: &str, kind: AnchorKind) -> Result<()> {
-        ignore_error_kind!(
-            self.remove_anchor(name, kind),
-            ErrorKind::AnchorDoesNotExist
-        )
+        ignore_error_kind!(self.remove_anchor(name, kind), Error::AnchorDoesNotExist)
     }
 
     // TODO(linus): Make more generic. No hardcoded ADD_TAIL etc.
@@ -236,7 +313,7 @@ impl PfCtl {
         pfioc_rule.ticket = utils::get_ticket(self.fd(), &anchor, AnchorKind::Filter)?;
         anchor
             .try_copy_to(&mut pfioc_rule.anchor[..])
-            .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
+            .map_err(|e| TryCopyToErrorWithKind::new(TryCopyToErrorKind::InvalidAnchorName, e))?;
         rule.try_copy_to(&mut pfioc_rule.rule)?;
 
         pfioc_rule.action = ffi::pfvar::PF_CHANGE_ADD_TAIL as u32;
@@ -287,7 +364,7 @@ impl PfCtl {
 
     /// Clear states created by rules in anchor.
     /// Returns total number of removed states upon success, otherwise
-    /// ErrorKind::AnchorDoesNotExist if anchor does not exist.
+    /// Error::AnchorDoesNotExist if anchor does not exist.
     pub fn clear_states(&mut self, anchor_name: &str, kind: AnchorKind) -> Result<u32> {
         let pfsync_states = self.get_states()?;
         if !pfsync_states.is_empty() {
@@ -317,7 +394,9 @@ impl PfCtl {
         let mut pfioc_state_kill = unsafe { mem::zeroed::<ffi::pfvar::pfioc_state_kill>() };
         interface
             .try_copy_to(&mut pfioc_state_kill.psk_ifname)
-            .chain_err(|| ErrorKind::InvalidArgument("Incompatible interface name"))?;
+            .map_err(|e| {
+                TryCopyToErrorWithKind::new(TryCopyToErrorKind::IncompatibleInterfaceName, e)
+            })?;
         ioctl_guard!(ffi::pf_clear_states(self.fd(), &mut pfioc_state_kill))?;
         // psk_af holds the number of killed states
         Ok(pfioc_state_kill.psk_af as u32)
@@ -342,7 +421,7 @@ impl PfCtl {
     /// The return value from closure is transparently passed to the caller.
     ///
     /// - Returns Result<R> from call to closure on match.
-    /// - Returns `ErrorKind::AnchorDoesNotExist` on mismatch, the closure is not called in that
+    /// - Returns `Error::AnchorDoesNotExist` on mismatch, the closure is not called in that
     /// case.
     fn with_anchor_rule<F, R>(&self, name: &str, kind: AnchorKind, f: F) -> Result<R>
     where
@@ -359,7 +438,7 @@ impl PfCtl {
                 return f(pfioc_rule);
             }
         }
-        bail!(ErrorKind::AnchorDoesNotExist);
+        Err(Error::AnchorDoesNotExist)
     }
 
     /// Returns global number of states created by all stateful rules (see keep_state)
@@ -419,7 +498,7 @@ mod tests {
         let cchars: &[i8] = unsafe { mem::transmute(cstr.as_bytes()) };
         assert_matches!(
             compare_cstr_safe("Hello", cchars),
-            Err(ref e) if e.description() == "Not null terminated"
+            Err(Error::CstrNotTerminated)
         );
     }
 

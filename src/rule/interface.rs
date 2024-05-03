@@ -6,7 +6,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use crate::{conversion::TryCopyTo, Result};
+use crate::{conversion::TryCopyTo, TryCopyToResult};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct InterfaceName(String);
@@ -36,7 +36,9 @@ impl<T: AsRef<str>> From<T> for Interface {
 }
 
 impl TryCopyTo<[i8]> for Interface {
-    fn try_copy_to(&self, dst: &mut [i8]) -> Result<()> {
+    type Result = TryCopyToResult<()>;
+
+    fn try_copy_to(&self, dst: &mut [i8]) -> Self::Result {
         match *self {
             Interface::Any => "",
             Interface::Name(InterfaceName(ref name)) => &name[..],

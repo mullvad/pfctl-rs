@@ -92,7 +92,9 @@ impl From<SocketAddr> for Endpoint {
 }
 
 impl TryCopyTo<ffi::pfvar::pf_rule_addr> for Endpoint {
-    fn try_copy_to(&self, pf_rule_addr: &mut ffi::pfvar::pf_rule_addr) -> Result<()> {
+    type Result = Result<()>;
+
+    fn try_copy_to(&self, pf_rule_addr: &mut ffi::pfvar::pf_rule_addr) -> Self::Result {
         self.ip.copy_to(&mut pf_rule_addr.addr);
         self.port
             .try_copy_to(unsafe { &mut pf_rule_addr.xport.range })?;

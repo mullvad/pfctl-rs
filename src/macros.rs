@@ -16,12 +16,12 @@ macro_rules! ioctl_guard {
     ($func:expr, $already_active:expr) => {
         if unsafe { $func } == $crate::macros::IOCTL_ERROR {
             let ::errno::Errno(error_code) = ::errno::errno();
-            let io_error = ::std::io::Error::from_raw_os_error(error_code);
-            let mut err = Err($crate::ErrorKind::IoctlError(io_error).into());
+            let err = ::std::io::Error::from_raw_os_error(error_code);
             if error_code == $already_active {
-                err = err.chain_err(|| $crate::ErrorKind::StateAlreadyActive);
+                Err($crate::Error::StateAlreadyActive(err))
+            } else {
+                Err($crate::Error::from(err))
             }
-            err
         } else {
             Ok(()) as $crate::Result<()>
         }
