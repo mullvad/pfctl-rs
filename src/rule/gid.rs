@@ -6,7 +6,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-pub use super::uid::{Id, IdUnaryModifier};
+pub use super::uid::Id;
 use crate::{
     conversion::TryCopyTo,
     ffi::pfvar::{pf_rule_gid, PF_OP_NONE},
