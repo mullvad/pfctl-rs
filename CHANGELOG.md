@@ -13,6 +13,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 * **Security**: in case of vulnerabilities.
 
 ## [unreleased]
+### Changed
+* Upgrade `ipnetwork` dependency from 0.16 to 0.20. This is a breaking change since
+  `ipnetwork` is part of the public API.
+
 
 ## [0.4.6] - 2024-04-18
 ### Added
