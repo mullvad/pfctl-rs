@@ -2,6 +2,11 @@
 
 # Please always have the latest version of bindgen and rustfmt installed before using this script
 
+# Download the pfvar.h file to generate bindings for from:
+# https://github.com/apple-oss-distributions/xnu/blob/main/bsd/net/pfvar.h
+
+pfvar_h_path=${1:?"Specify path to pfvar.h as first argument"}
+
 SDK_PATH=$(xcodebuild -sdk macosx Path -version)
 echo "Using macOS SDK at:"
 echo "    $SDK_PATH"
@@ -16,7 +21,7 @@ bindgen \
     --allowlist-type pfioc_state_kill \
     --allowlist-var PF_.* \
     --allowlist-var PFRULE_.* \
-    -o ./src/ffi/pfvar.rs ./ffi/pfvar.h -- \
+    -o ./src/ffi/pfvar.rs "$pfvar_h_path" -- \
     -DPRIVATE \
     -I"$SDK_PATH/usr/include" \
     -I"$SDK_PATH/System/Library/Frameworks/Kernel.framework/Versions/A/Headers"
