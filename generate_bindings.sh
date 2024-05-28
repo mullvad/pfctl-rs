@@ -2,7 +2,7 @@
 
 # Please always have the latest version of bindgen and rustfmt installed before using this script
 
-SDK_PATH=`xcodebuild -sdk macosx Path -version`
+SDK_PATH=$(xcodebuild -sdk macosx Path -version)
 echo "Using macOS SDK at:"
 echo "    $SDK_PATH"
 echo ""
@@ -18,5 +18,5 @@ bindgen \
     --allowlist-var PFRULE_.* \
     -o ./src/ffi/pfvar.rs ./ffi/pfvar.h -- \
     -DPRIVATE \
-    -I$SDK_PATH/usr/include \
-    -I$SDK_PATH/System/Library/Frameworks/Kernel.framework/Versions/A/Headers
+    -I"$SDK_PATH/usr/include" \
+    -I"$SDK_PATH/System/Library/Frameworks/Kernel.framework/Versions/A/Headers"
