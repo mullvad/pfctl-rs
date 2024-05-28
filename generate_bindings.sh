@@ -8,14 +8,14 @@ echo "    $SDK_PATH"
 echo ""
 
 bindgen \
-    --whitelist-type pf_status \
-    --whitelist-type pfioc_rule \
-    --whitelist-type pfioc_pooladdr \
-    --whitelist-type pfioc_trans \
-    --whitelist-type pfioc_states \
-    --whitelist-type pfioc_state_kill \
-    --whitelist-var PF_.* \
-    --whitelist-var PFRULE_.* \
+    --allowlist-type pf_status \
+    --allowlist-type pfioc_rule \
+    --allowlist-type pfioc_pooladdr \
+    --allowlist-type pfioc_trans \
+    --allowlist-type pfioc_states \
+    --allowlist-type pfioc_state_kill \
+    --allowlist-var PF_.* \
+    --allowlist-var PFRULE_.* \
     -o ./src/ffi/pfvar.rs ./ffi/pfvar.h -- \
     -DPRIVATE \
     -I$SDK_PATH/usr/include \
