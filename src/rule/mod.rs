@@ -457,8 +457,8 @@ impl CopyTo<ffi::pfvar::pf_addr_wrap> for IpNetwork {
 impl CopyTo<ffi::pfvar::pf_addr> for IpAddr {
     fn copy_to(&self, pf_addr: &mut ffi::pfvar::pf_addr) {
         match *self {
-            IpAddr::V4(ip) => ip.copy_to(unsafe { &mut pf_addr.pfa.v4 }),
-            IpAddr::V6(ip) => ip.copy_to(unsafe { &mut pf_addr.pfa.v6 }),
+            IpAddr::V4(ip) => ip.copy_to(unsafe { &mut pf_addr.pfa._v4addr }),
+            IpAddr::V6(ip) => ip.copy_to(unsafe { &mut pf_addr.pfa._v6addr }),
         }
     }
 }
