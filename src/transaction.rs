@@ -116,7 +116,7 @@ impl Transaction {
     fn add_filter_rule(fd: RawFd, anchor: &str, rule: &FilterRule, ticket: u32) -> Result<()> {
         // prepare pfioc_rule
         let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
-        pfioc_rule.action = ffi::pfvar::PF_CHANGE_NONE as u32;
+        pfioc_rule.action = ffi::pfvar::PF_CHANGE_NONE;
         anchor
             .try_copy_to(&mut pfioc_rule.anchor[..])
             .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;

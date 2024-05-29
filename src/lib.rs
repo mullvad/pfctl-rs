@@ -239,7 +239,7 @@ impl PfCtl {
             .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
         rule.try_copy_to(&mut pfioc_rule.rule)?;
 
-        pfioc_rule.action = ffi::pfvar::PF_CHANGE_ADD_TAIL as u32;
+        pfioc_rule.action = ffi::pfvar::PF_CHANGE_ADD_TAIL;
         ioctl_guard!(ffi::pf_change_rule(self.fd(), &mut pfioc_rule))
     }
 
@@ -270,7 +270,7 @@ impl PfCtl {
         pfioc_rule.ticket = utils::get_ticket(self.fd(), anchor, AnchorKind::Redirect)?;
 
         // append rule
-        pfioc_rule.action = ffi::pfvar::PF_CHANGE_ADD_TAIL as u32;
+        pfioc_rule.action = ffi::pfvar::PF_CHANGE_ADD_TAIL;
         ioctl_guard!(ffi::pf_change_rule(self.fd(), &mut pfioc_rule))
     }
 
@@ -351,7 +351,7 @@ impl PfCtl {
         let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
         pfioc_rule.rule.action = kind.into();
         ioctl_guard!(ffi::pf_get_rules(self.fd(), &mut pfioc_rule))?;
-        pfioc_rule.action = ffi::pfvar::PF_GET_NONE as u32;
+        pfioc_rule.action = ffi::pfvar::PF_GET_NONE;
         for i in 0..pfioc_rule.nr {
             pfioc_rule.nr = i;
             ioctl_guard!(ffi::pf_get_rule(self.fd(), &mut pfioc_rule))?;

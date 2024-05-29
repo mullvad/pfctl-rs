@@ -46,7 +46,7 @@ pub fn get_pool_ticket(fd: RawFd) -> Result<u32> {
 
 pub fn get_ticket(fd: RawFd, anchor: &str, kind: AnchorKind) -> Result<u32> {
     let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
-    pfioc_rule.action = ffi::pfvar::PF_CHANGE_GET_TICKET as u32;
+    pfioc_rule.action = ffi::pfvar::PF_CHANGE_GET_TICKET;
     pfioc_rule.rule.action = kind.into();
     anchor
         .try_copy_to(&mut pfioc_rule.anchor[..])
