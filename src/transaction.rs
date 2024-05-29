@@ -22,6 +22,12 @@ pub struct Transaction {
     change_by_anchor: HashMap<String, AnchorChange>,
 }
 
+impl Default for Transaction {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Transaction {
     /// Returns new `Transaction`
     pub fn new() -> Self {
@@ -199,6 +205,12 @@ impl Transaction {
 pub struct AnchorChange {
     filter_rules: Option<Vec<FilterRule>>,
     redirect_rules: Option<Vec<RedirectRule>>,
+}
+
+impl Default for AnchorChange {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl AnchorChange {
