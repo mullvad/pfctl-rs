@@ -47,6 +47,11 @@ let rule = pfctl::FilterRuleBuilder::default()
 pf.add_rule(anchor_name, &rule).unwrap();
 ```
 
+## System bindings
+
+See comments in `generate_bindings.sh` for how to generate the Rust bindings to the system
+libraries
+
 [integration tests]: https://github.com/mullvad/pfctl-rs/tree/master/tests
 [examples]: https://github.com/mullvad/pfctl-rs/tree/master/examples
 

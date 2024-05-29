@@ -2,21 +2,27 @@
 
 # Please always have the latest version of bindgen and rustfmt installed before using this script
 
-SDK_PATH=`xcodebuild -sdk macosx Path -version`
+# Download the pfvar.h file to generate bindings for from:
+# https://github.com/apple-oss-distributions/xnu/blob/main/bsd/net/pfvar.h
+
+pfvar_h_path=${1:?"Specify path to pfvar.h as first argument"}
+
+SDK_PATH=$(xcodebuild -sdk macosx Path -version)
 echo "Using macOS SDK at:"
 echo "    $SDK_PATH"
 echo ""
 
 bindgen \
-    --whitelist-type pf_status \
-    --whitelist-type pfioc_rule \
-    --whitelist-type pfioc_pooladdr \
-    --whitelist-type pfioc_trans \
-    --whitelist-type pfioc_states \
-    --whitelist-type pfioc_state_kill \
-    --whitelist-var PF_.* \
-    --whitelist-var PFRULE_.* \
-    -o ./src/ffi/pfvar.rs ./ffi/pfvar.h -- \
+    --allowlist-type pf_status \
+    --allowlist-type pfioc_rule \
+    --allowlist-type pfioc_pooladdr \
+    --allowlist-type pfioc_trans \
+    --allowlist-type pfioc_states \
+    --allowlist-type pfioc_state_kill \
+    --allowlist-var PF_.* \
+    --allowlist-var PFRULE_.* \
+    --default-enum-style rust \
+    -o ./src/ffi/pfvar.rs "$pfvar_h_path" -- \
     -DPRIVATE \
-    -I$SDK_PATH/usr/include \
-    -I$SDK_PATH/System/Library/Frameworks/Kernel.framework/Versions/A/Headers
+    -I"$SDK_PATH/usr/include" \
+    -I"$SDK_PATH/System/Library/Frameworks/Kernel.framework/Versions/A/Headers"
