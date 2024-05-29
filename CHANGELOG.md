@@ -17,6 +17,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 * Upgrade `ipnetwork` dependency from 0.16 to 0.20. This is a breaking change since
   `ipnetwork` is part of the public API.
 
+### Removed
+* Remove `PoolAddrList::to_palist` from the public API. It should never have been exposed.
+
 
 ## [0.4.6] - 2024-04-18
 ### Added

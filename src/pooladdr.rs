@@ -79,8 +79,12 @@ impl PoolAddrList {
     }
 
     /// Returns a copy of inner pf_palist linked list.
-    /// Returned copy should never be used past the lifetime expiration of PoolAddrList.
-    pub unsafe fn to_palist(&self) -> ffi::pfvar::pf_palist {
+    ///
+    /// # Safety
+    ///
+    /// Returned object has pointers into the `PoolAddrList` it was created from. So the
+    /// `PoolAddrList` must outlive the returned `pf_palist`
+    pub(crate) unsafe fn to_palist(&self) -> ffi::pfvar::pf_palist {
         self.list
     }
 
