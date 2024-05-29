@@ -6,23 +6,17 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#[macro_use]
-extern crate error_chain;
-
 use pfctl::PfCtl;
 use std::net::Ipv4Addr;
 
-error_chain! {}
-quick_main!(run);
-
 static ANCHOR_NAME: &str = "test.anchor";
 
-fn run() -> Result<()> {
-    let mut pf = PfCtl::new().chain_err(|| "Unable to connect to PF")?;
+fn main() {
+    let mut pf = PfCtl::new().expect("Unable to connect to PF");
     pf.try_add_anchor(ANCHOR_NAME, pfctl::AnchorKind::Filter)
-        .chain_err(|| "Unable to add test filter anchor")?;
+        .expect("Unable to add test filter anchor");
     pf.try_add_anchor(ANCHOR_NAME, pfctl::AnchorKind::Redirect)
-        .chain_err(|| "Unable to add test redirect anchor")?;
+        .expect("Unable to add test redirect anchor");
 
     // Create some firewall rules that we want to set in one atomic transaction.
     let trans_rule1 = pfctl::FilterRuleBuilder::default()
@@ -51,10 +45,9 @@ fn run() -> Result<()> {
     // Execute the transaction. This will OVERWRITE any existing rules under this anchor as it's
     // a set operation, not an add operation.
     pf.set_rules(ANCHOR_NAME, trans_change)
-        .chain_err(|| "Unable to set rules")?;
+        .expect("Unable to set rules");
 
     println!("Added a bunch of rules to the {} anchor.", ANCHOR_NAME);
     println!("Run this command to remove them:");
     println!("sudo pfctl -a {} -F all", ANCHOR_NAME);
-    Ok(())
 }
