@@ -16,7 +16,7 @@ travis-ci = { repository = "mullvad/pfctl-rs" }
 
 [dependencies]
 errno = "0.2"
-error-chain = "0.12"
+error-chain = "0.12.4"
 ioctl-sys = "0.6.0"
 libc = "0.2.29"
 derive_builder = "0.9"
