@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Changed
 * Upgrade `ipnetwork` dependency from 0.16 to 0.20. This is a breaking change since
   `ipnetwork` is part of the public API.
+* Upgrade crate to Rust 2021 edition.
 
 ### Removed
 * Remove `PoolAddrList::to_palist` from the public API. It should never have been exposed.
