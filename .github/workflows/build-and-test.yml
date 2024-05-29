@@ -46,3 +46,11 @@ jobs:
         # Since the tests modify global state (the system firewall) they cannot run in parallel.
         # The integration tests must run as root since they write firewall state (/dev/pf)
         run: sudo cargo test -- --test-threads=1
+
+      # Make sure the library builds with all dependencies downgraded to their
+      # oldest versions allowed by the semver spec. This ensures we have not
+      # under-specified any dependency
+      - name: Compile with minimal versions
+        run: |
+          cargo +nightly update -Z minimal-versions
+          cargo build --all-targets
