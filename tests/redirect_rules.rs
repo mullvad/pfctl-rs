@@ -56,7 +56,7 @@ test!(flush_redirect_rules {
         assert_matches!(pf.flush_rules(ANCHOR_NAME, pfctl::RulesetKind::Redirect), Ok(()));
         assert_matches!(
             pfcli::get_nat_rules(ANCHOR_NAME),
-            Ok(ref v) if v.len() == 0
+            Ok(ref v) if v.is_empty()
         );
     }
 });
