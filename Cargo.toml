@@ -23,5 +23,5 @@ ipnetwork = "0.20.0"
 
 [dev-dependencies]
 assert_matches = "1.1.0"
-uuid = { version = "0.8", features = ["v4"] }
+uuid = { version = "1.8.0", features = ["v4"] }
 scopeguard = "1.0"
