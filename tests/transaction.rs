@@ -9,9 +9,9 @@ use crate::helper::pfcli;
 use assert_matches::assert_matches;
 use std::net::Ipv4Addr;
 
-const ANCHOR1_NAME: &'static str = "pfctl-rs.integration.testing.transactions-1";
-const ANCHOR2_NAME: &'static str = "pfctl-rs.integration.testing.transactions-2";
-const ANCHORS: [&'static str; 2] = [ANCHOR1_NAME, ANCHOR2_NAME];
+const ANCHOR1_NAME: &str = "pfctl-rs.integration.testing.transactions-1";
+const ANCHOR2_NAME: &str = "pfctl-rs.integration.testing.transactions-2";
+const ANCHORS: [&str; 2] = [ANCHOR1_NAME, ANCHOR2_NAME];
 
 fn before_each() {
     for anchor_name in ANCHORS.iter() {

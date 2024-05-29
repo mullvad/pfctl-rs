@@ -9,7 +9,7 @@ use crate::helper::pfcli;
 use assert_matches::assert_matches;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, UdpSocket};
 
-static ANCHOR_NAME: &'static str = "pfctl-rs.integration.testing.states";
+static ANCHOR_NAME: &str = "pfctl-rs.integration.testing.states";
 
 fn contains_subset(haystack: &[String], subset: &[&str]) -> bool {
     subset

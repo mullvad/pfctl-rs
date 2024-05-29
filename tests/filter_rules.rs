@@ -9,7 +9,7 @@ use crate::helper::pfcli;
 use assert_matches::assert_matches;
 use std::net::Ipv4Addr;
 
-static ANCHOR_NAME: &'static str = "pfctl-rs.integration.testing.filter-rules";
+static ANCHOR_NAME: &str = "pfctl-rs.integration.testing.filter-rules";
 
 fn before_each() {
     pfctl::PfCtl::new()

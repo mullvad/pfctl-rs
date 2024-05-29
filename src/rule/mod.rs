@@ -308,7 +308,6 @@ impl<T: AsRef<str>> TryCopyTo<[i8]> for T {
     }
 }
 
-
 #[cfg(test)]
 mod filter_rule_tests {
     use super::*;
