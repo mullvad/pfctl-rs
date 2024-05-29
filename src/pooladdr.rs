@@ -94,7 +94,7 @@ impl PoolAddrList {
         Ok(pool)
     }
 
-    fn link_elements(pool: &mut Vec<ffi::pfvar::pf_pooladdr>) {
+    fn link_elements(pool: &mut [ffi::pfvar::pf_pooladdr]) {
         for i in 1..pool.len() {
             let mut elem1 = pool[i - 1];
             let mut elem2 = pool[i];
@@ -103,7 +103,7 @@ impl PoolAddrList {
         }
     }
 
-    fn create_palist(pool: &mut Vec<ffi::pfvar::pf_pooladdr>) -> ffi::pfvar::pf_palist {
+    fn create_palist(pool: &mut [ffi::pfvar::pf_pooladdr]) -> ffi::pfvar::pf_palist {
         let mut list = unsafe { mem::zeroed::<ffi::pfvar::pf_palist>() };
         if !pool.is_empty() {
             let mut first_elem = pool[0];
