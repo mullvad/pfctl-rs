@@ -29,7 +29,7 @@ jobs:
           default: true
 
       - name: Build
-        run: cargo build --all-targets
+        run: cargo build --all-targets --locked
 
       - name: Test
         # Since the tests modify global state (the system firewall) they cannot run in parallel.
