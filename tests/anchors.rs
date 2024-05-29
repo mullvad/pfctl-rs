@@ -10,10 +10,7 @@ use assert_matches::assert_matches;
 use uuid::Uuid;
 
 fn unique_anchor() -> String {
-    format!(
-        "pfctl-rs.integration.testing.{}",
-        Uuid::new_v4().to_simple()
-    )
+    format!("pfctl-rs.integration.testing.{}", Uuid::new_v4().simple())
 }
 
 fn before_each() {}
