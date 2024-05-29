@@ -15,8 +15,9 @@ use crate::{
 use ipnetwork::{IpNetwork, Ipv4Network, Ipv6Network};
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Ip {
+    #[default]
     Any,
     Net(IpNetwork),
 }
@@ -38,12 +39,6 @@ impl Ip {
     /// Returns PoolAddrList initialized with receiver
     pub fn to_pool_addr_list(&self) -> Result<PoolAddrList> {
         PoolAddrList::new(&[PoolAddr::from(*self)])
-    }
-}
-
-impl Default for Ip {
-    fn default() -> Self {
-        Ip::Any
     }
 }
 

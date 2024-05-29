@@ -251,6 +251,63 @@ fn compatible_af(af1: AddrFamily, af2: AddrFamily) -> Result<AddrFamily> {
     }
 }
 
+// Implementations to convert types that are not ours into their FFI representation
+
+impl CopyTo<ffi::pfvar::pf_addr_wrap> for IpNetwork {
+    fn copy_to(&self, pf_addr_wrap: &mut ffi::pfvar::pf_addr_wrap) {
+        pf_addr_wrap.type_ = ffi::pfvar::PF_ADDR_ADDRMASK as u8;
+        self.ip().copy_to(unsafe { &mut pf_addr_wrap.v.a.addr });
+        self.mask().copy_to(unsafe { &mut pf_addr_wrap.v.a.mask });
+    }
+}
+
+impl CopyTo<ffi::pfvar::pf_addr> for IpAddr {
+    fn copy_to(&self, pf_addr: &mut ffi::pfvar::pf_addr) {
+        match *self {
+            IpAddr::V4(ip) => ip.copy_to(unsafe { &mut pf_addr.pfa._v4addr }),
+            IpAddr::V6(ip) => ip.copy_to(unsafe { &mut pf_addr.pfa._v6addr }),
+        }
+    }
+}
+
+impl CopyTo<ffi::pfvar::in_addr> for Ipv4Addr {
+    fn copy_to(&self, in_addr: &mut ffi::pfvar::in_addr) {
+        in_addr.s_addr = u32::from(*self).to_be();
+    }
+}
+
+impl CopyTo<ffi::pfvar::in6_addr> for Ipv6Addr {
+    fn copy_to(&self, in6_addr: &mut ffi::pfvar::in6_addr) {
+        let segments = self.segments();
+        let dst_segments = unsafe { in6_addr.__u6_addr.__u6_addr16.as_mut() };
+        for (dst_segment, segment) in dst_segments.iter_mut().zip(segments.iter()) {
+            *dst_segment = segment.to_be();
+        }
+    }
+}
+
+impl<T: AsRef<str>> TryCopyTo<[i8]> for T {
+    /// Safely copy a Rust string into a raw buffer. Returning an error if the string could not
+    /// be copied to the buffer.
+    fn try_copy_to(&self, dst: &mut [i8]) -> Result<()> {
+        let src_i8: &[i8] = unsafe { &*(self.as_ref().as_bytes() as *const _ as *const _) };
+
+        ensure!(
+            src_i8.len() < dst.len(),
+            ErrorKind::InvalidArgument("String does not fit destination")
+        );
+        ensure!(
+            !src_i8.contains(&0),
+            ErrorKind::InvalidArgument("String has null byte")
+        );
+
+        dst[..src_i8.len()].copy_from_slice(src_i8);
+        // Terminate ffi string with null byte
+        dst[src_i8.len()] = 0;
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod filter_rule_tests {
     use super::*;
@@ -441,62 +498,5 @@ mod filter_rule_tests {
             .unwrap()
             .validate_state_policy()
             .is_err());
-    }
-}
-
-// Implementations to convert types that are not ours into their FFI representation
-
-impl CopyTo<ffi::pfvar::pf_addr_wrap> for IpNetwork {
-    fn copy_to(&self, pf_addr_wrap: &mut ffi::pfvar::pf_addr_wrap) {
-        pf_addr_wrap.type_ = ffi::pfvar::PF_ADDR_ADDRMASK as u8;
-        self.ip().copy_to(unsafe { &mut pf_addr_wrap.v.a.addr });
-        self.mask().copy_to(unsafe { &mut pf_addr_wrap.v.a.mask });
-    }
-}
-
-impl CopyTo<ffi::pfvar::pf_addr> for IpAddr {
-    fn copy_to(&self, pf_addr: &mut ffi::pfvar::pf_addr) {
-        match *self {
-            IpAddr::V4(ip) => ip.copy_to(unsafe { &mut pf_addr.pfa._v4addr }),
-            IpAddr::V6(ip) => ip.copy_to(unsafe { &mut pf_addr.pfa._v6addr }),
-        }
-    }
-}
-
-impl CopyTo<ffi::pfvar::in_addr> for Ipv4Addr {
-    fn copy_to(&self, in_addr: &mut ffi::pfvar::in_addr) {
-        in_addr.s_addr = u32::from(*self).to_be();
-    }
-}
-
-impl CopyTo<ffi::pfvar::in6_addr> for Ipv6Addr {
-    fn copy_to(&self, in6_addr: &mut ffi::pfvar::in6_addr) {
-        let segments = self.segments();
-        let dst_segments = unsafe { in6_addr.__u6_addr.__u6_addr16.as_mut() };
-        for (dst_segment, segment) in dst_segments.iter_mut().zip(segments.iter()) {
-            *dst_segment = segment.to_be();
-        }
-    }
-}
-
-impl<T: AsRef<str>> TryCopyTo<[i8]> for T {
-    /// Safely copy a Rust string into a raw buffer. Returning an error if the string could not
-    /// be copied to the buffer.
-    fn try_copy_to(&self, dst: &mut [i8]) -> Result<()> {
-        let src_i8: &[i8] = unsafe { &*(self.as_ref().as_bytes() as *const _ as *const _) };
-
-        ensure!(
-            src_i8.len() < dst.len(),
-            ErrorKind::InvalidArgument("String does not fit destination")
-        );
-        ensure!(
-            !src_i8.contains(&0),
-            ErrorKind::InvalidArgument("String has null byte")
-        );
-
-        dst[..src_i8.len()].copy_from_slice(src_i8);
-        // Terminate ffi string with null byte
-        dst[src_i8.len()] = 0;
-        Ok(())
     }
 }

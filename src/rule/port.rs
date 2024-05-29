@@ -9,17 +9,12 @@
 use crate::{conversion::TryCopyTo, ffi, ErrorKind, Result};
 
 // Port range representation
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Port {
+    #[default]
     Any,
     One(u16, PortUnaryModifier),
     Range(u16, u16, PortRangeModifier),
-}
-
-impl Default for Port {
-    fn default() -> Self {
-        Port::Any
-    }
 }
 
 impl From<u16> for Port {

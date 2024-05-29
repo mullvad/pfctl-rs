@@ -233,7 +233,7 @@ impl PfCtl {
         let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
 
         pfioc_rule.pool_ticket = utils::get_pool_ticket(self.fd())?;
-        pfioc_rule.ticket = utils::get_ticket(self.fd(), &anchor, AnchorKind::Filter)?;
+        pfioc_rule.ticket = utils::get_ticket(self.fd(), anchor, AnchorKind::Filter)?;
         anchor
             .try_copy_to(&mut pfioc_rule.anchor[..])
             .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
@@ -298,7 +298,7 @@ impl PfCtl {
                     .map(|pfsync_state| {
                         let mut pfioc_state_kill =
                             unsafe { mem::zeroed::<ffi::pfvar::pfioc_state_kill>() };
-                        setup_pfioc_state_kill(&pfsync_state, &mut pfioc_state_kill);
+                        setup_pfioc_state_kill(pfsync_state, &mut pfioc_state_kill);
                         ioctl_guard!(ffi::pf_kill_states(self.fd(), &mut pfioc_state_kill))?;
                         // psk_af holds the number of killed states
                         Ok(pfioc_state_kill.psk_af as u32)

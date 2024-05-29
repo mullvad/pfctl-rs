@@ -9,7 +9,7 @@ use crate::helper::pfcli;
 use assert_matches::assert_matches;
 use std::net::{Ipv4Addr, Ipv6Addr};
 
-static ANCHOR_NAME: &'static str = "pfctl-rs.integration.testing.redirect-rules";
+static ANCHOR_NAME: &str = "pfctl-rs.integration.testing.redirect-rules";
 
 fn port_mapping_rule(ip: pfctl::Ip) -> pfctl::RedirectRule {
     pfctl::RedirectRuleBuilder::default()
@@ -47,7 +47,7 @@ test!(flush_redirect_rules {
     let mut pf = pfctl::PfCtl::new().unwrap();
     let test_rules = [redirect_rule_ipv4(), redirect_rule_ipv6()];
     for rule in test_rules.iter() {
-        assert_matches!(pf.add_redirect_rule(ANCHOR_NAME, &rule), Ok(()));
+        assert_matches!(pf.add_redirect_rule(ANCHOR_NAME, rule), Ok(()));
         assert_matches!(
             pfcli::get_nat_rules(ANCHOR_NAME),
             Ok(ref v) if v.len() == 1
@@ -56,7 +56,7 @@ test!(flush_redirect_rules {
         assert_matches!(pf.flush_rules(ANCHOR_NAME, pfctl::RulesetKind::Redirect), Ok(()));
         assert_matches!(
             pfcli::get_nat_rules(ANCHOR_NAME),
-            Ok(ref v) if v.len() == 0
+            Ok(ref v) if v.is_empty()
         );
     }
 });

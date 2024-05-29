@@ -9,17 +9,12 @@
 use crate::ffi;
 
 /// Enum describing matching of rule towards packet flow direction.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Direction {
+    #[default]
     Any,
     In,
     Out,
-}
-
-impl Default for Direction {
-    fn default() -> Self {
-        Direction::Any
-    }
 }
 
 impl From<Direction> for u8 {

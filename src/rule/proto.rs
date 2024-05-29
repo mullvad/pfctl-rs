@@ -6,19 +6,14 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Proto {
+    #[default]
     Any,
     Tcp,
     Udp,
     Icmp,
     IcmpV6,
-}
-
-impl Default for Proto {
-    fn default() -> Self {
-        Proto::Any
-    }
 }
 
 impl From<Proto> for u8 {

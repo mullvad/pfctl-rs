@@ -5,7 +5,7 @@ mod errors {
 }
 use self::errors::*;
 
-static PF_BIN: &'static str = "/sbin/pfctl";
+static PF_BIN: &str = "/sbin/pfctl";
 
 pub fn is_enabled() -> Result<bool> {
     let output = get_command()
