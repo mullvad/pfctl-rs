@@ -17,6 +17,7 @@ jobs:
   build-and-test:
     strategy:
       matrix:
+        # Keep MSRV in sync with rust-version in Cargo.toml as much as possible.
         rust: [stable, beta, nightly, 1.62.0]
     runs-on: macos-latest
     steps:
