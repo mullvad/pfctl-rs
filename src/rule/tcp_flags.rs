@@ -8,8 +8,9 @@
 
 use crate::ffi;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum TcpFlag {
+    #[default]
     Any,
     Syn,
     Ack,
@@ -19,12 +20,6 @@ pub enum TcpFlag {
     Urg,
     Ece,
     Cwr,
-}
-
-impl Default for TcpFlag {
-    fn default() -> Self {
-        TcpFlag::Any
-    }
 }
 
 impl From<TcpFlag> for u8 {

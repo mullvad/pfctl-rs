@@ -8,18 +8,13 @@
 
 use crate::ffi;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum StatePolicy {
+    #[default]
     None,
     Keep,
     Modulate,
     SynProxy,
-}
-
-impl Default for StatePolicy {
-    fn default() -> Self {
-        StatePolicy::None
-    }
 }
 
 impl From<StatePolicy> for u8 {

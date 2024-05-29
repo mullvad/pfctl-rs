@@ -8,18 +8,13 @@
 
 use crate::{ffi, pooladdr::PoolAddr};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub enum Route {
+    #[default]
     NoRoute,
     RouteTo(PoolAddr),
     ReplyTo(PoolAddr),
     DupTo(PoolAddr),
-}
-
-impl Default for Route {
-    fn default() -> Self {
-        Route::NoRoute
-    }
 }
 
 impl Route {

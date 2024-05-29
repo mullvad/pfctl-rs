@@ -9,17 +9,12 @@
 use crate::ffi;
 use std::fmt;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum AddrFamily {
+    #[default]
     Any,
     Ipv4,
     Ipv6,
-}
-
-impl Default for AddrFamily {
-    fn default() -> Self {
-        AddrFamily::Any
-    }
 }
 
 impl From<AddrFamily> for u8 {

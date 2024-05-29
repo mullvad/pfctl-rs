@@ -17,16 +17,11 @@ impl AsRef<str> for InterfaceName {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub enum Interface {
+    #[default]
     Any,
     Name(InterfaceName),
-}
-
-impl Default for Interface {
-    fn default() -> Self {
-        Interface::Any
-    }
 }
 
 impl<T: AsRef<str>> From<T> for Interface {
