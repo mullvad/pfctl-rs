@@ -47,7 +47,7 @@ test!(flush_redirect_rules {
     let mut pf = pfctl::PfCtl::new().unwrap();
     let test_rules = [redirect_rule_ipv4(), redirect_rule_ipv6()];
     for rule in test_rules.iter() {
-        assert_matches!(pf.add_redirect_rule(ANCHOR_NAME, &rule), Ok(()));
+        assert_matches!(pf.add_redirect_rule(ANCHOR_NAME, rule), Ok(()));
         assert_matches!(
             pfcli::get_nat_rules(ANCHOR_NAME),
             Ok(ref v) if v.len() == 1

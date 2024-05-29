@@ -74,14 +74,15 @@ impl Transaction {
         // create one transaction element for each unique combination of anchor name and
         // `RulesetKind` and order them so elements for filter rules go first followed by redirect
         // rules
-        let mut pfioc_elements: Vec<ffi::pfvar::pfioc_trans_pfioc_trans_e> =
-            filter_changes
-                .iter()
-                .map(|&(ref anchor, _)| Self::new_trans_element(&anchor, RulesetKind::Filter))
-                .chain(redirect_changes.iter().map(|&(ref anchor, _)| {
-                    Self::new_trans_element(&anchor, RulesetKind::Redirect)
-                }))
-                .collect::<Result<_>>()?;
+        let mut pfioc_elements: Vec<ffi::pfvar::pfioc_trans_pfioc_trans_e> = filter_changes
+            .iter()
+            .map(|(anchor, _)| Self::new_trans_element(anchor, RulesetKind::Filter))
+            .chain(
+                redirect_changes
+                    .iter()
+                    .map(|(anchor, _)| Self::new_trans_element(anchor, RulesetKind::Redirect)),
+            )
+            .collect::<Result<_>>()?;
         Self::setup_trans(&mut pfioc_trans, pfioc_elements.as_mut_slice());
 
         // get tickets
