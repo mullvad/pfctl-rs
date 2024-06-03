@@ -24,7 +24,7 @@ dependencies = [
  "cfg-if",
  "libc",
  "rustc-demangle",
- "winapi 0.3.6",
+ "winapi",
 ]
 
 [[package]]
@@ -128,17 +128,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "errno"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "901ad47d20b4647d9f3daf635c6c10a71920fdab6e425bde4eb3f30ceac0e0e0"
-dependencies = [
- "kernel32-sys",
- "libc",
- "winapi 0.2.4",
-]
-
-[[package]]
 name = "error-chain"
 version = "0.12.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -169,7 +158,7 @@ dependencies = [
  "cloudabi",
  "fuchsia-cprng",
  "libc",
- "winapi 0.3.6",
+ "winapi",
 ]
 
 [[package]]
@@ -194,16 +183,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "kernel32-sys"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ad1ca084b49bfd975182288e1a5f1d27ea34ff2d6ae084ae5e66e1652427eada"
-dependencies = [
- "winapi 0.2.4",
- "winapi-build",
-]
-
-[[package]]
 name = "lazy_static"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -221,7 +200,6 @@ version = "0.4.6"
 dependencies = [
  "assert_matches",
  "derive_builder",
- "errno",
  "error-chain",
  "ioctl-sys",
  "ipnetwork",
@@ -354,12 +332,6 @@ checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
 
 [[package]]
 name = "winapi"
-version = "0.2.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5350e40d908c7e8b9e5c9edb541ca47cc617c6229d3575a46da6f550f36c96fd"
-
-[[package]]
-name = "winapi"
 version = "0.3.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "92c1eb33641e276cfa214a0522acad57be5c56b10cb348b3c5117db75f3ac4b0"
@@ -367,12 +339,6 @@ dependencies = [
  "winapi-i686-pc-windows-gnu",
  "winapi-x86_64-pc-windows-gnu",
 ]
-
-[[package]]
-name = "winapi-build"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2d315eee3b34aca4797b2da6b13ed88266e6d612562a0c46390af8299fc699bc"
 
 [[package]]
 name = "winapi-i686-pc-windows-gnu"
