@@ -6,7 +6,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use ioctl_sys::ioctl;
+use nix::{ioctl_none, ioctl_readwrite};
 
 #[allow(non_camel_case_types)]
 #[allow(non_upper_case_globals)]
@@ -32,34 +32,34 @@ pub mod tcp {
 // The documentation describing the order of calls and accepted parameters can be found at:
 // http://man.openbsd.org/pf.4
 // DIOCSTART
-ioctl!(none pf_start with b'D', 1);
+ioctl_none!(pf_start, b'D', 1);
 // DIOCSTOP
-ioctl!(none pf_stop with b'D', 2);
+ioctl_none!(pf_stop, b'D', 2);
 // DIOCADDRULE
-ioctl!(readwrite pf_add_rule with b'D', 4; pfvar::pfioc_rule);
+ioctl_readwrite!(pf_add_rule, b'D', 4, pfvar::pfioc_rule);
 // DIOCGETRULES
-ioctl!(readwrite pf_get_rules with b'D', 6; pfvar::pfioc_rule);
+ioctl_readwrite!(pf_get_rules, b'D', 6, pfvar::pfioc_rule);
 // DIOCGETRULE
-ioctl!(readwrite pf_get_rule with b'D', 7; pfvar::pfioc_rule);
+ioctl_readwrite!(pf_get_rule, b'D', 7, pfvar::pfioc_rule);
 // DIOCCLRSTATES
-ioctl!(readwrite pf_clear_states with b'D', 18; pfvar::pfioc_state_kill);
+ioctl_readwrite!(pf_clear_states, b'D', 18, pfvar::pfioc_state_kill);
 // DIOCGETSTATUS
-ioctl!(readwrite pf_get_status with b'D', 21; pfvar::pf_status);
+ioctl_readwrite!(pf_get_status, b'D', 21, pfvar::pf_status);
 // DIOCGETSTATES
-ioctl!(readwrite pf_get_states with b'D', 25; pfvar::pfioc_states);
+ioctl_readwrite!(pf_get_states, b'D', 25, pfvar::pfioc_states);
 // DIOCCHANGERULE
-ioctl!(readwrite pf_change_rule with b'D', 26; pfvar::pfioc_rule);
+ioctl_readwrite!(pf_change_rule, b'D', 26, pfvar::pfioc_rule);
 // DIOCINSERTRULE
-ioctl!(readwrite pf_insert_rule with b'D', 27; pfvar::pfioc_rule);
+ioctl_readwrite!(pf_insert_rule, b'D', 27, pfvar::pfioc_rule);
 // DIOCDELETERULE
-ioctl!(readwrite pf_delete_rule with b'D', 28; pfvar::pfioc_rule);
+ioctl_readwrite!(pf_delete_rule, b'D', 28, pfvar::pfioc_rule);
 // DIOCKILLSTATES
-ioctl!(readwrite pf_kill_states with b'D', 41; pfvar::pfioc_state_kill);
+ioctl_readwrite!(pf_kill_states, b'D', 41, pfvar::pfioc_state_kill);
 // DIOCBEGINADDRS
-ioctl!(readwrite pf_begin_addrs with b'D', 51; pfvar::pfioc_pooladdr);
+ioctl_readwrite!(pf_begin_addrs, b'D', 51, pfvar::pfioc_pooladdr);
 // DIOCADDADDR
-ioctl!(readwrite pf_add_addr with b'D', 52; pfvar::pfioc_pooladdr);
+ioctl_readwrite!(pf_add_addr, b'D', 52, pfvar::pfioc_pooladdr);
 // DIOCXBEGIN
-ioctl!(readwrite pf_begin_trans with b'D', 81; pfvar::pfioc_trans);
+ioctl_readwrite!(pf_begin_trans, b'D', 81, pfvar::pfioc_trans);
 // DIOCXCOMMIT
-ioctl!(readwrite pf_commit_trans with b'D', 82; pfvar::pfioc_trans);
+ioctl_readwrite!(pf_commit_trans, b'D', 82, pfvar::pfioc_trans);
