@@ -6,23 +6,17 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#[macro_use]
-extern crate error_chain;
-
 use pfctl::{ipnetwork, FilterRuleBuilder, PfCtl, RedirectRuleBuilder};
 use std::net::Ipv4Addr;
 
-error_chain! {}
-quick_main!(run);
-
 static ANCHOR_NAME: &str = "test.anchor";
 
-fn run() -> Result<()> {
-    let mut pf = PfCtl::new().chain_err(|| "Unable to connect to PF")?;
+fn main() {
+    let mut pf = PfCtl::new().expect("Unable to connect to PF");
     pf.try_add_anchor(ANCHOR_NAME, pfctl::AnchorKind::Filter)
-        .chain_err(|| "Unable to add test filter anchor")?;
+        .expect("Unable to add test filter anchor");
     pf.try_add_anchor(ANCHOR_NAME, pfctl::AnchorKind::Redirect)
-        .chain_err(|| "Unable to add test redirect anchor")?;
+        .expect("Unable to add test redirect anchor");
 
     // Create the firewall rule instances
     let pass_all_rule = FilterRuleBuilder::default()
@@ -95,26 +89,25 @@ fn run() -> Result<()> {
 
     // Add the rules to the test anchor
     pf.add_rule(ANCHOR_NAME, &pass_all_rule)
-        .chain_err(|| "Unable to add rule")?;
+        .expect("Unable to add rule");
     pf.add_rule(ANCHOR_NAME, &pass_all_ipv4_quick_rule)
-        .chain_err(|| "Unable to add rule")?;
+        .expect("Unable to add rule");
     pf.add_rule(ANCHOR_NAME, &pass_all_ipv6_on_utun0_rule)
-        .chain_err(|| "Unable to add rule")?;
+        .expect("Unable to add rule");
     pf.add_rule(ANCHOR_NAME, &block_a_private_net_rule)
-        .chain_err(|| "Unable to add rule")?;
+        .expect("Unable to add rule");
     pf.add_rule(ANCHOR_NAME, &pass_all_icmp_echo_req)
-        .chain_err(|| "Unable to add rule")?;
+        .expect("Unable to add rule");
     pf.add_rule(ANCHOR_NAME, &pass_all_icmp_port_unreach)
-        .chain_err(|| "Unable to add rule")?;
+        .expect("Unable to add rule");
     pf.add_rule(ANCHOR_NAME, &pass_all_icmp_timex_transit)
-        .chain_err(|| "Unable to add rule")?;
+        .expect("Unable to add rule");
     pf.add_rule(ANCHOR_NAME, &pass_all_icmp_timex_reassembly)
-        .chain_err(|| "Unable to add rule")?;
+        .expect("Unable to add rule");
     pf.add_redirect_rule(ANCHOR_NAME, &redirect_incoming_tcp_from_port_3000_to_4000)
-        .chain_err(|| "Unable to add redirect rule")?;
+        .expect("Unable to add redirect rule");
 
     println!("Added a bunch of rules to the {} anchor.", ANCHOR_NAME);
     println!("Run this command to remove them:");
     println!("sudo pfctl -a {} -F all", ANCHOR_NAME);
-    Ok(())
 }
