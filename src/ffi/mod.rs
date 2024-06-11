@@ -8,10 +8,20 @@
 
 use nix::{ioctl_none, ioctl_readwrite};
 
+#[cfg(target_os = "macos")]
 #[allow(non_camel_case_types)]
 #[allow(non_upper_case_globals)]
 #[allow(non_snake_case)]
 #[allow(dead_code)]
+#[path = "pfvar/macos.rs"]
+pub mod pfvar;
+
+#[cfg(target_os = "freebsd")]
+#[allow(non_camel_case_types)]
+#[allow(non_upper_case_globals)]
+#[allow(non_snake_case)]
+#[allow(dead_code)]
+#[path = "pfvar/freebsd.rs"]
 pub mod pfvar;
 
 pub mod tcp {
