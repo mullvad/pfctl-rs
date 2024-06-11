@@ -6,17 +6,27 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+#[macro_use]
+extern crate error_chain;
+
 use pfctl::PfCtl;
 use std::env;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut pf = PfCtl::new()?;
+error_chain! {}
+quick_main!(run);
+
+fn run() -> Result<()> {
+    let mut pf = PfCtl::new().chain_err(|| "Unable to connect to PF")?;
 
     for anchor_name in env::args().skip(1) {
-        pf.flush_rules(&anchor_name, pfctl::RulesetKind::Filter)?;
-        println!("Flushed filter rules under anchor {}", anchor_name);
-        pf.flush_rules(&anchor_name, pfctl::RulesetKind::Redirect)?;
-        println!("Flushed redirect rules under anchor {}", anchor_name);
+        match pf.flush_rules(&anchor_name, pfctl::RulesetKind::Filter) {
+            Ok(_) => println!("Flushed filter rules under anchor {}", anchor_name),
+            err => err.chain_err(|| "Unable to flush filter rules")?,
+        }
+        match pf.flush_rules(&anchor_name, pfctl::RulesetKind::Redirect) {
+            Ok(_) => println!("Flushed redirect rules under anchor {}", anchor_name),
+            err => err.chain_err(|| "Unable to flush redirect rules")?,
+        }
     }
     Ok(())
 }
