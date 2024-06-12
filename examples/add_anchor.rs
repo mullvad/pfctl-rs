@@ -6,25 +6,18 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-#[macro_use]
-extern crate error_chain;
-
 use pfctl::PfCtl;
 use std::env;
 
-error_chain! {}
-quick_main!(run);
-
-fn run() -> Result<()> {
-    let mut pf = PfCtl::new().chain_err(|| "Unable to connect to PF")?;
+fn main() {
+    let mut pf = PfCtl::new().expect("Unable to connect to PF");
 
     for anchor_name in env::args().skip(1) {
         pf.try_add_anchor(&anchor_name, pfctl::AnchorKind::Filter)
-            .chain_err(|| "Unable to add filter anchor")?;
+            .expect("Unable to add filter anchor");
         pf.try_add_anchor(&anchor_name, pfctl::AnchorKind::Redirect)
-            .chain_err(|| "Unable to add redirect anchor")?;
+            .expect("Unable to add redirect anchor");
 
         println!("Added {} as both a redirect and filter anchor", anchor_name);
     }
-    Ok(())
 }
