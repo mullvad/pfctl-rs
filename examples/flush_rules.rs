@@ -13,13 +13,12 @@ fn main() {
     let mut pf = PfCtl::new().expect("Unable to connect to PF");
 
     for anchor_name in env::args().skip(1) {
-        match pf.flush_rules(&anchor_name, pfctl::RulesetKind::Filter) {
-            Ok(_) => println!("Flushed filter rules under anchor {}", anchor_name),
-            err => err.expect("Unable to flush filter rules"),
-        }
-        match pf.flush_rules(&anchor_name, pfctl::RulesetKind::Redirect) {
-            Ok(_) => println!("Flushed redirect rules under anchor {}", anchor_name),
-            err => err.expect("Unable to flush redirect rules"),
-        }
+        pf.flush_rules(&anchor_name, pfctl::RulesetKind::Filter)
+            .expect("Unable to flush filter rules");
+        println!("Flushed filter rules under anchor {}", anchor_name);
+
+        pf.flush_rules(&anchor_name, pfctl::RulesetKind::Redirect)
+            .expect("Unable to flush redirect rules");
+        println!("Flushed redirect rules under anchor {}", anchor_name);
     }
 }
