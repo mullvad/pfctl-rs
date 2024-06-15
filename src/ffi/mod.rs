@@ -24,6 +24,14 @@ pub mod pfvar;
 #[path = "pfvar/freebsd.rs"]
 pub mod pfvar;
 
+#[cfg(target_os = "openbsd")]
+#[allow(non_camel_case_types)]
+#[allow(non_upper_case_globals)]
+#[allow(non_snake_case)]
+#[allow(dead_code)]
+#[path = "pfvar/openbsd.rs"]
+pub mod pfvar;
+
 pub mod tcp {
     use std::os::raw::c_uint;
 
