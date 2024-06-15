@@ -123,6 +123,16 @@ pub const PFRULE_AFTO: u32 = 2097152;
 pub const PFRULE_EXPIRED: u32 = 4194304;
 pub const PF_PKTDELAY_MAXPKTS: u32 = 10000;
 pub const PF_RESERVED_ANCHOR: &[u8; 4] = b"_pf\0";
+pub const PFR_TFLAG_PERSIST: u32 = 1;
+pub const PFR_TFLAG_CONST: u32 = 2;
+pub const PFR_TFLAG_ACTIVE: u32 = 4;
+pub const PFR_TFLAG_INACTIVE: u32 = 8;
+pub const PFR_TFLAG_REFERENCED: u32 = 16;
+pub const PFR_TFLAG_REFDANCHOR: u32 = 32;
+pub const PFR_TFLAG_COUNTERS: u32 = 64;
+pub const PFR_TFLAG_USRMASK: u32 = 67;
+pub const PFR_TFLAG_SETMASK: u32 = 60;
+pub const PFR_TFLAG_ALLMASK: u32 = 127;
 pub const PF_DPORT_RANGE: u32 = 1;
 pub const PF_RPORT_RANGE: u32 = 2;
 pub const PF_REASS_ENABLED: u32 = 1;
@@ -134,6 +144,16 @@ pub const PF_SYNCOOKIES_MODE_MAX: u32 = 2;
 pub const PF_SYNCOOKIES_HIWATPCT: u32 = 25;
 pub const PF_SYNCOOKIES_LOWATPCT: u32 = 12;
 pub const PF_PRIO_ZERO: u32 = 255;
+pub const PFR_KTABLE_HIWAT: u32 = 1000;
+pub const PFR_KENTRY_HIWAT: u32 = 200000;
+pub const PFR_KENTRY_HIWAT_SMALL: u32 = 100000;
+pub const PFR_FLAG_DUMMY: u32 = 2;
+pub const PFR_FLAG_FEEDBACK: u32 = 4;
+pub const PFR_FLAG_CLSTATS: u32 = 8;
+pub const PFR_FLAG_ADDRSTOO: u32 = 16;
+pub const PFR_FLAG_REPLACE: u32 = 32;
+pub const PFR_FLAG_ALLRSETS: u32 = 64;
+pub const PFR_FLAG_ALLMASK: u32 = 127;
 pub type __uint8_t = ::std::os::raw::c_uchar;
 pub type __uint16_t = ::std::os::raw::c_ushort;
 pub type __int32_t = ::std::os::raw::c_int;
@@ -4080,6 +4100,66 @@ fn bindgen_test_layout_pfr_table() {
             stringify!(pfrt_fback)
         )
     );
+}
+pub const PFR_FB_NONE: _bindgen_ty_14 = _bindgen_ty_14::PFR_FB_NONE;
+pub const PFR_FB_MATCH: _bindgen_ty_14 = _bindgen_ty_14::PFR_FB_MATCH;
+pub const PFR_FB_ADDED: _bindgen_ty_14 = _bindgen_ty_14::PFR_FB_ADDED;
+pub const PFR_FB_DELETED: _bindgen_ty_14 = _bindgen_ty_14::PFR_FB_DELETED;
+pub const PFR_FB_CHANGED: _bindgen_ty_14 = _bindgen_ty_14::PFR_FB_CHANGED;
+pub const PFR_FB_CLEARED: _bindgen_ty_14 = _bindgen_ty_14::PFR_FB_CLEARED;
+pub const PFR_FB_DUPLICATE: _bindgen_ty_14 = _bindgen_ty_14::PFR_FB_DUPLICATE;
+pub const PFR_FB_NOTMATCH: _bindgen_ty_14 = _bindgen_ty_14::PFR_FB_NOTMATCH;
+pub const PFR_FB_CONFLICT: _bindgen_ty_14 = _bindgen_ty_14::PFR_FB_CONFLICT;
+pub const PFR_FB_NOCOUNT: _bindgen_ty_14 = _bindgen_ty_14::PFR_FB_NOCOUNT;
+pub const PFR_FB_MAX: _bindgen_ty_14 = _bindgen_ty_14::PFR_FB_MAX;
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub enum _bindgen_ty_14 {
+    PFR_FB_NONE = 0,
+    PFR_FB_MATCH = 1,
+    PFR_FB_ADDED = 2,
+    PFR_FB_DELETED = 3,
+    PFR_FB_CHANGED = 4,
+    PFR_FB_CLEARED = 5,
+    PFR_FB_DUPLICATE = 6,
+    PFR_FB_NOTMATCH = 7,
+    PFR_FB_CONFLICT = 8,
+    PFR_FB_NOCOUNT = 9,
+    PFR_FB_MAX = 10,
+}
+pub const PFR_DIR_IN: _bindgen_ty_15 = _bindgen_ty_15::PFR_DIR_IN;
+pub const PFR_DIR_OUT: _bindgen_ty_15 = _bindgen_ty_15::PFR_DIR_OUT;
+pub const PFR_DIR_MAX: _bindgen_ty_15 = _bindgen_ty_15::PFR_DIR_MAX;
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub enum _bindgen_ty_15 {
+    PFR_DIR_IN = 0,
+    PFR_DIR_OUT = 1,
+    PFR_DIR_MAX = 2,
+}
+pub const PFR_OP_BLOCK: _bindgen_ty_16 = _bindgen_ty_16::PFR_OP_BLOCK;
+pub const PFR_OP_MATCH: _bindgen_ty_16 = _bindgen_ty_16::PFR_OP_MATCH;
+pub const PFR_OP_PASS: _bindgen_ty_16 = _bindgen_ty_16::PFR_OP_PASS;
+pub const PFR_OP_ADDR_MAX: _bindgen_ty_16 = _bindgen_ty_16::PFR_OP_ADDR_MAX;
+pub const PFR_OP_TABLE_MAX: _bindgen_ty_16 = _bindgen_ty_16::PFR_OP_TABLE_MAX;
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub enum _bindgen_ty_16 {
+    PFR_OP_BLOCK = 0,
+    PFR_OP_MATCH = 1,
+    PFR_OP_PASS = 2,
+    PFR_OP_ADDR_MAX = 3,
+    PFR_OP_TABLE_MAX = 4,
+}
+pub const PFR_REFCNT_RULE: _bindgen_ty_17 = _bindgen_ty_17::PFR_REFCNT_RULE;
+pub const PFR_REFCNT_ANCHOR: _bindgen_ty_17 = _bindgen_ty_17::PFR_REFCNT_ANCHOR;
+pub const PFR_REFCNT_MAX: _bindgen_ty_17 = _bindgen_ty_17::PFR_REFCNT_MAX;
+#[repr(u32)]
+#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+pub enum _bindgen_ty_17 {
+    PFR_REFCNT_RULE = 0,
+    PFR_REFCNT_ANCHOR = 1,
+    PFR_REFCNT_MAX = 2,
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
