@@ -66,7 +66,6 @@ mac_os() {
 freebsd() {
     if [ -z "${1}" ]; then
         input=/usr/include/net/pfvar.h
-        printf "#include <net/if.h>\n#include <net/pfvar.h>" > _pfvar_wrapper.h
     else
         input=${1}
     fi
@@ -94,6 +93,7 @@ openbsd() {
     else
         input=${1}
     fi
+    output=${2:-./src/ffi/pfvar/openbsd.rs}
     # OpenBSD has a weird way of packaging LLVM/Clang. Needs to be manually specified.
     if [ -z "$LIBCLANG_PATH" ]; then
         >&2 echo "\$LIBCLANG_PATH is missing. An LLVM toolchain has to be installed first e.g.: pkg_add llvm17"
