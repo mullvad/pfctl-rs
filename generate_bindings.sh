@@ -108,7 +108,7 @@ openbsd() {
         --allowlist-type pfioc_trans \
         --allowlist-type pfioc_states \
         --allowlist-type pfioc_state_kill \
-	--allowlist-type pfr_table \
+	--allowlist-type pfr_addr \
         --allowlist-var PF_.* \
         --allowlist-var PFR_.* \
         --allowlist-var PFRULE_.* \

@@ -4127,6 +4127,177 @@ pub enum _bindgen_ty_14 {
     PFR_FB_NOCOUNT = 9,
     PFR_FB_MAX = 10,
 }
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct pfr_addr {
+    pub pfra_u: pfr_addr__bindgen_ty_1,
+    pub pfra_ifname: [::std::os::raw::c_char; 16usize],
+    pub pfra_states: u_int32_t,
+    pub pfra_weight: u_int16_t,
+    pub pfra_af: u_int8_t,
+    pub pfra_net: u_int8_t,
+    pub pfra_not: u_int8_t,
+    pub pfra_fback: u_int8_t,
+    pub pfra_type: u_int8_t,
+    pub pad: [u_int8_t; 7usize],
+}
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub union pfr_addr__bindgen_ty_1 {
+    pub _pfra_ip4addr: in_addr,
+    pub _pfra_ip6addr: in6_addr,
+}
+#[test]
+fn bindgen_test_layout_pfr_addr__bindgen_ty_1() {
+    const UNINIT: ::std::mem::MaybeUninit<pfr_addr__bindgen_ty_1> =
+        ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<pfr_addr__bindgen_ty_1>(),
+        16usize,
+        concat!("Size of: ", stringify!(pfr_addr__bindgen_ty_1))
+    );
+    assert_eq!(
+        ::std::mem::align_of::<pfr_addr__bindgen_ty_1>(),
+        4usize,
+        concat!("Alignment of ", stringify!(pfr_addr__bindgen_ty_1))
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr)._pfra_ip4addr) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(pfr_addr__bindgen_ty_1),
+            "::",
+            stringify!(_pfra_ip4addr)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr)._pfra_ip6addr) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(pfr_addr__bindgen_ty_1),
+            "::",
+            stringify!(_pfra_ip6addr)
+        )
+    );
+}
+#[test]
+fn bindgen_test_layout_pfr_addr() {
+    const UNINIT: ::std::mem::MaybeUninit<pfr_addr> = ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<pfr_addr>(),
+        52usize,
+        concat!("Size of: ", stringify!(pfr_addr))
+    );
+    assert_eq!(
+        ::std::mem::align_of::<pfr_addr>(),
+        4usize,
+        concat!("Alignment of ", stringify!(pfr_addr))
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).pfra_u) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(pfr_addr),
+            "::",
+            stringify!(pfra_u)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).pfra_ifname) as usize - ptr as usize },
+        16usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(pfr_addr),
+            "::",
+            stringify!(pfra_ifname)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).pfra_states) as usize - ptr as usize },
+        32usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(pfr_addr),
+            "::",
+            stringify!(pfra_states)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).pfra_weight) as usize - ptr as usize },
+        36usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(pfr_addr),
+            "::",
+            stringify!(pfra_weight)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).pfra_af) as usize - ptr as usize },
+        38usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(pfr_addr),
+            "::",
+            stringify!(pfra_af)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).pfra_net) as usize - ptr as usize },
+        39usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(pfr_addr),
+            "::",
+            stringify!(pfra_net)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).pfra_not) as usize - ptr as usize },
+        40usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(pfr_addr),
+            "::",
+            stringify!(pfra_not)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).pfra_fback) as usize - ptr as usize },
+        41usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(pfr_addr),
+            "::",
+            stringify!(pfra_fback)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).pfra_type) as usize - ptr as usize },
+        42usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(pfr_addr),
+            "::",
+            stringify!(pfra_type)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).pad) as usize - ptr as usize },
+        43usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(pfr_addr),
+            "::",
+            stringify!(pad)
+        )
+    );
+}
 pub const PFR_DIR_IN: _bindgen_ty_15 = _bindgen_ty_15::PFR_DIR_IN;
 pub const PFR_DIR_OUT: _bindgen_ty_15 = _bindgen_ty_15::PFR_DIR_OUT;
 pub const PFR_DIR_MAX: _bindgen_ty_15 = _bindgen_ty_15::PFR_DIR_MAX;
