@@ -109,6 +109,7 @@ openbsd() {
         --allowlist-type pfioc_states \
         --allowlist-type pfioc_state_kill \
         --allowlist-var PF_.* \
+        --allowlist-var PFR_.* \
         --allowlist-var PFRULE_.* \
         --default-enum-style rust \
         -o "${output}" "${input}"

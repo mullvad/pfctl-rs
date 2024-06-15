@@ -56,8 +56,10 @@ ioctl_readwrite!(pf_delete_rule, b'D', 28, pfvar::pfioc_rule);
 // DIOCKILLSTATES
 ioctl_readwrite!(pf_kill_states, b'D', 41, pfvar::pfioc_state_kill);
 // DIOCBEGINADDRS
+#[cfg(any(target_os = "macos", target_os = "freebsd"))]
 ioctl_readwrite!(pf_begin_addrs, b'D', 51, pfvar::pfioc_pooladdr);
 // DIOCADDADDR
+#[cfg(any(target_os = "macos", target_os = "freebsd"))]
 ioctl_readwrite!(pf_add_addr, b'D', 52, pfvar::pfioc_pooladdr);
 // DIOCXBEGIN
 ioctl_readwrite!(pf_begin_trans, b'D', 81, pfvar::pfioc_trans);
