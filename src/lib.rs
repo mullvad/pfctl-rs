@@ -232,6 +232,8 @@ impl PfCtl {
     pub fn add_rule(&mut self, anchor: &str, rule: &FilterRule) -> Result<()> {
         let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
 
+        // OpenBSD has no pool tickets
+        #[cfg(any(target_os = "macos", target_os = "freebsd"))]
         pfioc_rule.pool_ticket = utils::get_pool_ticket(self.fd())?;
         pfioc_rule.ticket = utils::get_ticket(self.fd(), anchor, AnchorKind::Filter)?;
         anchor
@@ -257,6 +259,8 @@ impl PfCtl {
 
         // register redirect address in newly created address pool
         let redirect_to = rule.get_redirect_to();
+        // OpenBSD has no pool tickets
+        #[cfg(any(target_os = "macos", target_os = "freebsd"))]
         let pool_ticket = utils::get_pool_ticket(self.fd())?;
         utils::add_pool_address(self.fd(), redirect_to.ip(), pool_ticket)?;
 

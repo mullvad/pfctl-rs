@@ -61,6 +61,10 @@ ioctl_readwrite!(pf_begin_addrs, b'D', 51, pfvar::pfioc_pooladdr);
 // DIOCADDADDR
 #[cfg(any(target_os = "macos", target_os = "freebsd"))]
 ioctl_readwrite!(pf_add_addr, b'D', 52, pfvar::pfioc_pooladdr);
+
+#[cfg(target_os = "openbsd")]
+
+
 // DIOCXBEGIN
 ioctl_readwrite!(pf_begin_trans, b'D', 81, pfvar::pfioc_trans);
 // DIOCXCOMMIT

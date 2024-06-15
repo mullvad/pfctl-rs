@@ -26,6 +26,7 @@ pub fn open_pf() -> Result<File> {
 }
 
 /// Add pool address using the pool ticket previously obtained via `get_pool_ticket()`
+#[cfg(any(target_os = "macos", target_os = "freebsd"))]
 pub fn add_pool_address<A: Into<PoolAddr>>(
     fd: RawFd,
     pool_addr: A,
@@ -38,8 +39,17 @@ pub fn add_pool_address<A: Into<PoolAddr>>(
 }
 
 /// Get pool ticket
+#[cfg(any(target_os = "macos", target_os = "freebsd"))]
 pub fn get_pool_ticket(fd: RawFd) -> Result<u32> {
     let mut pfioc_pooladdr = unsafe { mem::zeroed::<ffi::pfvar::pfioc_pooladdr>() };
+    ioctl_guard!(ffi::pf_begin_addrs(fd, &mut pfioc_pooladdr))?;
+    Ok(pfioc_pooladdr.ticket)
+}
+
+/// Get table ticket
+#[cfg(target_os = "openbsd")]
+pub fn get_table_ticket(fd: RawFd) -> Result<u32> {
+    let mut pfioc_table = unsafe { mem::zeroed::<ffi::pfvar::pfioc_table>() };
     ioctl_guard!(ffi::pf_begin_addrs(fd, &mut pfioc_pooladdr))?;
     Ok(pfioc_pooladdr.ticket)
 }
