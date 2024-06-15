@@ -105,12 +105,12 @@ openbsd() {
         --allowlist-type pf_status \
         --allowlist-type pfioc_rule \
         --allowlist-type pfioc_pooladdr \
+	--allowlist-type pfioc_table \
         --allowlist-type pfioc_trans \
         --allowlist-type pfioc_states \
         --allowlist-type pfioc_state_kill \
 	--allowlist-type pfr_addr \
         --allowlist-var PF_.* \
-        --allowlist-var PFR_.* \
         --allowlist-var PFRULE_.* \
         --default-enum-style rust \
         -o "${output}" "${input}"
