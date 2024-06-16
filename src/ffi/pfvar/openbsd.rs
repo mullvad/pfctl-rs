@@ -5465,6 +5465,58 @@ fn bindgen_test_layout_pfioc_states() {
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct pfioc_ruleset {
+    pub nr: u_int32_t,
+    pub path: [::std::os::raw::c_char; 1024usize],
+    pub name: [::std::os::raw::c_char; 64usize],
+}
+#[test]
+fn bindgen_test_layout_pfioc_ruleset() {
+    const UNINIT: ::std::mem::MaybeUninit<pfioc_ruleset> = ::std::mem::MaybeUninit::uninit();
+    let ptr = UNINIT.as_ptr();
+    assert_eq!(
+        ::std::mem::size_of::<pfioc_ruleset>(),
+        1092usize,
+        concat!("Size of: ", stringify!(pfioc_ruleset))
+    );
+    assert_eq!(
+        ::std::mem::align_of::<pfioc_ruleset>(),
+        4usize,
+        concat!("Alignment of ", stringify!(pfioc_ruleset))
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).nr) as usize - ptr as usize },
+        0usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(pfioc_ruleset),
+            "::",
+            stringify!(nr)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).path) as usize - ptr as usize },
+        4usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(pfioc_ruleset),
+            "::",
+            stringify!(path)
+        )
+    );
+    assert_eq!(
+        unsafe { ::std::ptr::addr_of!((*ptr).name) as usize - ptr as usize },
+        1028usize,
+        concat!(
+            "Offset of field: ",
+            stringify!(pfioc_ruleset),
+            "::",
+            stringify!(name)
+        )
+    );
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct pfioc_trans {
     pub size: ::std::os::raw::c_int,
     pub esize: ::std::os::raw::c_int,
