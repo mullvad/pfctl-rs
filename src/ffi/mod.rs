@@ -64,8 +64,12 @@ ioctl_readwrite!(pf_begin_addrs, b'D', 51, pfvar::pfioc_pooladdr);
 // DIOCADDADDR
 #[cfg(any(target_os = "macos", target_os = "freebsd"))]
 ioctl_readwrite!(pf_add_addr, b'D', 52, pfvar::pfioc_pooladdr);
-
-
+// DIOCGETRULESETS
+#[cfg(any(target_os = "freebsd", target_os = "openbsd"))]
+ioctl_readwrite!(pf_get_rulesets, b'D', 58, pfvar::pfioc_ruleset);
+// DIOCGETRULESET
+#[cfg(any(target_os = "freebsd", target_os = "openbsd"))]
+ioctl_readwrite!(pf_get_ruleset, b'D', 59, pfvar::pfioc_ruleset);
 // DIOCXBEGIN
 ioctl_readwrite!(pf_begin_trans, b'D', 81, pfvar::pfioc_trans);
 // DIOCXCOMMIT
@@ -73,6 +77,5 @@ ioctl_readwrite!(pf_commit_trans, b'D', 82, pfvar::pfioc_trans);
 
 // DIOCXEND
 // Required by OpenBSD to release the ticket obtained by the DIOCGETRULES command.
-// TODO: Switch to openbsd before push
-#[cfg(any(target_os = "macos"))]
+#[cfg(any(target_os = "openbsd"))]
 ioctl_readwrite!(pf_end_trans, b'D', 100, pfvar::u_int32_t);

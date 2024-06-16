@@ -73,15 +73,16 @@ freebsd() {
     bindgen \
         --allowlist-type pf_status \
         --allowlist-type pfioc_rule \
+        --allowlist-type pfioc_ruleset \
         --allowlist-type pfioc_pooladdr \
         --allowlist-type pfioc_trans \
         --allowlist-type pfioc_states \
         --allowlist-type pfioc_state_kill \
+        --allowlist-type pfsync_state_1301 \
         --allowlist-var PF_.* \
         --allowlist-var PFRULE_.* \
         --default-enum-style rust \
         -o "${output}" "${input}"
-    rm "${input}"
     echo "pfvar.h bindings for FreeBSD has been generated at: ${output}"
 }
 

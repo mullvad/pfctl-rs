@@ -6,7 +6,11 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use crate::{conversion::TryCopyTo, ffi, AnchorKind, ErrorKind, PoolAddr, Result, ResultExt};
+use crate::{conversion::TryCopyTo, ffi, ErrorKind, PoolAddr, Result, ResultExt};
+
+#[cfg(target_os = "macos")]
+use crate::AnchorKind;
+
 use std::{
     fs::{File, OpenOptions},
     mem,
