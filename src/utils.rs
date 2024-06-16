@@ -46,18 +46,21 @@ pub fn get_pool_ticket(fd: RawFd) -> Result<u32> {
     Ok(pfioc_pooladdr.ticket)
 }
 
-/// Get table ticket
-#[cfg(target_os = "openbsd")]
-pub fn get_table_ticket(fd: RawFd) -> Result<u32> {
-    let mut pfioc_table = unsafe { mem::zeroed::<ffi::pfvar::pfioc_table>() };
-    ioctl_guard!(ffi::pf_begin_addrs(fd, &mut pfioc_pooladdr))?;
-    Ok(pfioc_pooladdr.ticket)
-}
-
-pub fn get_ticket(fd: RawFd, anchor: &str, kind: AnchorKind) -> Result<u32> {
+pub fn get_ticket(
+    fd: RawFd,
+    anchor:&str,
+    #[cfg(target_os = "macos")]
+    kind: AnchorKind
+) -> Result<u32> {
     let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
-    pfioc_rule.action = ffi::pfvar::PF_CHANGE_GET_TICKET as u32;
-    pfioc_rule.rule.action = kind.into();
+    #[cfg(target_os = "macos")] {
+        pfioc_rule.action = ffi::pfvar::PF_CHANGE_GET_TICKET as u32;
+        pfioc_rule.rule.action = kind.into();
+    }
+    // pfioc_rule.action is ignored on FreeBSD and OpenBSD
+    #[cfg(any(target_os = "openbsd", target_os = "freebsd"))] {
+        pfioc_rule.rule.action = ffi::pfvar::PF_CHANGE_GET_TICKET as u8;
+    }
     anchor
         .try_copy_to(&mut pfioc_rule.anchor[..])
         .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;

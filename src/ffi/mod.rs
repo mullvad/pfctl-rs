@@ -50,8 +50,11 @@ ioctl_readwrite!(pf_get_states, b'D', 25, pfvar::pfioc_states);
 // DIOCCHANGERULE
 ioctl_readwrite!(pf_change_rule, b'D', 26, pfvar::pfioc_rule);
 // DIOCINSERTRULE
+// Substituted on FreeBSD and OpenBSD by DIOCCHANGERULE with rule.action = PF_CHANGE_REMOVE
 ioctl_readwrite!(pf_insert_rule, b'D', 27, pfvar::pfioc_rule);
 // DIOCDELETERULE
+// Substituted on FreeBSD and OpenBSD by DIOCCHANGERULE with rule.action = PF_CHANGE_REMOVE
+#[cfg(any(target_os = "macos"))]
 ioctl_readwrite!(pf_delete_rule, b'D', 28, pfvar::pfioc_rule);
 // DIOCKILLSTATES
 ioctl_readwrite!(pf_kill_states, b'D', 41, pfvar::pfioc_state_kill);
@@ -62,10 +65,14 @@ ioctl_readwrite!(pf_begin_addrs, b'D', 51, pfvar::pfioc_pooladdr);
 #[cfg(any(target_os = "macos", target_os = "freebsd"))]
 ioctl_readwrite!(pf_add_addr, b'D', 52, pfvar::pfioc_pooladdr);
 
-#[cfg(target_os = "openbsd")]
-
 
 // DIOCXBEGIN
 ioctl_readwrite!(pf_begin_trans, b'D', 81, pfvar::pfioc_trans);
 // DIOCXCOMMIT
 ioctl_readwrite!(pf_commit_trans, b'D', 82, pfvar::pfioc_trans);
+
+// DIOCXEND
+// Required by OpenBSD to release the ticket obtained by the DIOCGETRULES command.
+// TODO: Switch to openbsd before push
+#[cfg(any(target_os = "macos"))]
+ioctl_readwrite!(pf_end_trans, b'D', 100, pfvar::u_int32_t);
