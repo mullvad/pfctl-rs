@@ -62,6 +62,7 @@
 #[macro_use]
 pub extern crate error_chain;
 
+use core::slice;
 use std::{
     ffi::CStr,
     fs::File,
@@ -147,10 +148,19 @@ mod conversion {
 use crate::conversion::*;
 
 /// Internal function to safely compare Rust string with raw C string slice
-fn compare_cstr_safe(s: &str, cchars: &[std::os::raw::c_char]) -> Result<bool> {
-    ensure!(cchars.iter().any(|&c| c == 0), "Not null terminated");
-    let cs = unsafe { CStr::from_ptr(cchars.as_ptr()) };
-    Ok(s.as_bytes() == cs.to_bytes())
+///
+/// # Panics
+///
+/// Panics if `cchars` does not contain any null byte.
+fn compare_cstr_safe(s: &str, cchars: &[std::os::raw::c_char]) -> bool {
+    // Due to `c_char` being `i8` on macOS, and `CStr` methods taking `u8` data,
+    // we need to convert the slice from `&[i8]` to `&[u8]`
+    let c_chars_ptr = cchars.as_ptr() as *const u8;
+    let cchars_u8 = unsafe { slice::from_raw_parts(c_chars_ptr, cchars.len()) };
+
+    let cs = CStr::from_bytes_until_nul(cchars_u8)
+        .expect("System returned C String without terminating null byte");
+    s.as_bytes() == cs.to_bytes()
 }
 
 /// Struct communicating with the PF firewall.
@@ -355,7 +365,7 @@ impl PfCtl {
         for i in 0..pfioc_rule.nr {
             pfioc_rule.nr = i;
             ioctl_guard!(ffi::pf_get_rule(self.fd(), &mut pfioc_rule))?;
-            if compare_cstr_safe(name, &pfioc_rule.anchor_call)? {
+            if compare_cstr_safe(name, &pfioc_rule.anchor_call) {
                 return f(pfioc_rule);
             }
         }
@@ -410,44 +420,41 @@ fn setup_pfioc_state_kill(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use assert_matches::assert_matches;
     use std::ffi::CString;
 
     #[test]
+    #[should_panic]
     fn compare_cstr_without_nul() {
         let cstr = CString::new("Hello").unwrap();
         let cchars: &[i8] = unsafe { mem::transmute(cstr.as_bytes()) };
-        assert_matches!(
-            compare_cstr_safe("Hello", cchars),
-            Err(ref e) if e.description() == "Not null terminated"
-        );
+        compare_cstr_safe("Hello", cchars);
     }
 
     #[test]
     fn compare_same_strings() {
         let cstr = CString::new("Hello").unwrap();
         let cchars: &[i8] = unsafe { mem::transmute(cstr.as_bytes_with_nul()) };
-        assert_matches!(compare_cstr_safe("Hello", cchars), Ok(true));
+        assert_eq!(compare_cstr_safe("Hello", cchars), true);
     }
 
     #[test]
     fn compare_different_strings() {
         let cstr = CString::new("Hello").unwrap();
         let cchars: &[i8] = unsafe { mem::transmute(cstr.as_bytes_with_nul()) };
-        assert_matches!(compare_cstr_safe("olleH", cchars), Ok(false));
+        assert_eq!(compare_cstr_safe("olleH", cchars), false);
     }
 
     #[test]
     fn compare_long_short_strings() {
         let cstr = CString::new("veryverylong").unwrap();
         let cchars: &[i8] = unsafe { mem::transmute(cstr.as_bytes_with_nul()) };
-        assert_matches!(compare_cstr_safe("short", cchars), Ok(false));
+        assert_eq!(compare_cstr_safe("short", cchars), false);
     }
 
     #[test]
     fn compare_short_long_strings() {
         let cstr = CString::new("short").unwrap();
         let cchars: &[i8] = unsafe { mem::transmute(cstr.as_bytes_with_nul()) };
-        assert_matches!(compare_cstr_safe("veryverylong", cchars), Ok(false));
+        assert_eq!(compare_cstr_safe("veryverylong", cchars), false);
     }
 }
