@@ -1,7 +1,4 @@
 #[macro_use]
-extern crate error_chain;
-
-#[macro_use]
 #[allow(dead_code)]
 mod helper;
 
@@ -14,21 +11,21 @@ fn after_each() {}
 test!(enable_pf {
     let mut pf = pfctl::PfCtl::new().unwrap();
 
-    assert_matches!(pfcli::disable_firewall(), Ok(()));
+    pfcli::disable_firewall();
     assert_matches!(pf.enable(), Ok(()));
-    assert_matches!(pfcli::is_enabled(), Ok(true));
+    assert!(pfcli::is_enabled());
     assert_matches!(pf.enable(), Err(pfctl::Error(pfctl::ErrorKind::StateAlreadyActive, _)));
     assert_matches!(pf.try_enable(), Ok(()));
-    assert_matches!(pfcli::is_enabled(), Ok(true));
+    assert!(pfcli::is_enabled());
 });
 
 test!(disable_pf {
     let mut pf = pfctl::PfCtl::new().unwrap();
 
-    assert_matches!(pfcli::enable_firewall(), Ok(()));
+    pfcli::enable_firewall();
     assert_matches!(pf.disable(), Ok(()));
-    assert_matches!(pfcli::is_enabled(), Ok(false));
+    assert!(!pfcli::is_enabled());
     assert_matches!(pf.disable(), Err(pfctl::Error(pfctl::ErrorKind::StateAlreadyActive, _)));
     assert_matches!(pf.try_disable(), Ok(()));
-    assert_matches!(pfcli::is_enabled(), Ok(false));
+    assert!(!pfcli::is_enabled());
 });
