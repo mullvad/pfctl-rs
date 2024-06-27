@@ -88,6 +88,9 @@ pub use crate::anchor::*;
 mod ruleset;
 pub use crate::ruleset::*;
 
+mod state;
+pub use crate::state::*;
+
 mod transaction;
 pub use crate::transaction::*;
 
@@ -110,6 +113,12 @@ pub enum ErrorKind {
     InvalidPortRange,
     /// The supplied rule label is not compatible with PF.
     InvalidLabel,
+    /// The address family is invalid
+    InvalidAddressFamily,
+    /// The direction is invalid
+    InvalidDirection,
+    /// The transport protocol is invalid
+    InvalidTransportProtocol,
     /// The target state was already active
     StateAlreadyActive,
     /// This PF anchor does not exist
@@ -130,6 +139,9 @@ enum ErrorInternal {
     InvalidAnchorName(&'static str),
     InvalidPortRange,
     InvalidLabel(&'static str),
+    InvalidAddressFamily(u8),
+    InvalidDirection(u8),
+    InvalidTransportProtocol(u8),
     StateAlreadyActive,
     AnchorDoesNotExist,
     Ioctl(std::io::Error),
@@ -147,6 +159,9 @@ impl Error {
             InvalidAnchorName(..) => ErrorKind::InvalidAnchorName,
             InvalidPortRange => ErrorKind::InvalidPortRange,
             InvalidLabel(..) => ErrorKind::InvalidLabel,
+            InvalidAddressFamily(_) => ErrorKind::InvalidAddressFamily,
+            InvalidDirection(_) => ErrorKind::InvalidDirection,
+            InvalidTransportProtocol(_) => ErrorKind::InvalidTransportProtocol,
             StateAlreadyActive => ErrorKind::StateAlreadyActive,
             AnchorDoesNotExist => ErrorKind::AnchorDoesNotExist,
             Ioctl(_) => ErrorKind::Ioctl,
@@ -173,6 +188,11 @@ impl fmt::Display for Error {
             InvalidAnchorName(reason) => write!(f, "Invalid anchor name ({reason})"),
             InvalidPortRange => write!(f, "Lower port is greater than upper port"),
             InvalidLabel(reason) => write!(f, "Invalid rule label ({reason}"),
+            InvalidAddressFamily(family) => write!(f, "Invalid address family ({family})"),
+            InvalidDirection(direction) => write!(f, "Invalid direction ({direction})"),
+            InvalidTransportProtocol(protocol) => {
+                write!(f, "Invalid transport protocol ({protocol})")
+            }
             StateAlreadyActive => write!(f, "Target state is already active"),
             AnchorDoesNotExist => write!(f, "Anchor does not exist"),
             Ioctl(_) => write!(f, "Error during ioctl syscall"),
@@ -380,7 +400,7 @@ impl PfCtl {
     /// Returns total number of removed states upon success, otherwise
     /// ErrorKind::AnchorDoesNotExist if anchor does not exist.
     pub fn clear_states(&mut self, anchor_name: &str, kind: AnchorKind) -> Result<u32> {
-        let pfsync_states = self.get_states()?;
+        let pfsync_states = self.get_states_inner()?;
         if !pfsync_states.is_empty() {
             self.with_anchor_rule(anchor_name, kind, |anchor_rule| {
                 pfsync_states
@@ -414,7 +434,30 @@ impl PfCtl {
     }
 
     /// Get all states created by stateful rules
-    fn get_states(&mut self) -> Result<Vec<ffi::pfvar::pfsync_state>> {
+    pub fn get_states(&mut self) -> Result<Vec<State>> {
+        let wrapped_states = self
+            .get_states_inner()?
+            .into_iter()
+            .map(|state| {
+                // SAFETY: `state` is zero-initialized by `setup_pfioc_states`.
+                unsafe { State::new(state) }
+            })
+            .collect();
+        Ok(wrapped_states)
+    }
+
+    /// Remove the specified state.
+    ///
+    /// All current states can be obtained via [get_states].
+    pub fn kill_state(&mut self, state: &State) -> Result<()> {
+        let mut pfioc_state_kill = unsafe { mem::zeroed::<ffi::pfvar::pfioc_state_kill>() };
+        setup_pfioc_state_kill(state.as_raw(), &mut pfioc_state_kill);
+        ioctl_guard!(ffi::pf_kill_states(self.fd(), &mut pfioc_state_kill))?;
+        Ok(())
+    }
+
+    /// Get all states created by stateful rules
+    fn get_states_inner(&mut self) -> Result<Vec<ffi::pfvar::pfsync_state>> {
         let num_states = self.get_num_states()?;
         if num_states > 0 {
             let (mut pfioc_states, pfsync_states) = setup_pfioc_states(num_states);
