@@ -88,6 +88,9 @@ pub use crate::anchor::*;
 mod ruleset;
 pub use crate::ruleset::*;
 
+mod state;
+pub use crate::state::*;
+
 mod transaction;
 pub use crate::transaction::*;
 
@@ -398,6 +401,27 @@ impl PfCtl {
         ioctl_guard!(ffi::pf_clear_states(self.fd(), &mut pfioc_state_kill))?;
         // psk_af holds the number of killed states
         Ok(pfioc_state_kill.psk_af as u32)
+    }
+
+    /// Keep all states for which `filter` returns true.
+    /// Returns total number of removed states upon success.
+    pub fn filter_states(&mut self, filter: impl Fn(&State) -> bool) -> Result<u32> {
+        let states = self.get_states()?;
+        states
+            .into_iter()
+            .filter(|state| {
+                let parsed_state = State::from(state.clone());
+                !filter(&parsed_state)
+            })
+            .map(|pfsync_state| {
+                let mut pfioc_state_kill = unsafe { mem::zeroed::<ffi::pfvar::pfioc_state_kill>() };
+                setup_pfioc_state_kill(&pfsync_state, &mut pfioc_state_kill);
+                ioctl_guard!(ffi::pf_kill_states(self.fd(), &mut pfioc_state_kill))?;
+                // psk_af holds the number of killed states
+                Ok(pfioc_state_kill.psk_af as u32)
+            })
+            .collect::<Result<Vec<_>>>()
+            .map(|v| v.iter().sum())
     }
 
     /// Get all states created by stateful rules
