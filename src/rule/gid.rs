@@ -8,9 +8,8 @@
 
 pub use super::uid::Id;
 use crate::{
-    conversion::TryCopyTo,
+    conversion::CopyTo,
     ffi::pfvar::{pf_rule_gid, PF_OP_NONE},
-    Result,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -28,8 +27,8 @@ impl<T: Into<Id>> From<T> for Gid {
     }
 }
 
-impl TryCopyTo<pf_rule_gid> for Gid {
-    fn try_copy_to(&self, pf_rule_gid: &mut pf_rule_gid) -> Result<()> {
+impl CopyTo<pf_rule_gid> for Gid {
+    fn copy_to(&self, pf_rule_gid: &mut pf_rule_gid) {
         match self.0 {
             Id::Any => {
                 pf_rule_gid.gid[0] = 0;
@@ -47,6 +46,5 @@ impl TryCopyTo<pf_rule_gid> for Gid {
                 pf_rule_gid.op = modifier.into();
             }
         }
-        Ok(())
     }
 }

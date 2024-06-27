@@ -155,8 +155,8 @@ impl TryCopyTo<ffi::pfvar::pf_rule> for FilterRule {
         self.from.try_copy_to(&mut pf_rule.src)?;
         self.to.try_copy_to(&mut pf_rule.dst)?;
         self.label.try_copy_to(&mut pf_rule.label)?;
-        self.user.try_copy_to(&mut pf_rule.uid)?;
-        self.group.try_copy_to(&mut pf_rule.gid)?;
+        self.user.copy_to(&mut pf_rule.uid);
+        self.group.copy_to(&mut pf_rule.gid);
         if let Some(icmp_type) = self.icmp_type {
             icmp_type.copy_to(pf_rule);
         }
@@ -232,8 +232,8 @@ impl TryCopyTo<ffi::pfvar::pf_rule> for RedirectRule {
         self.from.try_copy_to(&mut pf_rule.src)?;
         self.to.try_copy_to(&mut pf_rule.dst)?;
         self.label.try_copy_to(&mut pf_rule.label)?;
-        self.user.try_copy_to(&mut pf_rule.uid)?;
-        self.group.try_copy_to(&mut pf_rule.gid)?;
+        self.user.copy_to(&mut pf_rule.uid);
+        self.group.copy_to(&mut pf_rule.gid);
 
         Ok(())
     }
