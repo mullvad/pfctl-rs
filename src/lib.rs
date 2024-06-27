@@ -198,32 +198,67 @@ impl PfCtl {
 
     pub fn add_anchor(&mut self, name: &str, kind: AnchorKind) -> Result<()> {
         let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
-
-        pfioc_rule.rule.action = kind.into();
+        #[cfg(target_os = "macos")] {
+            pfioc_rule.rule.action = kind.into();
+        }
+        #[cfg(any(target_os = "freebsd", target_os = "openbsd"))] {
+            pfioc_rule.rule.action = ffi::pfvar::PF_CHANGE_REMOVE as u8;
+        }
         name.try_copy_to(&mut pfioc_rule.anchor_call[..])
             .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
-
         ioctl_guard!(ffi::pf_insert_rule(self.fd(), &mut pfioc_rule))?;
         Ok(())
     }
 
     /// Same as `add_anchor`, but `StateAlreadyActive` errors are supressed and exchanged for
     /// `Ok(())`.
-    pub fn try_add_anchor(&mut self, name: &str, kind: AnchorKind) -> Result<()> {
-        ignore_error_kind!(self.add_anchor(name, kind), ErrorKind::StateAlreadyActive)
+    pub fn try_add_anchor(
+        &mut self, name: &str,
+        #[cfg(target_os = "macos")]
+        kind: AnchorKind
+    ) -> Result<()> {
+        ignore_error_kind!(
+            self.add_anchor(name,
+                #[cfg(target_os = "macos")]
+                kind
+            ), ErrorKind::StateAlreadyActive)
     }
 
-    pub fn remove_anchor(&mut self, name: &str, kind: AnchorKind) -> Result<()> {
+    pub fn remove_anchor(
+        &mut self,
+        name: &str,
+        #[cfg(target_os = "macos")]
+        kind: AnchorKind
+    ) -> Result<()> {
         self.with_anchor_rule(name, kind, |mut anchor_rule| {
-            ioctl_guard!(ffi::pf_delete_rule(self.fd(), &mut anchor_rule))
+            #[cfg(target_os = "macos")] {
+                ioctl_guard!(ffi::pf_delete_rule(self.fd(), &mut anchor_rule))
+            }
+            #[cfg(any(target_os = "freebsd", target_os = "openbsd"))] {
+                anchor_rule.ticket = utils::get_ticket(
+                    self.fd(),
+                    name,
+                )?;
+                anchor_rule.rule.action = ffi::pfvar::PF_CHANGE_REMOVE as u8;
+                ioctl_guard!(ffi::pf_change_rule(self.fd(), &mut anchor_rule))
+            }
+
         })
     }
 
     /// Same as `remove_anchor`, but `AnchorDoesNotExist` errors are supressed and exchanged for
     /// `Ok(())`.
-    pub fn try_remove_anchor(&mut self, name: &str, kind: AnchorKind) -> Result<()> {
+    pub fn try_remove_anchor(
+        &mut self,
+        name: &str,
+        #[cfg(target_os = "macos")]
+        kind: AnchorKind
+    ) -> Result<()> {
         ignore_error_kind!(
-            self.remove_anchor(name, kind),
+            self.remove_anchor(name,
+                #[cfg(target_os = "macos")]
+                kind
+            ),
             ErrorKind::AnchorDoesNotExist
         )
     }
@@ -232,14 +267,26 @@ impl PfCtl {
     pub fn add_rule(&mut self, anchor: &str, rule: &FilterRule) -> Result<()> {
         let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
 
-        pfioc_rule.pool_ticket = utils::get_pool_ticket(self.fd())?;
-        pfioc_rule.ticket = utils::get_ticket(self.fd(), anchor, AnchorKind::Filter)?;
+        // OpenBSD has no pool tickets
+        #[cfg(any(target_os = "macos", target_os = "freebsd"))] {
+            pfioc_rule.pool_ticket = utils::get_pool_ticket(self.fd())?;
+        }
+        pfioc_rule.ticket = utils::get_ticket(
+            self.fd(),
+            anchor,
+            #[cfg(target_os = "macos")]
+            AnchorKind::Filter
+        )?;
         anchor
             .try_copy_to(&mut pfioc_rule.anchor[..])
             .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
         rule.try_copy_to(&mut pfioc_rule.rule)?;
-
-        pfioc_rule.action = ffi::pfvar::PF_CHANGE_ADD_TAIL as u32;
+        #[cfg(target_os = "macos")] {
+            pfioc_rule.action = ffi::pfvar::PF_CHANGE_ADD_TAIL as u32;
+        }
+        #[cfg(any(target_os = "freebsd", target_os = "openbsd"))] {
+            pfioc_rule.rule.action = ffi::pfvar::PF_CHANGE_ADD_TAIL as u8;
+        }
         ioctl_guard!(ffi::pf_change_rule(self.fd(), &mut pfioc_rule))
     }
 
@@ -257,17 +304,22 @@ impl PfCtl {
 
         // register redirect address in newly created address pool
         let redirect_to = rule.get_redirect_to();
-        let pool_ticket = utils::get_pool_ticket(self.fd())?;
-        utils::add_pool_address(self.fd(), redirect_to.ip(), pool_ticket)?;
+        // OpenBSD has no pool tickets
+        #[cfg(any(target_os = "macos", target_os = "freebsd"))] {
+            let pool_ticket = utils::get_pool_ticket(self.fd())?;
+            utils::add_pool_address(self.fd(), redirect_to.ip(), pool_ticket)?;
+            let redirect_pool = redirect_to.ip().to_pool_addr_list()?;
+            pfioc_rule.rule.rpool.list = unsafe { redirect_pool.to_palist() };
+            redirect_to.port().try_copy_to(&mut pfioc_rule.rule.rpool)?;
+            // set pool ticket
+            pfioc_rule.pool_ticket = pool_ticket;
+        }
 
-        // copy address pool in pf_rule
-        let redirect_pool = redirect_to.ip().to_pool_addr_list()?;
-        pfioc_rule.rule.rpool.list = unsafe { redirect_pool.to_palist() };
-        redirect_to.port().try_copy_to(&mut pfioc_rule.rule.rpool)?;
-
-        // set tickets
-        pfioc_rule.pool_ticket = pool_ticket;
-        pfioc_rule.ticket = utils::get_ticket(self.fd(), anchor, AnchorKind::Redirect)?;
+        // set ticket
+        pfioc_rule.ticket = utils::get_ticket(self.fd(), anchor,
+                                              #[cfg(target_os = "macos")]
+                                              AnchorKind::Redirect
+        )?;
 
         // append rule
         pfioc_rule.action = ffi::pfvar::PF_CHANGE_ADD_TAIL as u32;
@@ -291,7 +343,10 @@ impl PfCtl {
     pub fn clear_states(&mut self, anchor_name: &str, kind: AnchorKind) -> Result<u32> {
         let pfsync_states = self.get_states()?;
         if !pfsync_states.is_empty() {
-            self.with_anchor_rule(anchor_name, kind, |anchor_rule| {
+            self.with_anchor_rule(anchor_name,
+                                  #[cfg(target_os = "macos")]
+                                  kind,
+                                  |anchor_rule| {
                 pfsync_states
                     .iter()
                     .filter(|pfsync_state| pfsync_state.anchor == anchor_rule.nr)
@@ -335,7 +390,7 @@ impl PfCtl {
         }
     }
 
-    /// Helper function to find an anchor in main ruleset matching by name and kind.
+    /// Helper function to find an anchor in main ruleset matching by name and (on macOS) kind.
     ///
     /// Calls closure with anchor rule (`pfioc_rule`) on match.
     /// Provided `pfioc_rule` can be used to modify or remove the anchor rule.
@@ -344,20 +399,45 @@ impl PfCtl {
     /// - Returns Result<R> from call to closure on match.
     /// - Returns `ErrorKind::AnchorDoesNotExist` on mismatch, the closure is not called in that
     /// case.
-    fn with_anchor_rule<F, R>(&self, name: &str, kind: AnchorKind, f: F) -> Result<R>
+    fn with_anchor_rule<F, R>(
+        &self, name:
+        &str,
+        #[cfg(target_os = "macos")]
+        kind: AnchorKind,
+        f: F
+    ) -> Result<R>
     where
         F: FnOnce(ffi::pfvar::pfioc_rule) -> Result<R>,
     {
         let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
-        pfioc_rule.rule.action = kind.into();
-        ioctl_guard!(ffi::pf_get_rules(self.fd(), &mut pfioc_rule))?;
-        pfioc_rule.action = ffi::pfvar::PF_GET_NONE as u32;
-        for i in 0..pfioc_rule.nr {
-            pfioc_rule.nr = i;
-            ioctl_guard!(ffi::pf_get_rule(self.fd(), &mut pfioc_rule))?;
-            if compare_cstr_safe(name, &pfioc_rule.anchor_call)? {
+        #[cfg(target_os = "macos")] {
+            pfioc_rule.rule.action = kind.into();
+            ioctl_guard!(ffi::pf_get_rules(self.fd(), &mut pfioc_rule))?;
+            pfioc_rule.action = ffi::pfvar::PF_GET_NONE as u32;
+            for i in 0..pfioc_rule.nr {
+                pfioc_rule.nr = i;
+                ioctl_guard!(ffi::pf_get_rule(self.fd(), &mut pfioc_rule))?;
+                if compare_cstr_safe(name, &pfioc_rule.anchor_call)? {
+                    return f(pfioc_rule);
+                }
+            }
+        }
+        #[cfg(any(target_os = "freebsd", target_os = "openbsd"))] {
+            name.try_copy_to(&mut pfioc_rule.anchor[..])
+                .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
+            ioctl_guard!(ffi::pf_get_rules(self.fd(), &mut pfioc_rule))?;
+            // Didn't return EINVAL? Awesome.
+            #[cfg(target_os = "openbsd")] {
                 return f(pfioc_rule);
             }
+            // Run function now because we have to dispose of the ticket afterwards.
+            #[cfg(target_os = "openbsd")] {
+                let mut ticket = pfioc_rule.ticket;
+                let res = f(pfioc_rule);
+                ioctl_guard!(ffi::pf_end_trans(self.fd(), &mut ticket))?;
+                return res;
+            }
+
         }
         bail!(ErrorKind::AnchorDoesNotExist);
     }
@@ -403,8 +483,10 @@ fn setup_pfioc_state_kill(
     pfioc_state_kill.psk_proto = pfsync_state.proto;
     pfioc_state_kill.psk_proto_variant = pfsync_state.proto_variant;
     pfioc_state_kill.psk_ifname = pfsync_state.ifname;
-    pfioc_state_kill.psk_src.addr.v.a.addr = pfsync_state.lan.addr;
-    pfioc_state_kill.psk_dst.addr.v.a.addr = pfsync_state.ext_lan.addr;
+    #[cfg(target_os = "macos")] {
+        pfioc_state_kill.psk_src.addr.v.a.addr = pfsync_state.lan.addr;
+        pfioc_state_kill.psk_dst.addr.v.a.addr = pfsync_state.ext_lan.addr;
+    }
 }
 
 #[cfg(test)]

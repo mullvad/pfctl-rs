@@ -23,6 +23,7 @@ impl From<u16> for Port {
     }
 }
 
+#[cfg(target_os = "macos")]
 impl TryCopyTo<ffi::pfvar::pf_port_range> for Port {
     fn try_copy_to(&self, pf_port_range: &mut ffi::pfvar::pf_port_range) -> Result<()> {
         match *self {

@@ -14,7 +14,8 @@ env:
   RUSTFLAGS: --deny warnings
 
 jobs:
-  build-and-test:
+  build-and-test-macos:
+    name: Build and test on macOS
     strategy:
       matrix:
         # Keep MSRV in sync with rust-version in Cargo.toml as much as possible.
@@ -36,11 +37,38 @@ jobs:
         # Since the tests modify global state (the system firewall) they cannot run in parallel.
         # The integration tests must run as root since they write firewall state (/dev/pf)
         run: sudo cargo test -- --test-threads=1
-
+  build-and-test-openbsd:
+    name: Build and test on OpenBSD
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run tests inside an OpenBSD VM
+        uses: vmactions/openbsd-vm@v1
+        with:
+          usesh: true
+          copyback: false
+          prepare: |
+            pkg_add rust
+          run: |
+            cargo test -- --test-threads=1
+  build-and-test-freebsd:
+    name: Build and test on FreeBSD
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run tests inside a FreeBSD VM
+        uses: vmactions/freebsd-vm@v1
+        with:
+          usesh: true
+          copyback: false
+          prepare: |
+            pkg install -y rust
+          run: |
+            cargo test -- --test-threads=1
   # Make sure the library builds with all dependencies downgraded to their
   # oldest versions allowed by the semver spec. This ensures we have not
   # under-specified any dependency
-  minimal-versions:
+  minimal-versions-macos:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
