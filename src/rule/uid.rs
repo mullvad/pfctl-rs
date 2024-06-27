@@ -7,9 +7,8 @@
 // except according to those terms.
 
 use crate::{
-    conversion::TryCopyTo,
+    conversion::CopyTo,
     ffi::pfvar::{self, pf_rule_uid},
-    Result,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -40,8 +39,8 @@ impl<T: Into<Id>> From<T> for Uid {
     }
 }
 
-impl TryCopyTo<pf_rule_uid> for Uid {
-    fn try_copy_to(&self, pf_rule_uid: &mut pf_rule_uid) -> Result<()> {
+impl CopyTo<pf_rule_uid> for Uid {
+    fn copy_to(&self, pf_rule_uid: &mut pf_rule_uid) {
         match self.0 {
             Id::Any => {
                 pf_rule_uid.uid[0] = 0;
@@ -59,7 +58,6 @@ impl TryCopyTo<pf_rule_uid> for Uid {
                 pf_rule_uid.op = modifier.into();
             }
         }
-        Ok(())
     }
 }
 
