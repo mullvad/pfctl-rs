@@ -1,7 +1,4 @@
 #[macro_use]
-extern crate error_chain;
-
-#[macro_use]
 #[allow(dead_code)]
 mod helper;
 
@@ -28,8 +25,8 @@ fn before_each() {
 
 fn after_each() {
     for anchor_name in ANCHORS.iter() {
-        pfcli::flush_rules(anchor_name, pfcli::FlushOptions::Rules).unwrap();
-        pfcli::flush_rules(anchor_name, pfcli::FlushOptions::Nat).unwrap();
+        pfcli::flush_rules(anchor_name, pfcli::FlushOptions::Rules);
+        pfcli::flush_rules(anchor_name, pfcli::FlushOptions::Nat);
         pfctl::PfCtl::new()
             .unwrap()
             .try_remove_anchor(anchor_name, pfctl::AnchorKind::Filter)
@@ -90,9 +87,9 @@ fn get_marker_redirect_rule() -> pfctl::RedirectRule {
 }
 
 fn verify_filter_rules(anchor: &str) {
-    assert_matches!(
+    assert_eq!(
         pfcli::get_rules(anchor),
-        Ok(ref rules) if rules == &vec![
+        &[
             "pass inet from any to 1.2.3.4 no state",
             "pass inet from any to 9.8.7.6 no state",
         ]
@@ -100,9 +97,9 @@ fn verify_filter_rules(anchor: &str) {
 }
 
 fn verify_redirect_rules(anchor: &str) {
-    assert_matches!(
+    assert_eq!(
         pfcli::get_nat_rules(anchor),
-        Ok(ref rules) if rules == &vec![
+        &[
             "rdr inet from 1.2.3.4 to any port = 3000 -> any port 4000",
             "rdr inet from 1.2.3.4 to any port = 5000 -> any port 6000",
         ]
@@ -110,16 +107,13 @@ fn verify_redirect_rules(anchor: &str) {
 }
 
 fn verify_filter_marker(anchor: &str) {
-    assert_matches!(
-        pfcli::get_rules(anchor),
-        Ok(ref rules) if rules == &vec!["pass all no state"]
-    );
+    assert_eq!(pfcli::get_rules(anchor), &["pass all no state"]);
 }
 
 fn verify_redirect_marker(anchor: &str) {
-    assert_matches!(
+    assert_eq!(
         pfcli::get_nat_rules(anchor),
-        Ok(ref rules) if rules == &vec!["rdr from any to any port = 1337 -> any port 1338"]
+        &["rdr from any to any port = 1337 -> any port 1338"]
     );
 }
 

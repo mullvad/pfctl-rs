@@ -2,11 +2,6 @@ pub use scopeguard;
 
 pub mod pfcli;
 
-mod errors {
-    error_chain! {}
-}
-use self::errors::*;
-
 // A helper class to restore pf state after each test
 pub struct PfState {
     pub pf_enabled: bool,
@@ -17,18 +12,17 @@ impl PfState {
         PfState { pf_enabled: false }
     }
 
-    pub fn save(&mut self) -> Result<()> {
-        self.pf_enabled = pfcli::is_enabled().chain_err(|| "Cannot query pf state")?;
-        Ok(())
+    pub fn save(&mut self) {
+        self.pf_enabled = pfcli::is_enabled();
     }
 
-    pub fn restore(&mut self) -> Result<()> {
-        let is_enabled = pfcli::is_enabled().chain_err(|| "Cannot query pf state")?;
+    pub fn restore(&mut self) {
+        let is_enabled = pfcli::is_enabled();
 
         match (self.pf_enabled, is_enabled) {
-            (false, true) => pfcli::disable_firewall().chain_err(|| "Cannot disable firewall"),
-            (true, false) => pfcli::enable_firewall().chain_err(|| "Cannot enable firewall"),
-            _ => Ok(()),
+            (false, true) => pfcli::disable_firewall(),
+            (true, false) => pfcli::enable_firewall(),
+            _ => (),
         }
     }
 }
@@ -39,9 +33,9 @@ macro_rules! test {
         #[test]
         fn $name() {
             let mut pf_state = helper::PfState::new();
-            pf_state.save().unwrap();
+            pf_state.save();
 
-            let _guard1 = helper::scopeguard::guard((), |_| pf_state.restore().unwrap());
+            let _guard1 = helper::scopeguard::guard((), |_| pf_state.restore());
             let _guard2 = helper::scopeguard::guard((), |_| after_each());
 
             before_each();

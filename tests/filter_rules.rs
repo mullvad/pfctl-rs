@@ -1,7 +1,4 @@
 #[macro_use]
-extern crate error_chain;
-
-#[macro_use]
 #[allow(dead_code)]
 mod helper;
 
@@ -19,7 +16,7 @@ fn before_each() {
 }
 
 fn after_each() {
-    pfcli::flush_rules(ANCHOR_NAME, pfcli::FlushOptions::Rules).unwrap();
+    pfcli::flush_rules(ANCHOR_NAME, pfcli::FlushOptions::Rules);
     pfctl::PfCtl::new()
         .unwrap()
         .try_remove_anchor(ANCHOR_NAME, pfctl::AnchorKind::Filter)
@@ -33,10 +30,7 @@ test!(drop_all_rule {
         .build()
         .unwrap();
     assert_matches!(pf.add_rule(ANCHOR_NAME, &rule), Ok(()));
-    assert_matches!(
-        pfcli::get_rules(ANCHOR_NAME),
-        Ok(ref v) if v == &["block drop all"]
-    );
+    assert_eq!(pfcli::get_rules(ANCHOR_NAME), &["block drop all"]);
 });
 
 test!(return_all_rule {
@@ -46,9 +40,8 @@ test!(return_all_rule {
         .build()
         .unwrap();
     assert_matches!(pf.add_rule(ANCHOR_NAME, &rule), Ok(()));
-    assert_matches!(
-        pfcli::get_rules(ANCHOR_NAME),
-        Ok(ref v) if v == &["block return all"]
+    assert_eq!(
+        pfcli::get_rules(ANCHOR_NAME), &["block return all"]
     );
 });
 
@@ -60,10 +53,7 @@ test!(drop_by_direction_rule {
         .build()
         .unwrap();
     assert_matches!(pf.add_rule(ANCHOR_NAME, &rule), Ok(()));
-    assert_matches!(
-        pfcli::get_rules(ANCHOR_NAME),
-        Ok(ref v) if v == &["block drop out all"]
-    );
+    assert_eq!(pfcli::get_rules(ANCHOR_NAME), &["block drop out all"]);
 });
 
 test!(drop_quick_rule {
@@ -74,10 +64,7 @@ test!(drop_quick_rule {
         .build()
         .unwrap();
     assert_matches!(pf.add_rule(ANCHOR_NAME, &rule), Ok(()));
-    assert_matches!(
-        pfcli::get_rules(ANCHOR_NAME),
-        Ok(ref v) if v == &["block drop quick all"]
-    );
+    assert_eq!(pfcli::get_rules(ANCHOR_NAME), &["block drop quick all"]);
 });
 
 test!(drop_by_ip_rule {
@@ -90,9 +77,9 @@ test!(drop_by_ip_rule {
         .build()
         .unwrap();
     assert_matches!(pf.add_rule(ANCHOR_NAME, &rule), Ok(()));
-    assert_matches!(
+    assert_eq!(
         pfcli::get_rules(ANCHOR_NAME),
-        Ok(ref v) if v == &["block drop inet proto tcp from 192.168.0.1 to 127.0.0.1"]
+        &["block drop inet proto tcp from 192.168.0.1 to 127.0.0.1"]
     );
 });
 
@@ -106,9 +93,9 @@ test!(drop_by_port_rule {
         .build()
         .unwrap();
     assert_matches!(pf.add_rule(ANCHOR_NAME, &rule), Ok(()));
-    assert_matches!(
+    assert_eq!(
         pfcli::get_rules(ANCHOR_NAME),
-        Ok(ref v) if v == &["block drop proto tcp from any port = 3000 to any port = 8080"]
+        &["block drop proto tcp from any port = 3000 to any port = 8080"]
     );
 });
 
@@ -122,9 +109,9 @@ test!(drop_by_port_range_rule {
         .build()
         .unwrap();
     assert_matches!(pf.add_rule(ANCHOR_NAME, &rule), Ok(()));
-    assert_matches!(
+    assert_eq!(
         pfcli::get_rules(ANCHOR_NAME),
-        Ok(ref v) if v == &["block drop proto tcp from any port 3000:4000 to any port 5000 >< 6000"]
+        &["block drop proto tcp from any port 3000:4000 to any port 5000 >< 6000"]
     );
 });
 
@@ -136,9 +123,9 @@ test!(drop_by_interface_rule {
         .build()
         .unwrap();
     assert_matches!(pf.add_rule(ANCHOR_NAME, &rule), Ok(()));
-    assert_matches!(
+    assert_eq!(
         pfcli::get_rules(ANCHOR_NAME),
-        Ok(ref v) if v == &["block drop on utun0 all"]
+        &["block drop on utun0 all"]
     );
 });
 
@@ -166,9 +153,9 @@ test!(pass_out_route_rule {
     trans.add_change(ANCHOR_NAME, change);
 
     assert_matches!(trans.commit(), Ok(()));
-    assert_matches!(
+    assert_eq!(
         pfcli::get_rules(ANCHOR_NAME),
-        Ok(ref v) if v == &[
+        &[
             "pass out route-to (lo0 127.0.0.1) inet proto udp \
             from 1.2.3.4 to any port = 53 no state"
         ]
@@ -191,9 +178,9 @@ test!(pass_in_reply_to_rule {
     trans.add_change(ANCHOR_NAME, change);
 
     assert_matches!(trans.commit(), Ok(()));
-    assert_matches!(
+    assert_eq!(
         pfcli::get_rules(ANCHOR_NAME),
-        Ok(ref v) if v == &["pass in on lo1 reply-to lo9 inet from 6.7.8.9 to any no state"]
+        &["pass in on lo1 reply-to lo9 inet from 6.7.8.9 to any no state"]
     );
 });
 
@@ -213,11 +200,9 @@ test!(pass_in_dup_to_rule {
     trans.add_change(ANCHOR_NAME, change);
 
     assert_matches!(trans.commit(), Ok(()));
-    assert_matches!(
+    assert_eq!(
         pfcli::get_rules(ANCHOR_NAME),
-        Ok(ref v) if v == &[
-            "pass in on lo1 dup-to (lo8 1.2.3.4) inet from 6.7.8.9 to any no state"
-        ]
+        &["pass in on lo1 dup-to (lo8 1.2.3.4) inet from 6.7.8.9 to any no state"]
     );
 });
 
@@ -228,15 +213,15 @@ test!(flush_filter_rules {
         .build()
         .unwrap();
     assert_matches!(pf.add_rule(ANCHOR_NAME, &rule), Ok(()));
-    assert_matches!(
-        pfcli::get_rules(ANCHOR_NAME),
-        Ok(ref v) if v.len() == 1
+    assert_eq!(
+        pfcli::get_rules(ANCHOR_NAME).len(),
+        1
     );
 
     assert_matches!(pf.flush_rules(ANCHOR_NAME, pfctl::RulesetKind::Filter), Ok(()));
-    assert_matches!(
+    assert_eq!(
         pfcli::get_rules(ANCHOR_NAME),
-        Ok(ref v) if v.is_empty()
+        &[] as &[&str]
     );
 });
 
@@ -278,12 +263,14 @@ test!(all_state_policies {
     for rule in [rule1, rule2, rule3, rule4].iter() {
         assert_matches!(pf.add_rule(ANCHOR_NAME, rule), Ok(()));
     }
-    assert_matches!(
+    assert_eq!(
         pfcli::get_rules(ANCHOR_NAME),
-        Ok(ref v) if v == &["pass inet from 192.168.1.1 to any no state",
-                            "pass inet proto tcp from 192.168.1.2 to any flags S/FSRA keep state",
-                            "pass inet proto tcp from 192.168.1.3 to any flags any modulate state",
-                            "pass inet proto tcp from 192.168.1.4 to any flags any synproxy state"]
+        &[
+            "pass inet from 192.168.1.1 to any no state",
+            "pass inet proto tcp from 192.168.1.2 to any flags S/FSRA keep state",
+            "pass inet proto tcp from 192.168.1.3 to any flags any modulate state",
+            "pass inet proto tcp from 192.168.1.4 to any flags any synproxy state"
+        ]
     );
 });
 
@@ -299,8 +286,8 @@ test!(logging {
         .build()
         .unwrap();
     assert_matches!(pf.add_rule(ANCHOR_NAME, &rule), Ok(()));
-    assert_matches!(
+    assert_eq!(
         pfcli::get_rules(ANCHOR_NAME),
-        Ok(ref v) if v == &["block drop log (all, user) all"]
+        &["block drop log (all, user) all"]
     );
 });

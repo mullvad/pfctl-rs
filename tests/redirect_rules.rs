@@ -1,7 +1,4 @@
 #[macro_use]
-extern crate error_chain;
-
-#[macro_use]
 #[allow(dead_code)]
 mod helper;
 
@@ -36,7 +33,7 @@ fn before_each() {
 }
 
 fn after_each() {
-    pfcli::flush_rules(ANCHOR_NAME, pfcli::FlushOptions::Nat).unwrap();
+    pfcli::flush_rules(ANCHOR_NAME, pfcli::FlushOptions::Nat);
     pfctl::PfCtl::new()
         .unwrap()
         .try_remove_anchor(ANCHOR_NAME, pfctl::AnchorKind::Redirect)
@@ -48,15 +45,12 @@ test!(flush_redirect_rules {
     let test_rules = [redirect_rule_ipv4(), redirect_rule_ipv6()];
     for rule in test_rules.iter() {
         assert_matches!(pf.add_redirect_rule(ANCHOR_NAME, rule), Ok(()));
-        assert_matches!(
-            pfcli::get_nat_rules(ANCHOR_NAME),
-            Ok(ref v) if v.len() == 1
-        );
+        assert_eq!(pfcli::get_nat_rules(ANCHOR_NAME).len(), 1);
 
         assert_matches!(pf.flush_rules(ANCHOR_NAME, pfctl::RulesetKind::Redirect), Ok(()));
-        assert_matches!(
+        assert_eq!(
             pfcli::get_nat_rules(ANCHOR_NAME),
-            Ok(ref v) if v.is_empty()
+            &[] as &[&str]
         );
     }
 });
@@ -65,9 +59,9 @@ test!(add_redirect_rule_ipv4 {
     let mut pf = pfctl::PfCtl::new().unwrap();
     let rule = redirect_rule_ipv4();
     assert_matches!(pf.add_redirect_rule(ANCHOR_NAME, &rule), Ok(()));
-    assert_matches!(
+    assert_eq!(
         pfcli::get_nat_rules(ANCHOR_NAME),
-        Ok(ref v) if v == &["rdr inet from any to 127.0.0.1 port = 3000 -> 127.0.0.1 port 4000"]
+        &["rdr inet from any to 127.0.0.1 port = 3000 -> 127.0.0.1 port 4000"]
     );
 });
 
@@ -75,9 +69,9 @@ test!(add_redirect_rule_ipv6 {
     let mut pf = pfctl::PfCtl::new().unwrap();
     let rule = redirect_rule_ipv6();
     assert_matches!(pf.add_redirect_rule(ANCHOR_NAME, &rule), Ok(()));
-    assert_matches!(
+    assert_eq!(
         pfcli::get_nat_rules(ANCHOR_NAME),
-        Ok(ref v) if v == &["rdr inet6 from any to ::1 port = 3000 -> ::1 port 4000"]
+        &["rdr inet6 from any to ::1 port = 3000 -> ::1 port 4000"]
     );
 });
 
@@ -92,8 +86,8 @@ test!(add_redirect_rule_on_interface {
         .build()
         .unwrap();
     assert_matches!(pf.add_redirect_rule(ANCHOR_NAME, &rule), Ok(()));
-    assert_matches!(
+    assert_eq!(
         pfcli::get_nat_rules(ANCHOR_NAME),
-        Ok(ref v) if v == &["rdr log on lo0 inet from 1.2.3.4 to any -> any port 1237"]
+        &["rdr log on lo0 inet from 1.2.3.4 to any -> any port 1237"]
     );
 });

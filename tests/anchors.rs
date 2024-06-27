@@ -1,7 +1,4 @@
 #[macro_use]
-extern crate error_chain;
-
-#[macro_use]
 #[allow(dead_code)]
 mod helper;
 
@@ -22,7 +19,7 @@ test!(add_filter_anchor {
 
     assert_matches!(pf.add_anchor(&anchor_name, pfctl::AnchorKind::Filter), Ok(()));
 
-    let anchors = pfcli::get_anchors(None).unwrap();
+    let anchors = pfcli::get_anchors(None);
     assert!(anchors.contains(&anchor_name));
 
     assert_matches!(
@@ -39,7 +36,7 @@ test!(remove_filter_anchor {
     assert_matches!(pf.add_anchor(&anchor_name, pfctl::AnchorKind::Filter), Ok(()));
     assert_matches!(pf.remove_anchor(&anchor_name, pfctl::AnchorKind::Filter), Ok(()));
 
-    let anchors = pfcli::get_anchors(None).unwrap();
+    let anchors = pfcli::get_anchors(None);
     assert!(!anchors.contains(&anchor_name));
 
     assert_matches!(
