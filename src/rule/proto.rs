@@ -6,6 +6,8 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+use crate::{Error, ErrorInternal, Result};
+
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Proto {
     #[default]
@@ -24,6 +26,21 @@ impl From<Proto> for u8 {
             Proto::Udp => libc::IPPROTO_UDP as u8,
             Proto::Icmp => libc::IPPROTO_ICMP as u8,
             Proto::IcmpV6 => libc::IPPROTO_ICMPV6 as u8,
+        }
+    }
+}
+
+impl TryFrom<u8> for Proto {
+    type Error = crate::Error;
+
+    fn try_from(proto: u8) -> Result<Self> {
+        match proto as i32 {
+            libc::IPPROTO_IP => Ok(Proto::Any),
+            libc::IPPROTO_TCP => Ok(Proto::Tcp),
+            libc::IPPROTO_UDP => Ok(Proto::Udp),
+            libc::IPPROTO_ICMP => Ok(Proto::Icmp),
+            libc::IPPROTO_ICMPV6 => Ok(Proto::IcmpV6),
+            _ => Err(Error::from(ErrorInternal::InvalidTransportProtocol(proto))),
         }
     }
 }
