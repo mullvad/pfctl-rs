@@ -6,6 +6,7 @@ use crate::{AddrFamily, Error, ErrorKind, Result};
 
 /// PF connection state
 #[non_exhaustive]
+#[allow(clippy::large_enum_variant)]
 #[derive(Clone)]
 pub enum State {
     /// IP connection state
