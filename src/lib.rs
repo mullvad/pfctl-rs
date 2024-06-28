@@ -347,7 +347,7 @@ impl PfCtl {
         states
             .into_iter()
             .filter(|state| {
-                let parsed_state = State::from(state.clone());
+                let parsed_state = State::from(*state);
                 !filter(&parsed_state)
             })
             .map(|pfsync_state| {
