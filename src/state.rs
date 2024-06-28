@@ -5,6 +5,7 @@ use crate::{ffi::pfvar::pfsync_state, Direction, Proto};
 use crate::{AddrFamily, Error, ErrorKind, Result};
 
 /// PF connection state
+#[non_exhaustive]
 #[derive(Clone)]
 pub enum State {
     /// IP connection state
@@ -14,6 +15,7 @@ pub enum State {
 }
 
 /// IP connection
+#[non_exhaustive]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct IpState {
     pub direction: Direction,
