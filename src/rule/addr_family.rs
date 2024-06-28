@@ -6,7 +6,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use crate::ffi;
+use crate::{ffi, Error, ErrorKind, Result};
 use std::fmt;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
@@ -35,5 +35,24 @@ impl fmt::Display for AddrFamily {
             AddrFamily::Ipv6 => "IPv6",
         }
         .fmt(f)
+    }
+}
+
+impl TryFrom<u8> for AddrFamily {
+    type Error = crate::Error;
+
+    fn try_from(family: u8) -> Result<Self> {
+        const UNSPEC: u8 = ffi::pfvar::PF_UNSPEC as u8;
+        const INET: u8 = ffi::pfvar::PF_INET as u8;
+        const INET6: u8 = ffi::pfvar::PF_INET6 as u8;
+
+        match family {
+            UNSPEC => Ok(AddrFamily::Any),
+            INET => Ok(AddrFamily::Ipv4),
+            INET6 => Ok(AddrFamily::Ipv6),
+            _ => Err(Error::from_kind(ErrorKind::InvalidArgument(
+                "Invalid family",
+            ))),
+        }
     }
 }
