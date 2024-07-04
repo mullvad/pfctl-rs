@@ -19,11 +19,12 @@ macro_rules! ioctl_guard {
             let error_code = io_error
                 .raw_os_error()
                 .expect("Errors created with last_os_error should have errno");
-            let mut err = Err($crate::ErrorKind::IoctlError(io_error).into());
-            if error_code == $already_active {
-                err = err.chain_err(|| $crate::ErrorKind::StateAlreadyActive);
-            }
-            err
+
+            Err($crate::Error::from(if error_code == $already_active {
+                $crate::ErrorInternal::StateAlreadyActive
+            } else {
+                $crate::ErrorInternal::Ioctl(io_error)
+            }))
         } else {
             Ok(()) as $crate::Result<()>
         }

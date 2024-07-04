@@ -8,7 +8,7 @@
 
 use crate::{
     conversion::{CopyTo, TryCopyTo},
-    ffi, ErrorKind, Result, ResultExt,
+    ffi, Error, ErrorInternal, Result,
 };
 use derive_builder::Builder;
 use ipnetwork::IpNetwork;
@@ -99,7 +99,7 @@ pub struct FilterRule {
 impl FilterRuleBuilder {
     pub fn build(&self) -> Result<FilterRule> {
         self.build_internal()
-            .map_err(|e| ErrorKind::InvalidRuleCombination(e).into())
+            .map_err(|e| ErrorInternal::InvalidRuleCombination(e).into())
     }
 }
 
@@ -128,13 +128,15 @@ impl FilterRule {
                     "StatePolicy {:?} and protocol {:?} are incompatible",
                     state_policy, proto
                 );
-                bail!(ErrorKind::InvalidRuleCombination(msg));
+                Err(Error::from(ErrorInternal::InvalidRuleCombination(msg)))
             }
         }
     }
 }
 
 impl TryCopyTo<ffi::pfvar::pf_rule> for FilterRule {
+    type Error = crate::Error;
+
     fn try_copy_to(&self, pf_rule: &mut ffi::pfvar::pf_rule) -> Result<()> {
         pf_rule.action = self.action.into();
         pf_rule.direction = self.direction.into();
@@ -146,15 +148,15 @@ impl TryCopyTo<ffi::pfvar::pf_rule> for FilterRule {
         pf_rule.flagset = (&self.tcp_flags.mask).into();
         pf_rule.rule_flag = self.action.rule_flags();
 
-        self.interface
-            .try_copy_to(&mut pf_rule.ifname)
-            .chain_err(|| ErrorKind::InvalidArgument("Incompatible interface name"))?;
+        self.interface.try_copy_to(&mut pf_rule.ifname)?;
         pf_rule.proto = self.proto.into();
         pf_rule.af = self.get_af()?.into();
 
         self.from.try_copy_to(&mut pf_rule.src)?;
         self.to.try_copy_to(&mut pf_rule.dst)?;
-        self.label.try_copy_to(&mut pf_rule.label)?;
+        self.label
+            .try_copy_to(&mut pf_rule.label)
+            .map_err(ErrorInternal::InvalidLabel)?;
         self.user.copy_to(&mut pf_rule.uid);
         self.group.copy_to(&mut pf_rule.gid);
         if let Some(icmp_type) = self.icmp_type {
@@ -198,7 +200,7 @@ pub struct RedirectRule {
 impl RedirectRuleBuilder {
     pub fn build(&self) -> Result<RedirectRule> {
         self.build_internal()
-            .map_err(|e| ErrorKind::InvalidRuleCombination(e).into())
+            .map_err(|e| ErrorInternal::InvalidRuleCombination(e).into())
     }
 }
 
@@ -218,20 +220,22 @@ impl RedirectRule {
 }
 
 impl TryCopyTo<ffi::pfvar::pf_rule> for RedirectRule {
+    type Error = crate::Error;
+
     fn try_copy_to(&self, pf_rule: &mut ffi::pfvar::pf_rule) -> Result<()> {
         pf_rule.action = self.action.into();
         pf_rule.direction = self.direction.into();
         pf_rule.quick = self.quick as u8;
         pf_rule.log = (&self.log).into();
-        self.interface
-            .try_copy_to(&mut pf_rule.ifname)
-            .chain_err(|| ErrorKind::InvalidArgument("Incompatible interface name"))?;
+        self.interface.try_copy_to(&mut pf_rule.ifname)?;
         pf_rule.proto = self.proto.into();
         pf_rule.af = self.get_af()?.into();
 
         self.from.try_copy_to(&mut pf_rule.src)?;
         self.to.try_copy_to(&mut pf_rule.dst)?;
-        self.label.try_copy_to(&mut pf_rule.label)?;
+        self.label
+            .try_copy_to(&mut pf_rule.label)
+            .map_err(ErrorInternal::InvalidLabel)?;
         self.user.copy_to(&mut pf_rule.uid);
         self.group.copy_to(&mut pf_rule.gid);
 
@@ -246,7 +250,7 @@ fn compatible_af(af1: AddrFamily, af2: AddrFamily) -> Result<AddrFamily> {
         (AddrFamily::Any, af) => Ok(af),
         (af1, af2) => {
             let msg = format!("AddrFamily {} and {} are incompatible", af1, af2);
-            bail!(ErrorKind::InvalidRuleCombination(msg));
+            Err(Error::from(ErrorInternal::InvalidRuleCombination(msg)))
         }
     }
 }
@@ -287,19 +291,19 @@ impl CopyTo<ffi::pfvar::in6_addr> for Ipv6Addr {
 }
 
 impl<T: AsRef<str>> TryCopyTo<[i8]> for T {
+    type Error = &'static str;
+
     /// Safely copy a Rust string into a raw buffer. Returning an error if the string could not
     /// be copied to the buffer.
-    fn try_copy_to(&self, dst: &mut [i8]) -> Result<()> {
+    fn try_copy_to(&self, dst: &mut [i8]) -> std::result::Result<(), Self::Error> {
         let src_i8: &[i8] = unsafe { &*(self.as_ref().as_bytes() as *const _ as *const _) };
 
-        ensure!(
-            src_i8.len() < dst.len(),
-            ErrorKind::InvalidArgument("String does not fit destination")
-        );
-        ensure!(
-            !src_i8.contains(&0),
-            ErrorKind::InvalidArgument("String has null byte")
-        );
+        if src_i8.len() >= dst.len() {
+            return Err("Too long");
+        }
+        if src_i8.contains(&0) {
+            return Err("Contains null byte");
+        }
 
         dst[..src_i8.len()].copy_from_slice(src_i8);
         // Terminate ffi string with null byte

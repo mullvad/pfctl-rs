@@ -6,7 +6,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use crate::{conversion::TryCopyTo, ffi, ErrorKind, Result};
+use crate::{conversion::TryCopyTo, ffi, Error, ErrorInternal};
 
 // Port range representation
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
@@ -24,7 +24,9 @@ impl From<u16> for Port {
 }
 
 impl TryCopyTo<ffi::pfvar::pf_port_range> for Port {
-    fn try_copy_to(&self, pf_port_range: &mut ffi::pfvar::pf_port_range) -> Result<()> {
+    type Error = crate::Error;
+
+    fn try_copy_to(&self, pf_port_range: &mut ffi::pfvar::pf_port_range) -> crate::Result<()> {
         match *self {
             Port::Any => {
                 pf_port_range.op = ffi::pfvar::PF_OP_NONE as u8;
@@ -38,10 +40,9 @@ impl TryCopyTo<ffi::pfvar::pf_port_range> for Port {
                 pf_port_range.port[1] = 0;
             }
             Port::Range(start_port, end_port, modifier) => {
-                ensure!(
-                    start_port <= end_port,
-                    ErrorKind::InvalidArgument("Lower port is greater than upper port.")
-                );
+                if start_port > end_port {
+                    return Err(Error::from(ErrorInternal::InvalidPortRange));
+                }
                 pf_port_range.op = modifier.into();
                 // convert port range to network byte order
                 pf_port_range.port[0] = start_port.to_be();
@@ -53,7 +54,9 @@ impl TryCopyTo<ffi::pfvar::pf_port_range> for Port {
 }
 
 impl TryCopyTo<ffi::pfvar::pf_pool> for Port {
-    fn try_copy_to(&self, pf_pool: &mut ffi::pfvar::pf_pool) -> Result<()> {
+    type Error = crate::Error;
+
+    fn try_copy_to(&self, pf_pool: &mut ffi::pfvar::pf_pool) -> crate::Result<()> {
         match *self {
             Port::Any => {
                 pf_pool.port_op = ffi::pfvar::PF_OP_NONE as u8;
@@ -66,10 +69,9 @@ impl TryCopyTo<ffi::pfvar::pf_pool> for Port {
                 pf_pool.proxy_port[1] = 0;
             }
             Port::Range(start_port, end_port, modifier) => {
-                ensure!(
-                    start_port <= end_port,
-                    ErrorKind::InvalidArgument("Lower port is greater than upper port.")
-                );
+                if start_port > end_port {
+                    return Err(Error::from(ErrorInternal::InvalidPortRange));
+                }
                 pf_pool.port_op = modifier.into();
                 pf_pool.proxy_port[0] = start_port;
                 pf_pool.proxy_port[1] = end_port;

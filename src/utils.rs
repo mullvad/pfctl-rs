@@ -6,7 +6,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use crate::{conversion::TryCopyTo, ffi, AnchorKind, ErrorKind, PoolAddr, Result, ResultExt};
+use crate::{conversion::TryCopyTo, ffi, AnchorKind, Error, ErrorInternal, PoolAddr, Result};
 use std::{
     fs::{File, OpenOptions},
     mem,
@@ -22,7 +22,7 @@ pub fn open_pf() -> Result<File> {
         .read(true)
         .write(true)
         .open(PF_DEV_PATH)
-        .chain_err(|| ErrorKind::DeviceOpenError(PF_DEV_PATH))
+        .map_err(|e| Error::from(ErrorInternal::DeviceOpen(PF_DEV_PATH, e)))
 }
 
 /// Add pool address using the pool ticket previously obtained via `get_pool_ticket()`
@@ -48,9 +48,13 @@ pub fn get_ticket(fd: RawFd, anchor: &str, kind: AnchorKind) -> Result<u32> {
     let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
     pfioc_rule.action = ffi::pfvar::PF_CHANGE_GET_TICKET as u32;
     pfioc_rule.rule.action = kind.into();
-    anchor
-        .try_copy_to(&mut pfioc_rule.anchor[..])
-        .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
+    copy_anchor_name(anchor, &mut pfioc_rule.anchor[..])?;
     ioctl_guard!(ffi::pf_change_rule(fd, &mut pfioc_rule))?;
     Ok(pfioc_rule.ticket)
+}
+
+pub fn copy_anchor_name(anchor: &str, destination: &mut [i8]) -> Result<()> {
+    anchor
+        .try_copy_to(destination)
+        .map_err(|reason| Error::from(ErrorInternal::InvalidAnchorName(reason)))
 }

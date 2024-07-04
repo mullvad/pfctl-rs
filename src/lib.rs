@@ -59,15 +59,13 @@
 
 #![deny(rust_2018_idioms)]
 
-#[macro_use]
-pub extern crate error_chain;
-
-use core::slice;
 use std::{
     ffi::CStr,
+    fmt,
     fs::File,
     mem,
     os::unix::io::{AsRawFd, RawFd},
+    slice,
 };
 
 pub use ipnetwork;
@@ -93,40 +91,107 @@ pub use crate::ruleset::*;
 mod transaction;
 pub use crate::transaction::*;
 
-mod errors {
-    error_chain! {
-        errors {
-            DeviceOpenError(s: &'static str) {
-                description("Unable to open PF device file")
-                display("Unable to open PF device file at '{}'", s)
-            }
-            InvalidArgument(s: &'static str) {
-                display("Invalid argument: {}", s)
-            }
-            StateAlreadyActive {
-                description("Target state is already active")
-            }
-            InvalidRuleCombination(s: String) {
-                description("Rule contains incompatible values")
-                display("Incompatible values in rule: {}", s)
-            }
-            AnchorDoesNotExist {
-                display("Anchor does not exist")
-            }
-        }
-        foreign_links {
-            IoctlError(::std::io::Error);
+pub type Result<T> = std::result::Result<T, Error>;
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[non_exhaustive]
+pub enum ErrorKind {
+    /// Failed to open PF control file /dev/pf
+    DeviceOpen,
+    /// The firewall rule is invalidly configured
+    InvalidRuleCombination,
+    /// The supplied network interface name is not compatible with PF
+    InvalidInterfaceName,
+    /// The supplied anchor name in not compatible with PF
+    InvalidAnchorName,
+    /// The supplied port is an invalid range
+    InvalidPortRange,
+    /// The supplied rule label is not compatible with PF.
+    InvalidLabel,
+    /// The target state was already active
+    StateAlreadyActive,
+    /// This PF anchor does not exist
+    AnchorDoesNotExist,
+    /// System returned an error during ioctl system call
+    Ioctl,
+}
+
+#[derive(Debug)]
+pub struct Error(ErrorInternal);
+
+#[derive(Debug)]
+enum ErrorInternal {
+    DeviceOpen(&'static str, std::io::Error),
+    InvalidRuleCombination(String),
+    InvalidInterfaceName(&'static str),
+    InvalidAnchorName(&'static str),
+    InvalidPortRange,
+    InvalidLabel(&'static str),
+    StateAlreadyActive,
+    AnchorDoesNotExist,
+    Ioctl(std::io::Error),
+}
+
+impl Error {
+    /// Returns the kind of error that happened as an enum
+    pub fn kind(&self) -> ErrorKind {
+        use ErrorInternal::*;
+        match self.0 {
+            DeviceOpen(..) => ErrorKind::DeviceOpen,
+            InvalidRuleCombination(_) => ErrorKind::InvalidRuleCombination,
+            InvalidInterfaceName(..) => ErrorKind::InvalidInterfaceName,
+            InvalidAnchorName(..) => ErrorKind::InvalidAnchorName,
+            InvalidPortRange => ErrorKind::InvalidPortRange,
+            InvalidLabel(..) => ErrorKind::InvalidLabel,
+            StateAlreadyActive => ErrorKind::StateAlreadyActive,
+            AnchorDoesNotExist => ErrorKind::AnchorDoesNotExist,
+            Ioctl(_) => ErrorKind::Ioctl,
         }
     }
 }
-pub use crate::errors::*;
+
+impl From<ErrorInternal> for Error {
+    fn from(e: ErrorInternal) -> Self {
+        Error(e)
+    }
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use ErrorInternal::*;
+        match &self.0 {
+            DeviceOpen(device_path, _) => {
+                write!(f, "Unable to open PF device file ({device_path})")
+            }
+            InvalidRuleCombination(msg) => write!(f, "Invalid rule combination: {msg}"),
+            InvalidInterfaceName(reason) => write!(f, "Invalid interface name ({reason})"),
+            InvalidAnchorName(reason) => write!(f, "Invalid anchor name ({reason})"),
+            InvalidPortRange => write!(f, "Lower port is greater than upper port"),
+            InvalidLabel(reason) => write!(f, "Invalid rule label ({reason}"),
+            StateAlreadyActive => write!(f, "Target state is already active"),
+            AnchorDoesNotExist => write!(f, "Anchor does not exist"),
+            Ioctl(_) => write!(f, "Error during ioctl syscall"),
+        }
+    }
+}
+
+impl std::error::Error for Error {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        use ErrorInternal::*;
+        match &self.0 {
+            DeviceOpen(_, ref e) => Some(e),
+            Ioctl(e) => Some(e),
+            _ => None,
+        }
+    }
+}
 
 /// Returns the given input result, except if it is an `Err` matching the given `ErrorKind`,
 /// then it returns `Ok(())` instead, so the error is ignored.
 macro_rules! ignore_error_kind {
-    ($result:expr, $kind:pat) => {
+    ($result:expr, $kind:expr) => {
         match $result {
-            Err($crate::Error($kind, _)) => Ok(()),
+            Err(e) if e.kind() == $kind => Ok(()),
             result => result,
         }
     };
@@ -142,7 +207,9 @@ mod conversion {
 
     /// Internal trait for all types that can try to write their value into another type.
     pub trait TryCopyTo<T: ?Sized> {
-        fn try_copy_to(&self, dst: &mut T) -> crate::Result<()>;
+        type Error;
+
+        fn try_copy_to(&self, dst: &mut T) -> Result<(), Self::Error>;
     }
 }
 use crate::conversion::*;
@@ -214,8 +281,7 @@ impl PfCtl {
         let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
 
         pfioc_rule.rule.action = kind.into();
-        name.try_copy_to(&mut pfioc_rule.anchor_call[..])
-            .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
+        utils::copy_anchor_name(name, &mut pfioc_rule.anchor_call[..])?;
 
         ioctl_guard!(ffi::pf_insert_rule(self.fd(), &mut pfioc_rule))?;
         Ok(())
@@ -248,9 +314,7 @@ impl PfCtl {
 
         pfioc_rule.pool_ticket = utils::get_pool_ticket(self.fd())?;
         pfioc_rule.ticket = utils::get_ticket(self.fd(), anchor, AnchorKind::Filter)?;
-        anchor
-            .try_copy_to(&mut pfioc_rule.anchor[..])
-            .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
+        utils::copy_anchor_name(anchor, &mut pfioc_rule.anchor[..])?;
         rule.try_copy_to(&mut pfioc_rule.rule)?;
 
         pfioc_rule.action = ffi::pfvar::PF_CHANGE_ADD_TAIL as u32;
@@ -266,7 +330,7 @@ impl PfCtl {
     pub fn add_redirect_rule(&mut self, anchor: &str, rule: &RedirectRule) -> Result<()> {
         // prepare pfioc_rule
         let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
-        anchor.try_copy_to(&mut pfioc_rule.anchor[..])?;
+        utils::copy_anchor_name(anchor, &mut pfioc_rule.anchor[..])?;
         rule.try_copy_to(&mut pfioc_rule.rule)?;
 
         // register redirect address in newly created address pool
@@ -329,9 +393,8 @@ impl PfCtl {
     /// Returns total number of removed states upon success
     pub fn clear_interface_states(&mut self, interface: Interface) -> Result<u32> {
         let mut pfioc_state_kill = unsafe { mem::zeroed::<ffi::pfvar::pfioc_state_kill>() };
-        interface
-            .try_copy_to(&mut pfioc_state_kill.psk_ifname)
-            .chain_err(|| ErrorKind::InvalidArgument("Incompatible interface name"))?;
+        interface.try_copy_to(&mut pfioc_state_kill.psk_ifname)?;
+
         ioctl_guard!(ffi::pf_clear_states(self.fd(), &mut pfioc_state_kill))?;
         // psk_af holds the number of killed states
         Ok(pfioc_state_kill.psk_af as u32)
@@ -373,7 +436,7 @@ impl PfCtl {
                 return f(pfioc_rule);
             }
         }
-        bail!(ErrorKind::AnchorDoesNotExist);
+        Err(Error::from(ErrorInternal::AnchorDoesNotExist))
     }
 
     /// Returns global number of states created by all stateful rules (see keep_state)
