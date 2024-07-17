@@ -99,7 +99,7 @@ pub struct FilterRule {
 impl FilterRuleBuilder {
     pub fn build(&self) -> Result<FilterRule> {
         self.build_internal()
-            .map_err(|e| ErrorInternal::InvalidRuleCombination(e).into())
+            .map_err(|e| ErrorInternal::InvalidRuleCombination(e.to_string()).into())
     }
 }
 
@@ -200,7 +200,7 @@ pub struct RedirectRule {
 impl RedirectRuleBuilder {
     pub fn build(&self) -> Result<RedirectRule> {
         self.build_internal()
-            .map_err(|e| ErrorInternal::InvalidRuleCombination(e).into())
+            .map_err(|e| ErrorInternal::InvalidRuleCombination(e.to_string()).into())
     }
 }
 
