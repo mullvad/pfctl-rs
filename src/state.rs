@@ -57,7 +57,7 @@ impl State {
 fn parse_address(family: u8, host: pfsync_state_host) -> Result<SocketAddr> {
     let ip = match AddrFamily::try_from(family) {
         Ok(AddrFamily::Ipv4) => {
-            Ipv4Addr::from(unsafe { host.addr.pfa._v4addr.s_addr }.to_be()).into()
+            Ipv4Addr::from(u32::from_be(unsafe { host.addr.pfa._v4addr.s_addr })).into()
         }
         Ok(AddrFamily::Ipv6) => {
             Ipv6Addr::from(unsafe { host.addr.pfa._v6addr.__u6_addr.__u6_addr8 }).into()
