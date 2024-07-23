@@ -114,7 +114,7 @@ pub enum ErrorKind {
     /// The address family is invalid
     InvalidAddressFamily,
     /// The direction is invalid
-    InvalidPacketDirection,
+    InvalidDirection,
     /// The transport protocol is invalid
     InvalidTransportProtocol,
     /// The target state was already active
@@ -137,7 +137,7 @@ enum ErrorInternal {
     InvalidPortRange,
     InvalidLabel(&'static str),
     InvalidAddressFamily(u8),
-    InvalidPacketDirection(u8),
+    InvalidDirection(u8),
     InvalidTransportProtocol(u8),
     StateAlreadyActive,
     AnchorDoesNotExist,
@@ -156,7 +156,7 @@ impl Error {
             InvalidPortRange => ErrorKind::InvalidPortRange,
             InvalidLabel(..) => ErrorKind::InvalidLabel,
             InvalidAddressFamily(_) => ErrorKind::InvalidAddressFamily,
-            InvalidPacketDirection(_) => ErrorKind::InvalidPacketDirection,
+            InvalidDirection(_) => ErrorKind::InvalidDirection,
             InvalidTransportProtocol(_) => ErrorKind::InvalidTransportProtocol,
             StateAlreadyActive => ErrorKind::StateAlreadyActive,
             AnchorDoesNotExist => ErrorKind::AnchorDoesNotExist,
@@ -184,7 +184,7 @@ impl fmt::Display for Error {
             InvalidPortRange => write!(f, "Lower port is greater than upper port"),
             InvalidLabel(reason) => write!(f, "Invalid rule label ({reason}"),
             InvalidAddressFamily(reason) => write!(f, "Invalid address family ({reason})"),
-            InvalidPacketDirection(reason) => write!(f, "Invalid direction ({reason})"),
+            InvalidDirection(reason) => write!(f, "Invalid direction ({reason})"),
             InvalidTransportProtocol(reason) => write!(f, "Invalid transport protocol ({reason})"),
             StateAlreadyActive => write!(f, "Target state is already active"),
             AnchorDoesNotExist => write!(f, "Anchor does not exist"),

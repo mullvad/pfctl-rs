@@ -39,7 +39,7 @@ impl TryFrom<u8> for Direction {
             INOUT => Ok(Direction::Any),
             IN => Ok(Direction::In),
             OUT => Ok(Direction::Out),
-            other => Err(Error::from(ErrorInternal::InvalidPacketDirection(other))),
+            other => Err(Error::from(ErrorInternal::InvalidDirection(other))),
         }
     }
 }
