@@ -155,7 +155,10 @@ test!(kill_ipv4_state {
         assert_matches!(pf.kill_state(&state), Ok(_));
     }
 
-    let states = pf.get_states().expect("Could not obtain states").into_iter().filter_map(|state| ExpectedState::try_from(state).ok()).collect::<Vec<_>>();
+    let states = pf.get_states()
+        .expect("Could not obtain states")
+        .into_iter()
+        .filter_map(|state| ExpectedState::try_from(state).ok()).collect::<Vec<_>>();
 
     for expected_state in &expected_states {
         assert!(!states.contains(&expected_state), "state should be removed");
@@ -199,7 +202,10 @@ test!(kill_ipv6_state {
         assert_matches!(pf.kill_state(&state), Ok(_));
     }
 
-    let states = pf.get_states().expect("Could not obtain states").into_iter().filter_map(|state| ExpectedState::try_from(state).ok()).collect::<Vec<_>>();
+    let states = pf.get_states()
+        .expect("Could not obtain states")
+        .into_iter()
+        .filter_map(|state| ExpectedState::try_from(state).ok()).collect::<Vec<_>>();
 
     for expected_state in &expected_states {
         assert!(!states.contains(&expected_state), "state should be removed");
