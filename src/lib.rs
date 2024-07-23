@@ -433,7 +433,6 @@ impl PfCtl {
         let mut pfioc_state_kill = unsafe { mem::zeroed::<ffi::pfvar::pfioc_state_kill>() };
         setup_pfioc_state_kill(state.as_raw(), &mut pfioc_state_kill);
         ioctl_guard!(ffi::pf_kill_states(self.fd(), &mut pfioc_state_kill))?;
-        // psk_af holds the number of killed states, but it should be zero
         Ok(())
     }
 
