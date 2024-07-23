@@ -260,16 +260,18 @@ fn compatible_af(af1: AddrFamily, af2: AddrFamily) -> Result<AddrFamily> {
 impl CopyTo<ffi::pfvar::pf_addr_wrap> for IpNetwork {
     fn copy_to(&self, pf_addr_wrap: &mut ffi::pfvar::pf_addr_wrap) {
         pf_addr_wrap.type_ = ffi::pfvar::PF_ADDR_ADDRMASK as u8;
-        self.ip().copy_to(unsafe { &mut pf_addr_wrap.v.a.addr });
-        self.mask().copy_to(unsafe { &mut pf_addr_wrap.v.a.mask });
+        self.ip()
+            .copy_to(unsafe { &mut pf_addr_wrap.v.a.as_mut().addr });
+        self.mask()
+            .copy_to(unsafe { &mut pf_addr_wrap.v.a.as_mut().mask });
     }
 }
 
 impl CopyTo<ffi::pfvar::pf_addr> for IpAddr {
     fn copy_to(&self, pf_addr: &mut ffi::pfvar::pf_addr) {
         match *self {
-            IpAddr::V4(ip) => ip.copy_to(unsafe { &mut pf_addr.pfa._v4addr }),
-            IpAddr::V6(ip) => ip.copy_to(unsafe { &mut pf_addr.pfa._v6addr }),
+            IpAddr::V4(ip) => ip.copy_to(unsafe { pf_addr.pfa._v4addr.as_mut() }),
+            IpAddr::V6(ip) => ip.copy_to(unsafe { pf_addr.pfa._v6addr.as_mut() }),
         }
     }
 }

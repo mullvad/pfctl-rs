@@ -503,7 +503,7 @@ fn setup_pfioc_states(
     let mut pfsync_states = (0..num_states)
         .map(|_| unsafe { mem::zeroed::<ffi::pfvar::pfsync_state>() })
         .collect::<Vec<_>>();
-    pfioc_states.ps_u.psu_states = pfsync_states.as_mut_ptr();
+    *unsafe { pfioc_states.ps_u.psu_states.as_mut() } = pfsync_states.as_mut_ptr();
     (pfioc_states, pfsync_states)
 }
 
@@ -516,8 +516,8 @@ fn setup_pfioc_state_kill(
     pfioc_state_kill.psk_proto = pfsync_state.proto;
     pfioc_state_kill.psk_proto_variant = pfsync_state.proto_variant;
     pfioc_state_kill.psk_ifname = pfsync_state.ifname;
-    pfioc_state_kill.psk_src.addr.v.a.addr = pfsync_state.lan.addr;
-    pfioc_state_kill.psk_dst.addr.v.a.addr = pfsync_state.ext_lan.addr;
+    unsafe { pfioc_state_kill.psk_src.addr.v.a.as_mut() }.addr = pfsync_state.lan.addr;
+    unsafe { pfioc_state_kill.psk_dst.addr.v.a.as_mut() }.addr = pfsync_state.ext_lan.addr;
 }
 
 #[cfg(test)]

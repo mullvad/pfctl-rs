@@ -22,6 +22,7 @@ bindgen \
     --allowlist-var PF_.* \
     --allowlist-var PFRULE_.* \
     --default-enum-style rust \
+    --disable-untagged-union \
     -o ./src/ffi/pfvar.rs "$pfvar_h_path" -- \
     -DPRIVATE \
     -I"$SDK_PATH/usr/include" \
