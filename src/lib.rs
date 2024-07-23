@@ -385,7 +385,7 @@ impl PfCtl {
     /// Returns total number of removed states upon success, otherwise
     /// ErrorKind::AnchorDoesNotExist if anchor does not exist.
     pub fn clear_states(&mut self, anchor_name: &str, kind: AnchorKind) -> Result<u32> {
-        let pfsync_states = self.get_states()?;
+        let pfsync_states = self.get_states_inner()?;
         if !pfsync_states.is_empty() {
             self.with_anchor_rule(anchor_name, kind, |anchor_rule| {
                 pfsync_states
@@ -418,29 +418,27 @@ impl PfCtl {
         Ok(pfioc_state_kill.psk_af as u32)
     }
 
-    /// Keep all states for which `filter` returns true.
-    /// Returns total number of removed states upon success.
-    pub fn filter_states(&mut self, filter: impl Fn(&State) -> bool) -> Result<u32> {
-        let states = self.get_states()?;
-        states
+    /// Get all states created by stateful rules
+    pub fn get_states(&mut self) -> Result<Vec<State>> {
+        let wrapped_states = self
+            .get_states_inner()?
             .into_iter()
-            .filter(|state| {
-                let parsed_state = State::new(*state);
-                !filter(&parsed_state)
-            })
-            .map(|pfsync_state| {
-                let mut pfioc_state_kill = unsafe { mem::zeroed::<ffi::pfvar::pfioc_state_kill>() };
-                setup_pfioc_state_kill(&pfsync_state, &mut pfioc_state_kill);
-                ioctl_guard!(ffi::pf_kill_states(self.fd(), &mut pfioc_state_kill))?;
-                // psk_af holds the number of killed states
-                Ok(pfioc_state_kill.psk_af as u32)
-            })
-            .collect::<Result<Vec<_>>>()
-            .map(|v| v.iter().sum())
+            .map(State::new)
+            .collect();
+        Ok(wrapped_states)
+    }
+
+    /// Remove the specified state
+    pub fn kill_state(&mut self, state: &State) -> Result<()> {
+        let mut pfioc_state_kill = unsafe { mem::zeroed::<ffi::pfvar::pfioc_state_kill>() };
+        setup_pfioc_state_kill(state.as_raw(), &mut pfioc_state_kill);
+        ioctl_guard!(ffi::pf_kill_states(self.fd(), &mut pfioc_state_kill))?;
+        // psk_af holds the number of killed states, but it should be zero
+        Ok(())
     }
 
     /// Get all states created by stateful rules
-    fn get_states(&mut self) -> Result<Vec<ffi::pfvar::pfsync_state>> {
+    fn get_states_inner(&mut self) -> Result<Vec<ffi::pfvar::pfsync_state>> {
         let num_states = self.get_num_states()?;
         if num_states > 0 {
             let (mut pfioc_states, pfsync_states) = setup_pfioc_states(num_states);

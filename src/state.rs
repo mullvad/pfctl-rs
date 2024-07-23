@@ -34,6 +34,11 @@ impl State {
     pub fn remote_address(&self) -> Result<SocketAddr> {
         parse_address(self.sync_state.af_lan, self.sync_state.ext_lan)
     }
+
+    /// Return a reference to the inner `pfsync_state` state
+    pub(crate) fn as_raw(&self) -> &pfsync_state {
+        &self.sync_state
+    }
 }
 
 fn parse_address(family: u8, host: pfsync_state_host) -> Result<SocketAddr> {
