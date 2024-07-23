@@ -8,7 +8,7 @@
 
 use crate::{
     conversion::{CopyTo, TryCopyTo},
-    ffi, Interface, Ip, Result,
+    ffi, Interface, Ip,
 };
 use std::{mem, ptr, vec::Vec};
 
@@ -46,7 +46,9 @@ impl From<Ip> for PoolAddr {
 }
 
 impl TryCopyTo<ffi::pfvar::pf_pooladdr> for PoolAddr {
-    fn try_copy_to(&self, pf_pooladdr: &mut ffi::pfvar::pf_pooladdr) -> Result<()> {
+    type Error = crate::Error;
+
+    fn try_copy_to(&self, pf_pooladdr: &mut ffi::pfvar::pf_pooladdr) -> Result<(), Self::Error> {
         self.interface.try_copy_to(&mut pf_pooladdr.ifname)?;
         self.ip.copy_to(&mut pf_pooladdr.addr);
         Ok(())
@@ -67,7 +69,7 @@ pub struct PoolAddrList {
 }
 
 impl PoolAddrList {
-    pub fn new(pool_addrs: &[PoolAddr]) -> Result<Self> {
+    pub fn new(pool_addrs: &[PoolAddr]) -> Result<Self, crate::Error> {
         let mut pool = Self::init_pool(pool_addrs)?;
         Self::link_elements(&mut pool);
         let list = Self::create_palist(&mut pool);
@@ -88,7 +90,7 @@ impl PoolAddrList {
         self.list
     }
 
-    fn init_pool(pool_addrs: &[PoolAddr]) -> Result<Vec<ffi::pfvar::pf_pooladdr>> {
+    fn init_pool(pool_addrs: &[PoolAddr]) -> Result<Vec<ffi::pfvar::pf_pooladdr>, crate::Error> {
         let mut pool = Vec::with_capacity(pool_addrs.len());
         for pool_addr in pool_addrs {
             let mut pf_pooladdr = unsafe { mem::zeroed::<ffi::pfvar::pf_pooladdr>() };

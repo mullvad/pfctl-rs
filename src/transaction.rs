@@ -7,8 +7,7 @@
 // except according to those terms.
 
 use crate::{
-    conversion::TryCopyTo, ffi, utils, ErrorKind, FilterRule, PoolAddrList, RedirectRule, Result,
-    ResultExt, RulesetKind,
+    conversion::TryCopyTo, ffi, utils, FilterRule, PoolAddrList, RedirectRule, Result, RulesetKind,
 };
 use std::{
     collections::HashMap,
@@ -117,9 +116,7 @@ impl Transaction {
         // prepare pfioc_rule
         let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
         pfioc_rule.action = ffi::pfvar::PF_CHANGE_NONE as u32;
-        anchor
-            .try_copy_to(&mut pfioc_rule.anchor[..])
-            .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
+        utils::copy_anchor_name(anchor, &mut pfioc_rule.anchor[..])?;
         rule.try_copy_to(&mut pfioc_rule.rule)?;
 
         // request new address pool
@@ -130,8 +127,7 @@ impl Transaction {
         let _pool_addr_list = if let Some(pool_addr) = rule.get_route().get_pool_addr() {
             // register pool address with firewall
             utils::add_pool_address(fd, pool_addr.clone(), pool_ticket)?;
-            let pool_addr_list = PoolAddrList::new(&[pool_addr.clone()])
-                .chain_err(|| ErrorKind::InvalidArgument("Invalid route target"))?;
+            let pool_addr_list = PoolAddrList::new(&[pool_addr.clone()])?;
 
             pfioc_rule.rule.rpool.list = unsafe { pool_addr_list.to_palist() };
             Some(pool_addr_list)
@@ -144,16 +140,16 @@ impl Transaction {
         pfioc_rule.pool_ticket = pool_ticket;
 
         // add rule into transaction
-        ioctl_guard!(ffi::pf_add_rule(fd, &mut pfioc_rule))
+        ioctl_guard!(ffi::pf_add_rule(fd, &mut pfioc_rule))?;
+        drop(_pool_addr_list);
+        Ok(())
     }
 
     /// Internal helper to add redirect rule into transaction
     fn add_redirect_rule(fd: RawFd, anchor: &str, rule: &RedirectRule, ticket: u32) -> Result<()> {
         // prepare pfioc_rule
         let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
-        anchor
-            .try_copy_to(&mut pfioc_rule.anchor[..])
-            .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
+        utils::copy_anchor_name(anchor, &mut pfioc_rule.anchor[..])?;
         rule.try_copy_to(&mut pfioc_rule.rule)?;
 
         // register redirect address in newly created address pool
@@ -191,9 +187,7 @@ impl Transaction {
     ) -> Result<ffi::pfvar::pfioc_trans_pfioc_trans_e> {
         let mut pfioc_trans_e = unsafe { mem::zeroed::<ffi::pfvar::pfioc_trans_pfioc_trans_e>() };
         pfioc_trans_e.rs_num = ruleset_kind.into();
-        anchor
-            .try_copy_to(&mut pfioc_trans_e.anchor[..])
-            .chain_err(|| ErrorKind::InvalidArgument("Invalid anchor name"))?;
+        utils::copy_anchor_name(anchor, &mut pfioc_trans_e.anchor[..])?;
         Ok(pfioc_trans_e)
     }
 }

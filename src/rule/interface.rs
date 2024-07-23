@@ -6,7 +6,8 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use crate::{conversion::TryCopyTo, Result};
+use crate::conversion::TryCopyTo;
+use crate::{Error, ErrorInternal};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct InterfaceName(String);
@@ -31,11 +32,14 @@ impl<T: AsRef<str>> From<T> for Interface {
 }
 
 impl TryCopyTo<[i8]> for Interface {
-    fn try_copy_to(&self, dst: &mut [i8]) -> Result<()> {
+    type Error = crate::Error;
+
+    fn try_copy_to(&self, dst: &mut [i8]) -> Result<(), Self::Error> {
         match *self {
             Interface::Any => "",
             Interface::Name(InterfaceName(ref name)) => &name[..],
         }
         .try_copy_to(dst)
+        .map_err(|reason| Error::from(ErrorInternal::InvalidInterfaceName(reason)))
     }
 }

@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   `ipnetwork` is part of the public API.
 * Upgrade crate to Rust 2021 edition.
 * MSRV bumped to 1.69 due to use of `CStr::from_bytes_until_nul`.
+* Replace `error-chain` generated errors with manually implemented error types.
 
 ### Removed
 * Remove `PoolAddrList::to_palist` from the public API. It should never have been exposed.
