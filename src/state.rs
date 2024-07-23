@@ -1,3 +1,4 @@
+use std::fmt;
 use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr};
 
 use crate::ffi::pfvar::pfsync_state_host;
@@ -8,6 +9,18 @@ use crate::{AddrFamily, Error, ErrorInternal, Result};
 #[derive(Clone)]
 pub struct State {
     sync_state: pfsync_state,
+}
+
+// Manually derive `Debug` since `pfsync_state` contains unions.
+impl fmt::Debug for State {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("State")
+            .field("direction", &self.direction())
+            .field("proto", &self.proto())
+            .field("local_address", &self.local_address())
+            .field("remote_address", &self.remote_address())
+            .finish()
+    }
 }
 
 impl State {
