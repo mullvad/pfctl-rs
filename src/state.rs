@@ -2,47 +2,37 @@ use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr};
 
 use crate::ffi::pfvar::pfsync_state_host;
 use crate::{ffi::pfvar::pfsync_state, Direction, Proto};
-use crate::{AddrFamily, Error, Result, ErrorInternal};
+use crate::{AddrFamily, Error, ErrorInternal, Result};
 
-/// PF connection state
-#[non_exhaustive]
-#[allow(clippy::large_enum_variant)]
+/// PF connection state created by a stateful rule
 #[derive(Clone)]
-pub enum State {
-    /// IP connection state
-    Ip(IpState),
-    /// Any connection state that could not be parsed
-    Raw(pfsync_state),
+pub struct State {
+    sync_state: pfsync_state,
 }
 
-/// IP connection
-#[non_exhaustive]
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct IpState {
-    pub direction: Direction,
-    pub proto: Proto,
-    pub local_address: SocketAddr,
-    pub remote_address: SocketAddr,
-}
-
-impl From<pfsync_state> for State {
-    fn from(state: pfsync_state) -> Self {
-        IpState::try_from(state)
-            .map(State::Ip)
-            .unwrap_or_else(|_| State::Raw(state))
+impl State {
+    pub(crate) fn new(sync_state: pfsync_state) -> State {
+        State { sync_state }
     }
-}
 
-impl TryFrom<pfsync_state> for IpState {
-    type Error = Error;
+    /// Return the direction for this state
+    pub fn direction(&self) -> Result<Direction> {
+        Direction::try_from(self.sync_state.direction)
+    }
 
-    fn try_from(state: pfsync_state) -> Result<Self> {
-        Ok(IpState {
-            direction: Direction::try_from(state.direction)?,
-            proto: Proto::try_from(state.proto)?,
-            local_address: parse_address(state.af_lan, state.lan)?,
-            remote_address: parse_address(state.af_lan, state.ext_lan)?,
-        })
+    /// Return the transport protocol for this state
+    pub fn proto(&self) -> Result<Proto> {
+        Proto::try_from(self.sync_state.direction)
+    }
+
+    /// Return the local socket address for this state
+    pub fn local_address(&self) -> Result<SocketAddr> {
+        parse_address(self.sync_state.af_lan, self.sync_state.lan)
+    }
+
+    /// Return the remote socket address for this state
+    pub fn remote_address(&self) -> Result<SocketAddr> {
+        parse_address(self.sync_state.af_lan, self.sync_state.ext_lan)
     }
 }
 
