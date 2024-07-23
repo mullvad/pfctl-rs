@@ -22,7 +22,7 @@ impl State {
 
     /// Return the transport protocol for this state
     pub fn proto(&self) -> Result<Proto> {
-        Proto::try_from(self.sync_state.direction)
+        Proto::try_from(self.sync_state.proto)
     }
 
     /// Return the local socket address for this state
