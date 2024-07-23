@@ -100,6 +100,8 @@ pub enum ErrorKind {
     DeviceOpen,
     /// The firewall rule is invalidly configured
     InvalidRuleCombination,
+    /// A required field on a builder was not set
+    UninitializedFieldError,
     /// The supplied network interface name is not compatible with PF
     InvalidInterfaceName,
     /// The supplied anchor name in not compatible with PF
@@ -123,6 +125,7 @@ pub struct Error(ErrorInternal);
 enum ErrorInternal {
     DeviceOpen(&'static str, std::io::Error),
     InvalidRuleCombination(String),
+    UninitializedFieldError(derive_builder::UninitializedFieldError),
     InvalidInterfaceName(&'static str),
     InvalidAnchorName(&'static str),
     InvalidPortRange,
@@ -139,6 +142,7 @@ impl Error {
         match self.0 {
             DeviceOpen(..) => ErrorKind::DeviceOpen,
             InvalidRuleCombination(_) => ErrorKind::InvalidRuleCombination,
+            UninitializedFieldError(_) => ErrorKind::UninitializedFieldError,
             InvalidInterfaceName(..) => ErrorKind::InvalidInterfaceName,
             InvalidAnchorName(..) => ErrorKind::InvalidAnchorName,
             InvalidPortRange => ErrorKind::InvalidPortRange,
@@ -164,6 +168,7 @@ impl fmt::Display for Error {
                 write!(f, "Unable to open PF device file ({device_path})")
             }
             InvalidRuleCombination(msg) => write!(f, "Invalid rule combination: {msg}"),
+            UninitializedFieldError(inner) => inner.fmt(f),
             InvalidInterfaceName(reason) => write!(f, "Invalid interface name ({reason})"),
             InvalidAnchorName(reason) => write!(f, "Invalid anchor name ({reason})"),
             InvalidPortRange => write!(f, "Lower port is greater than upper port"),
@@ -183,6 +188,14 @@ impl std::error::Error for Error {
             Ioctl(e) => Some(e),
             _ => None,
         }
+    }
+}
+
+// Required in order to have derive_builder builders generate `build` methods that return
+// our error type directly.
+impl From<derive_builder::UninitializedFieldError> for Error {
+    fn from(value: derive_builder::UninitializedFieldError) -> Self {
+        Error::from(ErrorInternal::UninitializedFieldError(value))
     }
 }
 

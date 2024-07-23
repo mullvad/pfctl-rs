@@ -10,7 +10,6 @@ use crate::{
     conversion::{CopyTo, TryCopyTo},
     ffi, Error, ErrorInternal, Result,
 };
-use derive_builder::Builder;
 use ipnetwork::IpNetwork;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
@@ -59,9 +58,9 @@ pub use self::rule_log::*;
 mod uid;
 pub use self::uid::*;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Builder)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, derive_builder::Builder)]
 #[builder(setter(into))]
-#[builder(build_fn(name = "build_internal"))]
+#[builder(build_fn(error = "Error"))]
 pub struct FilterRule {
     action: FilterRuleAction,
     #[builder(default)]
@@ -94,13 +93,6 @@ pub struct FilterRule {
     group: Gid,
     #[builder(default)]
     icmp_type: Option<IcmpType>,
-}
-
-impl FilterRuleBuilder {
-    pub fn build(&self) -> Result<FilterRule> {
-        self.build_internal()
-            .map_err(|e| ErrorInternal::InvalidRuleCombination(e).into())
-    }
 }
 
 impl FilterRule {
@@ -167,9 +159,9 @@ impl TryCopyTo<ffi::pfvar::pf_rule> for FilterRule {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Builder)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, derive_builder::Builder)]
 #[builder(setter(into))]
-#[builder(build_fn(name = "build_internal"))]
+#[builder(build_fn(error = "Error"))]
 pub struct RedirectRule {
     action: RedirectRuleAction,
     #[builder(default)]
@@ -195,13 +187,6 @@ pub struct RedirectRule {
     #[builder(default)]
     group: Gid,
     redirect_to: Endpoint,
-}
-
-impl RedirectRuleBuilder {
-    pub fn build(&self) -> Result<RedirectRule> {
-        self.build_internal()
-            .map_err(|e| ErrorInternal::InvalidRuleCombination(e).into())
-    }
 }
 
 impl RedirectRule {
