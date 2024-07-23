@@ -6,7 +6,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use crate::{ffi, Error, ErrorKind, Result};
+use crate::{ffi, Error, ErrorInternal, Result};
 use std::fmt;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
@@ -50,9 +50,7 @@ impl TryFrom<u8> for AddrFamily {
             UNSPEC => Ok(AddrFamily::Any),
             INET => Ok(AddrFamily::Ipv4),
             INET6 => Ok(AddrFamily::Ipv6),
-            _ => Err(Error::from_kind(ErrorKind::InvalidArgument(
-                "Invalid family",
-            ))),
+            _ => Err(Error::from(ErrorInternal::InvalidAddressFamily(family))),
         }
     }
 }

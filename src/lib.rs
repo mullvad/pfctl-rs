@@ -111,6 +111,12 @@ pub enum ErrorKind {
     InvalidPortRange,
     /// The supplied rule label is not compatible with PF.
     InvalidLabel,
+    /// The address family is invalid
+    InvalidAddressFamily,
+    /// The direction is invalid
+    InvalidPacketDirection,
+    /// The transport protocol is invalid
+    InvalidTransportProtocol,
     /// The target state was already active
     StateAlreadyActive,
     /// This PF anchor does not exist
@@ -130,6 +136,9 @@ enum ErrorInternal {
     InvalidAnchorName(&'static str),
     InvalidPortRange,
     InvalidLabel(&'static str),
+    InvalidAddressFamily(u8),
+    InvalidPacketDirection(u8),
+    InvalidTransportProtocol(u8),
     StateAlreadyActive,
     AnchorDoesNotExist,
     Ioctl(std::io::Error),
@@ -146,6 +155,9 @@ impl Error {
             InvalidAnchorName(..) => ErrorKind::InvalidAnchorName,
             InvalidPortRange => ErrorKind::InvalidPortRange,
             InvalidLabel(..) => ErrorKind::InvalidLabel,
+            InvalidAddressFamily(_) => ErrorKind::InvalidAddressFamily,
+            InvalidPacketDirection(_) => ErrorKind::InvalidPacketDirection,
+            InvalidTransportProtocol(_) => ErrorKind::InvalidTransportProtocol,
             StateAlreadyActive => ErrorKind::StateAlreadyActive,
             AnchorDoesNotExist => ErrorKind::AnchorDoesNotExist,
             Ioctl(_) => ErrorKind::Ioctl,
@@ -171,6 +183,9 @@ impl fmt::Display for Error {
             InvalidAnchorName(reason) => write!(f, "Invalid anchor name ({reason})"),
             InvalidPortRange => write!(f, "Lower port is greater than upper port"),
             InvalidLabel(reason) => write!(f, "Invalid rule label ({reason}"),
+            InvalidAddressFamily(reason) => write!(f, "Invalid address family ({reason})"),
+            InvalidPacketDirection(reason) => write!(f, "Invalid direction ({reason})"),
+            InvalidTransportProtocol(reason) => write!(f, "Invalid transport protocol ({reason})"),
             StateAlreadyActive => write!(f, "Target state is already active"),
             AnchorDoesNotExist => write!(f, "Anchor does not exist"),
             Ioctl(_) => write!(f, "Error during ioctl syscall"),

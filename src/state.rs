@@ -2,7 +2,7 @@ use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr};
 
 use crate::ffi::pfvar::pfsync_state_host;
 use crate::{ffi::pfvar::pfsync_state, Direction, Proto};
-use crate::{AddrFamily, Error, ErrorKind, Result};
+use crate::{AddrFamily, Error, Result, ErrorInternal};
 
 /// PF connection state
 #[non_exhaustive]
@@ -54,11 +54,7 @@ fn parse_address(family: u8, host: pfsync_state_host) -> Result<SocketAddr> {
         Ok(AddrFamily::Ipv6) => {
             Ipv6Addr::from(unsafe { host.addr.pfa._v6addr.__u6_addr.__u6_addr8 }).into()
         }
-        _ => {
-            return Err(Error::from_kind(ErrorKind::InvalidArgument(
-                "Not an IP address",
-            )))
-        }
+        _ => return Err(Error::from(ErrorInternal::InvalidAddressFamily(family))),
     };
     let port = unsafe { host.xport.port }.to_be();
 

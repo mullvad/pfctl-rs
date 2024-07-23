@@ -6,7 +6,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use crate::{ffi, Error, ErrorKind, Result};
+use crate::{ffi, Error, ErrorInternal, Result};
 
 /// Enum describing matching of rule towards packet flow direction.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
@@ -39,9 +39,7 @@ impl TryFrom<u8> for Direction {
             INOUT => Ok(Direction::Any),
             IN => Ok(Direction::In),
             OUT => Ok(Direction::Out),
-            _ => Err(Error::from_kind(ErrorKind::InvalidArgument(
-                "Invalid direction",
-            ))),
+            other => Err(Error::from(ErrorInternal::InvalidPacketDirection(other))),
         }
     }
 }
