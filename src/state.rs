@@ -51,7 +51,7 @@ fn parse_address(family: u8, host: pfsync_state_host) -> Result<SocketAddr> {
         }
         _ => return Err(Error::from(ErrorInternal::InvalidAddressFamily(family))),
     };
-    let port = unsafe { host.xport.port }.to_be();
+    let port = u16::from_be(unsafe { host.xport.port });
 
     Ok(SocketAddr::new(ip, port))
 }
