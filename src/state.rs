@@ -24,19 +24,11 @@ impl fmt::Debug for State {
 }
 
 impl State {
-    /// Wrap `pfsync_state` so that it can be accessed safely.
+    /// Wrap a `pfsync_state` so that it can be accessed safely.
     ///
     /// # Safety
     ///
-    /// `sync_state.lan` and `sync_state.ext_lan` must set an address and port:
-    /// * If `sync_state.af_lan == PF_INET`, then these fields must be initialized:
-    ///   * `sync_state.lan.addr.pfa._v4addr`
-    ///   * `sync_state.ext_lan.addr.pfa._v4addr`
-    /// * If `sync_state.af_lan == PF_INET6`, then these fields must be initialized:
-    ///   * `sync_state.lan.addr.pfa._v6addr`
-    ///   * `sync_state.ext_lan.addr.pfa._v6addr`
-    /// * `sync_state.lan.xport.port` must be initialized.
-    /// * `sync_state.ext_lan.xport.port` must be initialized.
+    /// All bytes in `sync_state` must be initialized.
     pub(crate) unsafe fn new(sync_state: pfsync_state) -> State {
         State { sync_state }
     }
