@@ -95,8 +95,6 @@ unsafe fn parse_address(family: u8, host: pfsync_state_host) -> Result<SocketAdd
 mod tests {
     use super::pfsync_state_host;
     use crate::{state::parse_address, AddrFamily};
-
-    use assert_matches::assert_matches;
     use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr};
 
     #[test]
@@ -110,7 +108,8 @@ mod tests {
 
         let family = u8::from(AddrFamily::Ipv4);
 
-        assert_matches!(unsafe { parse_address(family, host) }, Ok(addr) if addr == SocketAddr::new(EXPECTED_IP.into(), EXPECTED_PORT));
+        let address = unsafe { parse_address(family, host) }.unwrap();
+        assert_eq!(address, SocketAddr::new(EXPECTED_IP.into(), EXPECTED_PORT));
     }
 
     #[test]
@@ -124,6 +123,7 @@ mod tests {
 
         let family = u8::from(AddrFamily::Ipv6);
 
-        assert_matches!(unsafe { parse_address(family, host) }, Ok(addr) if addr == SocketAddr::new(EXPECTED_IP.into(), EXPECTED_PORT));
+        let address = unsafe { parse_address(family, host) }.unwrap();
+        assert_eq!(address, SocketAddr::new(EXPECTED_IP.into(), EXPECTED_PORT));
     }
 }
