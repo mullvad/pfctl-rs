@@ -40,12 +40,24 @@ impl State {
 
     /// Return the local socket address for this state
     pub fn local_address(&self) -> Result<SocketAddr> {
-        parse_address(self.sync_state.af_lan, self.sync_state.lan)
+        // SAFETY: `pf_state_export` sets all fields. The port is zero-initialized if the transport
+        // protocol does not contain ports.
+        //
+        // https://github.com/apple-oss-distributions/xnu/blob/main/bsd/net/pf_ioctl.c#L1247
+        // https://github.com/apple-oss-distributions/xnu/blob/main/bsd/net/pf.c#L4474
+
+        unsafe { parse_address(self.sync_state.af_lan, self.sync_state.lan) }
     }
 
     /// Return the remote socket address for this state
     pub fn remote_address(&self) -> Result<SocketAddr> {
-        parse_address(self.sync_state.af_lan, self.sync_state.ext_lan)
+        // SAFETY: `pf_state_export` sets all fields. The port is zero-initialized if the transport
+        // protocol does not contain ports.
+        //
+        // https://github.com/apple-oss-distributions/xnu/blob/main/bsd/net/pf_ioctl.c#L1247
+        // https://github.com/apple-oss-distributions/xnu/blob/main/bsd/net/pf.c#L4474
+
+        unsafe { parse_address(self.sync_state.af_lan, self.sync_state.ext_lan) }
     }
 
     /// Return a reference to the inner `pfsync_state` state
@@ -54,27 +66,30 @@ impl State {
     }
 }
 
-fn parse_address(family: u8, host: pfsync_state_host) -> Result<SocketAddr> {
+/// Parse an IP address and port from a `pfsync_sync_host`, normally provided by `pfsync_state`.
+///
+/// # Safety
+///
+/// `host` must contain a valid address and a port:
+/// * If `AddrFamily::try_from(family) == Ok(AddrFamily::Ipv4)`, then `host.addr.pfa._v4addr` must
+///   be set.
+/// * If `AddrFamily::try_from(family) == Ok(AddrFamily::Ipv6)`, then `host.addr.pfa._v6addr` must
+///   be set.
+/// * `host.xport.port` must always be initialized.
+unsafe fn parse_address(family: u8, host: pfsync_state_host) -> Result<SocketAddr> {
     let ip = match AddrFamily::try_from(family) {
         Ok(AddrFamily::Ipv4) => {
-            // SAFETY: The address will be set if we can trust `family`. Otherwise, this memory is
-            // zero-initialized.
+            // SAFETY: The caller has initialized this memory
             Ipv4Addr::from(u32::from_be(unsafe { host.addr.pfa._v4addr.s_addr })).into()
         }
         Ok(AddrFamily::Ipv6) => {
-            // SAFETY: The address will be set if we can trust `family`. Otherwise, this memory is
-            // zero-initialized.
+            // SAFETY: The caller has initialized this memory
             Ipv6Addr::from(unsafe { host.addr.pfa._v6addr.__u6_addr.__u6_addr8 }).into()
         }
         _ => return Err(Error::from(ErrorInternal::InvalidAddressFamily(family))),
     };
 
-    // SAFETY: `pf_state_export` always assigns `xport` from a `pf_state_key`. This is
-    // zero-initialized by `pf_alloc_state_key`. If it's not meaningful for a given transport
-    // protocol (e.g. ICMP), the port should be zero, which is what we expect.
-    //
-    // https://github.com/apple-oss-distributions/xnu/blob/main/bsd/net/pf_ioctl.c#L1247
-    // https://github.com/apple-oss-distributions/xnu/blob/main/bsd/net/pf.c#L4474
+    // SAFETY: The caller has initialized this memory
     let port = u16::from_be(unsafe { host.xport.port });
 
     Ok(SocketAddr::new(ip, port))
@@ -99,7 +114,7 @@ mod tests {
 
         let family = u8::from(AddrFamily::Ipv4);
 
-        assert_matches!(parse_address(family, host), Ok(addr) if addr == SocketAddr::new(EXPECTED_IP.into(), EXPECTED_PORT));
+        assert_matches!(unsafe { parse_address(family, host) }, Ok(addr) if addr == SocketAddr::new(EXPECTED_IP.into(), EXPECTED_PORT));
     }
 
     #[test]
@@ -113,6 +128,6 @@ mod tests {
 
         let family = u8::from(AddrFamily::Ipv6);
 
-        assert_matches!(parse_address(family, host), Ok(addr) if addr == SocketAddr::new(EXPECTED_IP.into(), EXPECTED_PORT));
+        assert_matches!(unsafe { parse_address(family, host) }, Ok(addr) if addr == SocketAddr::new(EXPECTED_IP.into(), EXPECTED_PORT));
     }
 }
