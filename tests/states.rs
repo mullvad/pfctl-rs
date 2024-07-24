@@ -152,7 +152,7 @@ test!(kill_ipv4_state {
         let Some(state) = states.iter().find(|&state| matches!(ExpectedState::try_from(state.clone()), Ok(v) if v == *expected_state)) else {
             panic!("cannot find state: {expected_state:?}");
         };
-        assert_matches!(pf.kill_state(&state), Ok(_));
+        assert_matches!(pf.kill_state(state), Ok(_));
     }
 
     let states = pf.get_states()
@@ -161,7 +161,7 @@ test!(kill_ipv4_state {
         .filter_map(|state| ExpectedState::try_from(state).ok()).collect::<Vec<_>>();
 
     for expected_state in &expected_states {
-        assert!(!states.contains(&expected_state), "state should be removed");
+        assert!(!states.contains(expected_state), "state should be removed");
     }
 });
 
@@ -199,7 +199,7 @@ test!(kill_ipv6_state {
         let Some(state) = states.iter().find(|&state| matches!(ExpectedState::try_from(state.clone()), Ok(v) if v == *expected_state)) else {
             panic!("cannot find state: {expected_state:?}");
         };
-        assert_matches!(pf.kill_state(&state), Ok(_));
+        assert_matches!(pf.kill_state(state), Ok(_));
     }
 
     let states = pf.get_states()
@@ -208,6 +208,6 @@ test!(kill_ipv6_state {
         .filter_map(|state| ExpectedState::try_from(state).ok()).collect::<Vec<_>>();
 
     for expected_state in &expected_states {
-        assert!(!states.contains(&expected_state), "state should be removed");
+        assert!(!states.contains(expected_state), "state should be removed");
     }
 });
