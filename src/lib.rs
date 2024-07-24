@@ -438,7 +438,12 @@ impl PfCtl {
         let wrapped_states = self
             .get_states_inner()?
             .into_iter()
-            .map(State::new)
+            .map(|state| {
+                // SAFETY: `DIOCGETSTATE` calls `pf_state_export`, where `pfsync_state` is zero-initialized.
+                // https://github.com/apple-oss-distributions/xnu/blob/main/bsd/net/pf_ioctl.c#L1247
+                // https://github.com/apple-oss-distributions/xnu/blob/main/bsd/net/pf_ioctl.c#L3583
+                unsafe { State::new(state) }
+            })
             .collect();
         Ok(wrapped_states)
     }

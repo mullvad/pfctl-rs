@@ -3,7 +3,7 @@ use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr};
 
 use crate::ffi::pfvar::pfsync_state_host;
 use crate::{ffi::pfvar::pfsync_state, Direction, Proto};
-use crate::{AddrFamily, Error, ErrorInternal, Result};
+use crate::{Error, ErrorInternal, Result};
 
 /// PF connection state created by a stateful rule
 #[derive(Clone)]
@@ -24,7 +24,15 @@ impl fmt::Debug for State {
 }
 
 impl State {
-    pub(crate) fn new(sync_state: pfsync_state) -> State {
+    /// Wrap `pfsync_state` so that it can be accessed safely.
+    ///
+    /// # Safety
+    ///
+    /// `sync_state.lan` and `sync_state.ext_lan` must set an address and port:
+    /// * If `sync_state.af_lan == PF_INET`, then `host.addr.pfa._v4addr` must be initialized.
+    /// * If `sync_state.af_lan == PF_INET6`, then `host.addr.pfa._v6addr` must be initialized.
+    /// * `host.xport.port` must be initialized.
+    pub(crate) unsafe fn new(sync_state: pfsync_state) -> State {
         State { sync_state }
     }
 
@@ -40,23 +48,13 @@ impl State {
 
     /// Return the local socket address for this state
     pub fn local_address(&self) -> Result<SocketAddr> {
-        // SAFETY: `pf_state_export` sets all fields. The port is zero-initialized if the transport
-        // protocol does not contain ports.
-        //
-        // https://github.com/apple-oss-distributions/xnu/blob/main/bsd/net/pf_ioctl.c#L1247
-        // https://github.com/apple-oss-distributions/xnu/blob/main/bsd/net/pf.c#L4474
-
+        // SAFETY: The address and port are initialized according to the contract of `Self::new`.
         unsafe { parse_address(self.sync_state.af_lan, self.sync_state.lan) }
     }
 
     /// Return the remote socket address for this state
     pub fn remote_address(&self) -> Result<SocketAddr> {
-        // SAFETY: `pf_state_export` sets all fields. The port is zero-initialized if the transport
-        // protocol does not contain ports.
-        //
-        // https://github.com/apple-oss-distributions/xnu/blob/main/bsd/net/pf_ioctl.c#L1247
-        // https://github.com/apple-oss-distributions/xnu/blob/main/bsd/net/pf.c#L4474
-
+        // SAFETY: The address and port are initialized according to the contract of `Self::new`.
         unsafe { parse_address(self.sync_state.af_lan, self.sync_state.ext_lan) }
     }
 
@@ -71,18 +69,16 @@ impl State {
 /// # Safety
 ///
 /// `host` must contain a valid address and a port:
-/// * If `AddrFamily::try_from(family) == Ok(AddrFamily::Ipv4)`, then `host.addr.pfa._v4addr` must
-///   be set.
-/// * If `AddrFamily::try_from(family) == Ok(AddrFamily::Ipv6)`, then `host.addr.pfa._v6addr` must
-///   be set.
+/// * If `family == PF_INET`, then `host.addr.pfa._v4addr` must be initialized.
+/// * If `family == PF_INET6`, then `host.addr.pfa._v6addr` must be initialized.
 /// * `host.xport.port` must always be initialized.
 unsafe fn parse_address(family: u8, host: pfsync_state_host) -> Result<SocketAddr> {
-    let ip = match AddrFamily::try_from(family) {
-        Ok(AddrFamily::Ipv4) => {
+    let ip = match u32::from(family) {
+        crate::ffi::pfvar::PF_INET => {
             // SAFETY: The caller has initialized this memory
             Ipv4Addr::from(u32::from_be(unsafe { host.addr.pfa._v4addr.s_addr })).into()
         }
-        Ok(AddrFamily::Ipv6) => {
+        crate::ffi::pfvar::PF_INET6 => {
             // SAFETY: The caller has initialized this memory
             Ipv6Addr::from(unsafe { host.addr.pfa._v6addr.__u6_addr.__u6_addr8 }).into()
         }
