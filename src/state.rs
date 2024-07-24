@@ -87,3 +87,40 @@ unsafe fn parse_address(family: u8, host: pfsync_state_host) -> Result<SocketAdd
 
     Ok(SocketAddr::new(ip, port))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::pfsync_state_host;
+    use crate::{state::parse_address, AddrFamily};
+    use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr};
+
+    #[test]
+    fn test_parse_ipv4_address() {
+        const EXPECTED_IP: Ipv4Addr = Ipv4Addr::new(1, 2, 3, 4);
+        const EXPECTED_PORT: u16 = 12345;
+
+        let mut host: pfsync_state_host = unsafe { std::mem::zeroed() };
+        host.addr.pfa._v4addr.s_addr = u32::from_be_bytes(EXPECTED_IP.octets()).to_be();
+        host.xport.port = EXPECTED_PORT.to_be();
+
+        let family = u8::from(AddrFamily::Ipv4);
+
+        let address = unsafe { parse_address(family, host) }.unwrap();
+        assert_eq!(address, SocketAddr::new(EXPECTED_IP.into(), EXPECTED_PORT));
+    }
+
+    #[test]
+    fn test_parse_ipv6_address() {
+        const EXPECTED_IP: Ipv6Addr = Ipv6Addr::new(1, 2, 3, 4, 5, 6, 7, 0x7f);
+        const EXPECTED_PORT: u16 = 12345;
+
+        let mut host: pfsync_state_host = unsafe { std::mem::zeroed() };
+        host.addr.pfa._v6addr.__u6_addr.__u6_addr8 = EXPECTED_IP.octets();
+        host.xport.port = EXPECTED_PORT.to_be();
+
+        let family = u8::from(AddrFamily::Ipv6);
+
+        let address = unsafe { parse_address(family, host) }.unwrap();
+        assert_eq!(address, SocketAddr::new(EXPECTED_IP.into(), EXPECTED_PORT));
+    }
+}
