@@ -150,7 +150,7 @@ test!(kill_ipv4_state {
 
     for expected_state in &expected_states {
         let Some(state) = states.iter().find(|&state| matches!(ExpectedState::try_from(state.clone()), Ok(v) if v == *expected_state)) else {
-            panic!("expected state: {expected_state:?}");
+            panic!("cannot find state: {expected_state:?}");
         };
         assert_matches!(pf.kill_state(&state), Ok(_));
     }
@@ -168,8 +168,8 @@ test!(kill_ipv4_state {
 test!(kill_ipv6_state {
     let mut pf = pfctl::PfCtl::new().unwrap();
     let ipv6 = IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1));
-    let server_addr = SocketAddr::new(ipv6, 13370);
-    let sender_addr = SocketAddr::new(ipv6, 13380);
+    let server_addr = SocketAddr::new(ipv6, 13371);
+    let sender_addr = SocketAddr::new(ipv6, 13381);
 
     pf.add_rule(ANCHOR_NAME, &rule_builder(server_addr)).unwrap();
     send_udp_packet(sender_addr, server_addr);
@@ -197,7 +197,7 @@ test!(kill_ipv6_state {
 
     for expected_state in &expected_states {
         let Some(state) = states.iter().find(|&state| matches!(ExpectedState::try_from(state.clone()), Ok(v) if v == *expected_state)) else {
-            panic!("expected state: {expected_state:?}");
+            panic!("cannot find state: {expected_state:?}");
         };
         assert_matches!(pf.kill_state(&state), Ok(_));
     }
