@@ -443,7 +443,9 @@ impl PfCtl {
         Ok(wrapped_states)
     }
 
-    /// Remove the specified state
+    /// Remove the specified state.
+    ///
+    /// All current states can be obtained via [get_states].
     pub fn kill_state(&mut self, state: &State) -> Result<()> {
         let mut pfioc_state_kill = unsafe { mem::zeroed::<ffi::pfvar::pfioc_state_kill>() };
         setup_pfioc_state_kill(state.as_raw(), &mut pfioc_state_kill);
