@@ -13,9 +13,9 @@ use crate::{ffi, Error, ErrorInternal, Result};
 #[repr(u8)]
 pub enum Direction {
     #[default]
-    Any = ffi::pfvar::PF_INOUT as u32 as u8,
-    In = ffi::pfvar::PF_IN as u32 as u8,
-    Out = ffi::pfvar::PF_OUT as u32 as u8,
+    Any = ffi::pfvar::PF_INOUT as u8,
+    In = ffi::pfvar::PF_IN as u8,
+    Out = ffi::pfvar::PF_OUT as u8,
 }
 
 impl From<Direction> for u8 {
