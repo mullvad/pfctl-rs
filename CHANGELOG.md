@@ -13,6 +13,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 * **Security**: in case of vulnerabilities.
 
 ## [unreleased]
+
+
+## [0.5.0] - 2024-07-24
 ### Added
 - Add function for listing all states created by PF anchor rules.
 - Add function for removing individual states created by PF anchor rules.
@@ -22,12 +25,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
   `ipnetwork` is part of the public API.
 * Upgrade crate to Rust 2021 edition.
 * MSRV bumped to 1.69 due to use of `CStr::from_bytes_until_nul`.
-* Replace `error-chain` generated errors with manually implemented error types.
-* Remove `build_internal` methods on `FilterRuleBuilder` and `RedirectRuleBuilder`.
-  This was never supposed to be public, but a side effect of using `derive-builder`.
+* Replace `error-chain` generated errors with manually implemented error types. This changes
+  the public API of the error related types quite significantly. Also the chain of errors
+  will be different. But it should be as easy to destructure and handle errors as before,
+  and error messages should be at least as informative.
 
 ### Removed
 * Remove `PoolAddrList::to_palist` from the public API. It should never have been exposed.
+* Remove `build_internal` methods on `FilterRuleBuilder` and `RedirectRuleBuilder`.
+  This was never supposed to be public, but a side effect of using `derive-builder`.
 
 
 ## [0.4.6] - 2024-04-18
