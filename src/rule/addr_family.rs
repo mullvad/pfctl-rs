@@ -6,24 +6,21 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use crate::ffi;
+use crate::{ffi, Error, ErrorInternal, Result};
 use std::fmt;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(u8)]
 pub enum AddrFamily {
     #[default]
-    Any,
-    Ipv4,
-    Ipv6,
+    Any = ffi::pfvar::PF_UNSPEC as u8,
+    Ipv4 = ffi::pfvar::PF_INET as u8,
+    Ipv6 = ffi::pfvar::PF_INET6 as u8,
 }
 
 impl From<AddrFamily> for u8 {
     fn from(af: AddrFamily) -> Self {
-        match af {
-            AddrFamily::Any => ffi::pfvar::PF_UNSPEC as u8,
-            AddrFamily::Ipv4 => ffi::pfvar::PF_INET as u8,
-            AddrFamily::Ipv6 => ffi::pfvar::PF_INET6 as u8,
-        }
+        af as u8
     }
 }
 
@@ -35,5 +32,18 @@ impl fmt::Display for AddrFamily {
             AddrFamily::Ipv6 => "IPv6",
         }
         .fmt(f)
+    }
+}
+
+impl TryFrom<u8> for AddrFamily {
+    type Error = crate::Error;
+
+    fn try_from(family: u8) -> Result<Self> {
+        match family {
+            v if v == AddrFamily::Any as u8 => Ok(AddrFamily::Any),
+            v if v == AddrFamily::Ipv4 as u8 => Ok(AddrFamily::Ipv4),
+            v if v == AddrFamily::Ipv6 as u8 => Ok(AddrFamily::Ipv6),
+            _ => Err(Error::from(ErrorInternal::InvalidAddressFamily(family))),
+        }
     }
 }
