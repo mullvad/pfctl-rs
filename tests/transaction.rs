@@ -8,7 +8,8 @@ use std::net::Ipv4Addr;
 
 const ANCHOR1_NAME: &str = "pfctl-rs.integration.testing.transactions-1";
 const ANCHOR2_NAME: &str = "pfctl-rs.integration.testing.transactions-2";
-const ANCHORS: [&str; 2] = [ANCHOR1_NAME, ANCHOR2_NAME];
+const ANCHOR3_NAME: &str = "pfctl-rs.integration.testing.transactions-3";
+const ANCHORS: [&str; 3] = [ANCHOR1_NAME, ANCHOR2_NAME, ANCHOR3_NAME];
 
 fn before_each() {
     for anchor_name in ANCHORS.iter() {
@@ -20,6 +21,10 @@ fn before_each() {
             .unwrap()
             .try_add_anchor(anchor_name, pfctl::AnchorKind::Redirect)
             .unwrap();
+        pfctl::PfCtl::new()
+            .unwrap()
+            .try_add_anchor(anchor_name, pfctl::AnchorKind::Scrub)
+            .unwrap();
     }
 }
 
@@ -27,6 +32,10 @@ fn after_each() {
     for anchor_name in ANCHORS.iter() {
         pfcli::flush_rules(anchor_name, pfcli::FlushOptions::Rules);
         pfcli::flush_rules(anchor_name, pfcli::FlushOptions::Nat);
+        pfctl::PfCtl::new()
+            .unwrap()
+            .try_remove_anchor(anchor_name, pfctl::AnchorKind::Scrub)
+            .unwrap();
         pfctl::PfCtl::new()
             .unwrap()
             .try_remove_anchor(anchor_name, pfctl::AnchorKind::Filter)
@@ -70,6 +79,18 @@ fn get_redirect_rules() -> Vec<pfctl::RedirectRule> {
     vec![rdr_rule1, rdr_rule2]
 }
 
+fn get_scrub_rules() -> Vec<pfctl::ScrubRule> {
+    let scrub_rule1 = pfctl::ScrubRuleBuilder::default()
+        .action(pfctl::ScrubRuleAction::Scrub)
+        .build()
+        .unwrap();
+    let scrub_rule2 = pfctl::ScrubRuleBuilder::default()
+        .action(pfctl::ScrubRuleAction::NoScrub)
+        .build()
+        .unwrap();
+    vec![scrub_rule1, scrub_rule2]
+}
+
 fn get_marker_filter_rule() -> pfctl::FilterRule {
     pfctl::FilterRuleBuilder::default()
         .action(pfctl::FilterRuleAction::Pass)
@@ -87,13 +108,28 @@ fn get_marker_redirect_rule() -> pfctl::RedirectRule {
 }
 
 fn verify_filter_rules(anchor: &str) {
+    let rules = get_rules_filtered(anchor, |rule| !rule.contains("scrub"));
+
     assert_eq!(
-        pfcli::get_rules(anchor),
+        rules,
         &[
             "pass inet from any to 1.2.3.4 no state",
             "pass inet from any to 9.8.7.6 no state",
         ]
     );
+}
+
+fn verify_scrub_rules(anchor: &str) {
+    let rules = get_rules_filtered(anchor, |rule| rule.contains("scrub"));
+
+    assert_eq!(rules, &["scrub all fragment reassemble", "no scrub all",],);
+}
+
+fn get_rules_filtered(anchor: &str, filter: impl Fn(&str) -> bool) -> Vec<String> {
+    pfcli::get_rules(anchor)
+        .into_iter()
+        .filter(|rule| filter(rule))
+        .collect::<Vec<_>>()
 }
 
 fn verify_redirect_rules(anchor: &str) {
@@ -124,10 +160,12 @@ test!(replace_many_rulesets_in_one_anchor {
     let mut change = pfctl::AnchorChange::new();
     change.set_filter_rules(get_filter_rules());
     change.set_redirect_rules(get_redirect_rules());
+    change.set_scrub_rules(get_scrub_rules());
 
     pf.set_rules(ANCHOR1_NAME, change).unwrap();
 
     verify_filter_rules(ANCHOR1_NAME);
+    verify_scrub_rules(ANCHOR1_NAME);
     verify_redirect_rules(ANCHOR1_NAME);
 });
 
@@ -157,15 +195,20 @@ test!(replace_one_ruleset_in_many_anchors {
     let mut change2 = pfctl::AnchorChange::new();
     change2.set_filter_rules(get_filter_rules());
 
+    let mut change3 = pfctl::AnchorChange::new();
+    change3.set_scrub_rules(get_scrub_rules());
+
     // create and run transaction
     let mut trans = pfctl::Transaction::new();
     trans.add_change(ANCHOR1_NAME, change1);
     trans.add_change(ANCHOR2_NAME, change2);
+    trans.add_change(ANCHOR3_NAME, change3);
     assert_matches!(trans.commit(), Ok(()));
 
     // do final rules verification after transaction
     verify_filter_marker(ANCHOR1_NAME);
     verify_redirect_rules(ANCHOR1_NAME);
     verify_filter_rules(ANCHOR2_NAME);
+    verify_scrub_rules(ANCHOR3_NAME);
     verify_redirect_marker(ANCHOR2_NAME);
 });
