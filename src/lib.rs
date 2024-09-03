@@ -489,7 +489,7 @@ impl PfCtl {
     ///
     /// - Returns Result<R> from call to closure on match.
     /// - Returns `ErrorKind::AnchorDoesNotExist` on mismatch, the closure is not called in that
-    /// case.
+    ///   case.
     fn with_anchor_rule<F, R>(&self, name: &str, kind: AnchorKind, f: F) -> Result<R>
     where
         F: FnOnce(ffi::pfvar::pfioc_rule) -> Result<R>,
