@@ -13,6 +13,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 * **Security**: in case of vulnerabilities.
 
 ## [unreleased]
+### Added
+- Add support for scrub anchors and rules. Since this modifies the public enums `AnchorKind` and
+  `RulesetKind`, it is a breaking change. They have been marked as `non_exhaustive` to prevent
+  future additions from being breaking.
 
 
 ## [0.5.0] - 2024-07-24
