@@ -4,7 +4,6 @@ mod helper;
 
 use crate::helper::pfcli;
 use assert_matches::assert_matches;
-use std::net::{Ipv4Addr, Ipv6Addr};
 
 static ANCHOR_NAME: &str = "pfctl-rs.integration.testing.scrub-rules";
 
