@@ -13,6 +13,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 * **Security**: in case of vulnerabilities.
 
 ## [unreleased]
+### Added
+- Add support for scrub anchors and rules. Since this modifies public enums, it is a breaking
+  change.
 
 
 ## [0.5.0] - 2024-07-24
