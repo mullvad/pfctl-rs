@@ -6,7 +6,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use pfctl::{ipnetwork, FilterRuleBuilder, PfCtl, RedirectRuleBuilder};
+use pfctl::{ipnetwork, FilterRuleBuilder, PfCtl, RedirectRuleBuilder, ScrubRuleBuilder};
 use std::net::Ipv4Addr;
 
 static ANCHOR_NAME: &str = "test.anchor";
@@ -87,6 +87,11 @@ fn main() {
         .build()
         .unwrap();
 
+    let scrub_rule = ScrubRuleBuilder::default()
+        .action(pfctl::ScrubRuleAction::Scrub)
+        .build()
+        .unwrap();
+
     // Add the rules to the test anchor
     pf.add_rule(ANCHOR_NAME, &pass_all_rule)
         .expect("Unable to add rule");
@@ -106,6 +111,8 @@ fn main() {
         .expect("Unable to add rule");
     pf.add_redirect_rule(ANCHOR_NAME, &redirect_incoming_tcp_from_port_3000_to_4000)
         .expect("Unable to add redirect rule");
+    pf.add_scrub_rule(ANCHOR_NAME, &scrub_rule)
+        .expect("Unable to add scrub rule");
 
     println!("Added a bunch of rules to the {} anchor.", ANCHOR_NAME);
     println!("Run this command to remove them:");
