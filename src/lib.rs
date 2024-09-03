@@ -391,6 +391,7 @@ impl PfCtl {
         match kind {
             RulesetKind::Filter => anchor_change.set_filter_rules(Vec::new()),
             RulesetKind::Redirect => anchor_change.set_redirect_rules(Vec::new()),
+            RulesetKind::Scrub => anchor_change.set_scrub_rules(Vec::new()),
         };
         trans.add_change(anchor, anchor_change);
         trans.commit()
