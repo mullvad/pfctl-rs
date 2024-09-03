@@ -228,6 +228,25 @@ impl TryCopyTo<ffi::pfvar::pf_rule> for RedirectRule {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash, derive_builder::Builder)]
+#[builder(setter(into))]
+#[builder(build_fn(error = "Error"))]
+pub struct ScrubRule {
+    action: ScrubRuleAction,
+    #[builder(default)]
+    direction: Direction,
+}
+
+impl TryCopyTo<ffi::pfvar::pf_rule> for ScrubRule {
+    type Error = crate::Error;
+
+    fn try_copy_to(&self, pf_rule: &mut ffi::pfvar::pf_rule) -> Result<()> {
+        pf_rule.action = self.action.into();
+        pf_rule.direction = self.direction.into();
+        Ok(())
+    }
+}
+
 fn compatible_af(af1: AddrFamily, af2: AddrFamily) -> Result<AddrFamily> {
     match (af1, af2) {
         (af1, af2) if af1 == af2 => Ok(af1),

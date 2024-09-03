@@ -73,3 +73,19 @@ impl From<RedirectRuleAction> for u8 {
         }
     }
 }
+
+/// Enum describing what should happen to a packet that matches a scrub rule.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ScrubRuleAction {
+    Scrub,
+    NoScrub,
+}
+
+impl From<ScrubRuleAction> for u8 {
+    fn from(rule_action: ScrubRuleAction) -> Self {
+        match rule_action {
+            ScrubRuleAction::Scrub => ffi::pfvar::PF_SCRUB as u8,
+            ScrubRuleAction::NoScrub => ffi::pfvar::PF_NOSCRUB as u8,
+        }
+    }
+}

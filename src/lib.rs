@@ -385,12 +385,25 @@ impl PfCtl {
         ioctl_guard!(ffi::pf_change_rule(self.fd(), &mut pfioc_rule))
     }
 
+    pub fn add_scrub_rule(&mut self, anchor: &str, rule: &ScrubRule) -> Result<()> {
+        let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
+
+        pfioc_rule.pool_ticket = utils::get_pool_ticket(self.fd())?;
+        pfioc_rule.ticket = utils::get_ticket(self.fd(), anchor, AnchorKind::Scrub)?;
+        utils::copy_anchor_name(anchor, &mut pfioc_rule.anchor[..])?;
+        rule.try_copy_to(&mut pfioc_rule.rule)?;
+
+        pfioc_rule.action = ffi::pfvar::PF_CHANGE_ADD_TAIL as u32;
+        ioctl_guard!(ffi::pf_change_rule(self.fd(), &mut pfioc_rule))
+    }
+
     pub fn flush_rules(&mut self, anchor: &str, kind: RulesetKind) -> Result<()> {
         let mut trans = Transaction::new();
         let mut anchor_change = AnchorChange::new();
         match kind {
             RulesetKind::Filter => anchor_change.set_filter_rules(Vec::new()),
             RulesetKind::Redirect => anchor_change.set_redirect_rules(Vec::new()),
+            RulesetKind::Scrub => anchor_change.set_scrub_rules(Vec::new()),
         };
         trans.add_change(anchor, anchor_change);
         trans.commit()
