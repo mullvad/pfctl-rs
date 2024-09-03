@@ -17,6 +17,8 @@ fn main() {
         .expect("Unable to add test filter anchor");
     pf.try_add_anchor(ANCHOR_NAME, pfctl::AnchorKind::Redirect)
         .expect("Unable to add test redirect anchor");
+    pf.try_add_anchor(ANCHOR_NAME, pfctl::AnchorKind::Scrub)
+        .expect("Unable to add test scrub anchor");
 
     // Create some firewall rules that we want to set in one atomic transaction.
     let trans_rule1 = pfctl::FilterRuleBuilder::default()
@@ -36,11 +38,16 @@ fn main() {
         .redirect_to(pfctl::Port::from(1338))
         .build()
         .unwrap();
+    let trans_rule4 = pfctl::ScrubRuleBuilder::default()
+        .action(pfctl::ScrubRuleAction::Scrub)
+        .build()
+        .unwrap();
 
     // Create a transaction changeset and add the rules to it.
     let mut trans_change = pfctl::AnchorChange::new();
     trans_change.set_filter_rules(vec![trans_rule1, trans_rule2]);
     trans_change.set_redirect_rules(vec![trans_rule3]);
+    trans_change.set_scrub_rules(vec![trans_rule4]);
 
     // Execute the transaction. This will OVERWRITE any existing rules under this anchor as it's
     // a set operation, not an add operation.

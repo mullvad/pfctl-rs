@@ -17,7 +17,9 @@ fn main() {
             .expect("Unable to add filter anchor");
         pf.try_add_anchor(&anchor_name, pfctl::AnchorKind::Redirect)
             .expect("Unable to add redirect anchor");
+        pf.try_add_anchor(&anchor_name, pfctl::AnchorKind::Scrub)
+            .expect("Unable to add scrub anchor");
 
-        println!("Added {} as both a redirect and filter anchor", anchor_name);
+        println!("Added {} as every anchor type", anchor_name);
     }
 }
