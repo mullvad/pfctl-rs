@@ -36,8 +36,6 @@ fn no_scrub_rule() -> pfctl::ScrubRule {
         .unwrap()
 }
 
-// TODO: transaction tests
-
 test!(flush_scrub_rules {
     let mut pf = pfctl::PfCtl::new().unwrap();
     let test_rules = [scrub_rule(), no_scrub_rule()];
