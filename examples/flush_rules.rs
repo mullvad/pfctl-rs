@@ -20,5 +20,9 @@ fn main() {
         pf.flush_rules(&anchor_name, pfctl::RulesetKind::Redirect)
             .expect("Unable to flush redirect rules");
         println!("Flushed redirect rules under anchor {}", anchor_name);
+
+        pf.flush_rules(&anchor_name, pfctl::RulesetKind::Scrub)
+            .expect("Unable to flush scrub rules");
+        println!("Flushed scrub rules under anchor {}", anchor_name);
     }
 }

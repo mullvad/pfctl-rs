@@ -10,9 +10,11 @@ use crate::ffi;
 
 /// Enum describing the kinds of anchors
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[non_exhaustive]
 pub enum AnchorKind {
     Filter,
     Redirect,
+    Scrub,
 }
 
 impl From<AnchorKind> for u8 {
@@ -20,6 +22,7 @@ impl From<AnchorKind> for u8 {
         match anchor_kind {
             AnchorKind::Filter => ffi::pfvar::PF_PASS as u8,
             AnchorKind::Redirect => ffi::pfvar::PF_RDR as u8,
+            AnchorKind::Scrub => ffi::pfvar::PF_SCRUB as u8,
         }
     }
 }

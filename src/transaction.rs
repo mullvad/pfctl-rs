@@ -8,6 +8,7 @@
 
 use crate::{
     conversion::TryCopyTo, ffi, utils, FilterRule, PoolAddrList, RedirectRule, Result, RulesetKind,
+    ScrubRule,
 };
 use std::{
     collections::HashMap,
@@ -69,6 +70,16 @@ impl Transaction {
                     .map(|rules| (anchor.clone(), rules))
             })
             .collect();
+        let scrub_changes: Vec<(String, Vec<ScrubRule>)> = self
+            .change_by_anchor
+            .iter_mut()
+            .filter_map(|(anchor, change)| {
+                change
+                    .scrub_rules
+                    .take()
+                    .map(|rules| (anchor.clone(), rules))
+            })
+            .collect();
 
         // create one transaction element for each unique combination of anchor name and
         // `RulesetKind` and order them so elements for filter rules go first followed by redirect
@@ -80,6 +91,11 @@ impl Transaction {
                 redirect_changes
                     .iter()
                     .map(|(anchor, _)| Self::new_trans_element(anchor, RulesetKind::Redirect)),
+            )
+            .chain(
+                scrub_changes
+                    .iter()
+                    .map(|(anchor, _)| Self::new_trans_element(anchor, RulesetKind::Scrub)),
             )
             .collect::<Result<_>>()?;
         Self::setup_trans(&mut pfioc_trans, pfioc_elements.as_mut_slice());
@@ -105,6 +121,15 @@ impl Transaction {
         {
             for redirect_rule in redirect_rules.iter() {
                 Self::add_redirect_rule(fd, &anchor_name, redirect_rule, ticket)?;
+            }
+        }
+
+        // add scrub rules into transaction
+        for ((anchor_name, scrub_rules), ticket) in
+            scrub_changes.into_iter().zip(ticket_iterator.by_ref())
+        {
+            for scrub_rule in scrub_rules.iter() {
+                Self::add_scrub_rule(fd, &anchor_name, scrub_rule, ticket)?;
             }
         }
 
@@ -170,6 +195,24 @@ impl Transaction {
         ioctl_guard!(ffi::pf_add_rule(fd, &mut pfioc_rule))
     }
 
+    /// Internal helper to add scrub rule into transaction
+    fn add_scrub_rule(fd: RawFd, anchor: &str, rule: &ScrubRule, ticket: u32) -> Result<()> {
+        // prepare pfioc_rule
+        let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
+        utils::copy_anchor_name(anchor, &mut pfioc_rule.anchor[..])?;
+        rule.try_copy_to(&mut pfioc_rule.rule)?;
+
+        // request new address pool
+        let pool_ticket = utils::get_pool_ticket(fd)?;
+
+        // set tickets
+        pfioc_rule.ticket = ticket;
+        pfioc_rule.pool_ticket = pool_ticket;
+
+        // add rule into transaction
+        ioctl_guard!(ffi::pf_add_rule(fd, &mut pfioc_rule))
+    }
+
     /// Internal helper to wire up pfioc_trans and pfioc_trans_e
     fn setup_trans(
         pfioc_trans: &mut ffi::pfvar::pfioc_trans,
@@ -200,6 +243,7 @@ impl Transaction {
 pub struct AnchorChange {
     filter_rules: Option<Vec<FilterRule>>,
     redirect_rules: Option<Vec<RedirectRule>>,
+    scrub_rules: Option<Vec<ScrubRule>>,
 }
 
 impl Default for AnchorChange {
@@ -214,6 +258,7 @@ impl AnchorChange {
         AnchorChange {
             filter_rules: None,
             redirect_rules: None,
+            scrub_rules: None,
         }
     }
 
@@ -223,5 +268,9 @@ impl AnchorChange {
 
     pub fn set_redirect_rules(&mut self, rules: Vec<RedirectRule>) {
         self.redirect_rules = Some(rules);
+    }
+
+    pub fn set_scrub_rules(&mut self, rules: Vec<ScrubRule>) {
+        self.scrub_rules = Some(rules);
     }
 }
