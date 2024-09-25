@@ -13,6 +13,7 @@ use crate::ffi;
 #[non_exhaustive]
 pub enum AnchorKind {
     Filter,
+    Nat,
     Redirect,
     Scrub,
 }
@@ -21,6 +22,7 @@ impl From<AnchorKind> for u8 {
     fn from(anchor_kind: AnchorKind) -> u8 {
         match anchor_kind {
             AnchorKind::Filter => ffi::pfvar::PF_PASS as u8,
+            AnchorKind::Nat => ffi::pfvar::PF_NAT as u8,
             AnchorKind::Redirect => ffi::pfvar::PF_RDR as u8,
             AnchorKind::Scrub => ffi::pfvar::PF_SCRUB as u8,
         }

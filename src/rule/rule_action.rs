@@ -58,6 +58,20 @@ impl From<DropAction> for u32 {
     }
 }
 
+/// Enum describing what should happen to a packet that matches a NAT rule.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum NatRuleAction {
+    Nat,
+}
+
+impl From<NatRuleAction> for u8 {
+    fn from(rule_action: NatRuleAction) -> Self {
+        match rule_action {
+            NatRuleAction::Nat => ffi::pfvar::PF_NAT as u8,
+        }
+    }
+}
+
 /// Enum describing what should happen to a packet that matches a redirect rule.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum RedirectRuleAction {

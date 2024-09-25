@@ -17,6 +17,10 @@ fn main() {
             .expect("Unable to flush filter rules");
         println!("Flushed filter rules under anchor {}", anchor_name);
 
+        pf.flush_rules(&anchor_name, pfctl::RulesetKind::Nat)
+            .expect("Unable to flush nat rules");
+        println!("Flushed nat rules under anchor {}", anchor_name);
+
         pf.flush_rules(&anchor_name, pfctl::RulesetKind::Redirect)
             .expect("Unable to flush redirect rules");
         println!("Flushed redirect rules under anchor {}", anchor_name);

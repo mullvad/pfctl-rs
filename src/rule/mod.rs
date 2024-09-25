@@ -162,6 +162,96 @@ impl TryCopyTo<ffi::pfvar::pf_rule> for FilterRule {
 #[derive(Debug, Clone, PartialEq, Eq, Hash, derive_builder::Builder)]
 #[builder(setter(into))]
 #[builder(build_fn(error = "Error"))]
+pub struct NatRule {
+    action: NatRuleAction,
+    #[builder(default)]
+    interface: Interface,
+    #[builder(default)]
+    af: AddrFamily,
+    #[builder(default)]
+    from: Endpoint,
+    #[builder(default)]
+    to: Endpoint,
+    nat_to: NatEndpoint,
+}
+
+impl NatRule {
+    /// Returns the `AddrFamily` this rule matches against. Returns an `InvalidRuleCombination`
+    /// error if this rule has an invalid combination of address families.
+    fn get_af(&self) -> Result<AddrFamily> {
+        let endpoint_af = compatible_af(self.from.get_af(), self.to.get_af())?;
+        let nat_af = compatible_af(endpoint_af, self.nat_to.0.get_af())?;
+        compatible_af(self.af, nat_af)
+    }
+
+    /// Accessor for `nat_to`
+    pub fn get_nat_to(&self) -> Endpoint {
+        self.nat_to.0
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct NatEndpoint(Endpoint);
+
+impl From<Ip> for NatEndpoint {
+    fn from(ip: Ip) -> Self {
+        // Default NAT port range
+        const NAT_LOWER_DEFAULT: u16 = 32768;
+        const NAT_UPPER_DEFAULT: u16 = 49151;
+
+        Self(Endpoint::new(
+            ip,
+            Port::Range(
+                NAT_LOWER_DEFAULT,
+                NAT_UPPER_DEFAULT,
+                PortRangeModifier::Inclusive,
+            ),
+        ))
+    }
+}
+
+impl Default for NatEndpoint {
+    fn default() -> Self {
+        Self::from(Ip::Any)
+    }
+}
+
+impl From<Endpoint> for NatEndpoint {
+    fn from(endpoint: Endpoint) -> Self {
+        Self(endpoint)
+    }
+}
+
+impl From<Ipv4Addr> for NatEndpoint {
+    fn from(ip: Ipv4Addr) -> Self {
+        Self::from(Ip::from(ip))
+    }
+}
+
+impl From<Ipv6Addr> for NatEndpoint {
+    fn from(ip: Ipv6Addr) -> Self {
+        Self::from(Ip::from(ip))
+    }
+}
+
+impl TryCopyTo<ffi::pfvar::pf_rule> for NatRule {
+    type Error = crate::Error;
+
+    fn try_copy_to(&self, pf_rule: &mut ffi::pfvar::pf_rule) -> Result<()> {
+        pf_rule.action = self.action.into();
+        self.interface.try_copy_to(&mut pf_rule.ifname)?;
+        pf_rule.af = self.get_af()?.into();
+
+        self.from.try_copy_to(&mut pf_rule.src)?;
+        self.to.try_copy_to(&mut pf_rule.dst)?;
+
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, derive_builder::Builder)]
+#[builder(setter(into))]
+#[builder(build_fn(error = "Error"))]
 pub struct RedirectRule {
     action: RedirectRuleAction,
     #[builder(default)]

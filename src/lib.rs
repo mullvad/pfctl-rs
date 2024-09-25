@@ -360,6 +360,31 @@ impl PfCtl {
         trans.commit()
     }
 
+    pub fn add_nat_rule(&mut self, anchor: &str, rule: &NatRule) -> Result<()> {
+        // prepare pfioc_rule
+        let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
+        utils::copy_anchor_name(anchor, &mut pfioc_rule.anchor[..])?;
+        rule.try_copy_to(&mut pfioc_rule.rule)?;
+
+        // register NAT address in newly created address pool
+        let nat_to = rule.get_nat_to();
+        let pool_ticket = utils::get_pool_ticket(self.fd())?;
+        utils::add_pool_address(self.fd(), nat_to.ip(), pool_ticket)?;
+
+        // copy address pool in pf_rule
+        let nat_pool = nat_to.ip().to_pool_addr_list()?;
+        pfioc_rule.rule.rpool.list = unsafe { nat_pool.to_palist() };
+        nat_to.port().try_copy_to(&mut pfioc_rule.rule.rpool)?;
+
+        // set tickets
+        pfioc_rule.pool_ticket = pool_ticket;
+        pfioc_rule.ticket = utils::get_ticket(self.fd(), anchor, AnchorKind::Nat)?;
+
+        // append rule
+        pfioc_rule.action = ffi::pfvar::PF_CHANGE_ADD_TAIL as u32;
+        ioctl_guard!(ffi::pf_change_rule(self.fd(), &mut pfioc_rule))
+    }
+
     pub fn add_redirect_rule(&mut self, anchor: &str, rule: &RedirectRule) -> Result<()> {
         // prepare pfioc_rule
         let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
@@ -402,6 +427,7 @@ impl PfCtl {
         let mut anchor_change = AnchorChange::new();
         match kind {
             RulesetKind::Filter => anchor_change.set_filter_rules(Vec::new()),
+            RulesetKind::Nat => anchor_change.set_nat_rules(Vec::new()),
             RulesetKind::Redirect => anchor_change.set_redirect_rules(Vec::new()),
             RulesetKind::Scrub => anchor_change.set_scrub_rules(Vec::new()),
         };
