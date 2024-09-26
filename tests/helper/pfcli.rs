@@ -15,7 +15,8 @@ pub fn is_enabled() -> bool {
     } else if str.starts_with("Status: Disabled") {
         false
     } else {
-        panic!("Invalid response.");
+        let stderr = str_from_stdout(&output.stderr);
+        panic!("Invalid output from pfctl ({}), stdout:\n{str}\nstderr:\n{stderr}", output.status);
     }
 }
 
