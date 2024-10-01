@@ -16,7 +16,10 @@ pub fn is_enabled() -> bool {
         false
     } else {
         let stderr = str_from_stdout(&output.stderr);
-        panic!("Invalid output from pfctl ({}), stdout:\n{str}\nstderr:\n{stderr}", output.status);
+        panic!(
+            "Invalid output from pfctl ({}), stdout:\n{str}\nstderr:\n{stderr}",
+            output.status
+        );
     }
 }
 

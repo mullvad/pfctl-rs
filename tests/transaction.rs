@@ -68,12 +68,18 @@ fn get_filter_rules() -> Vec<pfctl::FilterRule> {
 
 fn get_nat_rules() -> Vec<pfctl::NatRule> {
     let rule1 = pfctl::NatRuleBuilder::default()
-        .action(pfctl::NatRuleAction::Nat)
+        .action(pfctl::NatRuleAction::Nat {
+            nat_to: Ipv4Addr::new(127, 0, 0, 1).into(),
+        })
         .to(Ipv4Addr::new(1, 2, 3, 4))
-        .nat_to(Ipv4Addr::new(127, 0, 0, 1))
         .build()
         .unwrap();
-    vec![rule1]
+    let rule2 = pfctl::NatRuleBuilder::default()
+        .action(pfctl::NatRuleAction::NoNat)
+        .to(Ipv4Addr::new(1, 3, 3, 7))
+        .build()
+        .unwrap();
+    vec![rule1, rule2]
 }
 
 fn get_redirect_rules() -> Vec<pfctl::RedirectRule> {
@@ -160,7 +166,10 @@ fn verify_redirect_rules(anchor: &str) {
 fn verify_nat_rules(anchor: &str) {
     assert_eq!(
         get_nat_rules_filtered(anchor, |rule| rule.contains("nat")),
-        &["nat inet from any to 1.2.3.4 -> 127.0.0.1",]
+        &[
+            "nat inet from any to 1.2.3.4 -> 127.0.0.1",
+            "no nat inet from any to 1.3.3.7",
+        ]
     );
 }
 

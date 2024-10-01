@@ -198,15 +198,17 @@ impl Transaction {
         utils::copy_anchor_name(anchor, &mut pfioc_rule.anchor[..])?;
         rule.try_copy_to(&mut pfioc_rule.rule)?;
 
-        // register NAT address in newly created address pool
-        let nat_to = rule.get_nat_to();
         let pool_ticket = utils::get_pool_ticket(fd)?;
-        utils::add_pool_address(fd, nat_to.ip(), pool_ticket)?;
 
-        // copy address pool in pf_rule
-        let nat_pool = nat_to.ip().to_pool_addr_list()?;
-        pfioc_rule.rule.rpool.list = unsafe { nat_pool.to_palist() };
-        nat_to.port().try_copy_to(&mut pfioc_rule.rule.rpool)?;
+        if let Some(nat_to) = rule.get_nat_to() {
+            // register NAT address in newly created address pool
+            utils::add_pool_address(fd, nat_to.ip(), pool_ticket)?;
+
+            // copy address pool in pf_rule
+            let nat_pool = nat_to.ip().to_pool_addr_list()?;
+            pfioc_rule.rule.rpool.list = unsafe { nat_pool.to_palist() };
+            nat_to.port().try_copy_to(&mut pfioc_rule.rule.rpool)?;
+        }
 
         // set tickets
         pfioc_rule.pool_ticket = pool_ticket;

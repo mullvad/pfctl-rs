@@ -4,19 +4,16 @@ mod helper;
 
 use crate::helper::pfcli;
 use assert_matches::assert_matches;
-use pfctl::Port;
 use std::net::{Ipv4Addr, Ipv6Addr};
 
 static ANCHOR_NAME: &str = "pfctl-rs.integration.testing.nat-rules";
 
 fn nat_rule(dest: pfctl::Ip, nat_to: pfctl::Ip) -> pfctl::NatRule {
     pfctl::NatRuleBuilder::default()
-        .action(pfctl::NatRuleAction::Nat)
+        .action(pfctl::NatRuleAction::Nat {
+            nat_to: nat_to.into(),
+        })
         .to(pfctl::Endpoint::new(dest, 1234))
-        .nat_to(pfctl::Endpoint::new(
-            nat_to,
-            Port::Range(32768, 49151, pfctl::PortRangeModifier::Inclusive),
-        ))
         .build()
         .unwrap()
 }
@@ -33,6 +30,22 @@ fn nat_rule_ipv6() -> pfctl::NatRule {
         pfctl::Ip::from(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1)),
         pfctl::Ip::from(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 2)),
     )
+}
+
+fn nonat_rule(dest: pfctl::Ip) -> pfctl::NatRule {
+    pfctl::NatRuleBuilder::default()
+        .action(pfctl::NatRuleAction::NoNat)
+        .to(pfctl::Endpoint::new(dest, 1234))
+        .build()
+        .unwrap()
+}
+
+fn nonat_rule_ipv4() -> pfctl::NatRule {
+    nonat_rule(pfctl::Ip::from(Ipv4Addr::new(127, 0, 0, 1)))
+}
+
+fn nonat_rule_ipv6() -> pfctl::NatRule {
+    nonat_rule(pfctl::Ip::from(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1)))
 }
 
 fn before_each() {
@@ -67,5 +80,25 @@ test!(add_nat_rule_ipv6 {
     assert_eq!(
         pfcli::get_nat_rules(ANCHOR_NAME),
         &["nat inet6 from any to ::1 port = 1234 -> ::2"]
+    );
+});
+
+test!(add_nonat_rule_ipv4 {
+    let mut pf = pfctl::PfCtl::new().unwrap();
+    let rule = nonat_rule_ipv4();
+    assert_matches!(pf.add_nat_rule(ANCHOR_NAME, &rule), Ok(()));
+    assert_eq!(
+        pfcli::get_nat_rules(ANCHOR_NAME),
+        &["no nat inet from any to 127.0.0.1 port = 1234"]
+    );
+});
+
+test!(add_nonat_rule_ipv6 {
+    let mut pf = pfctl::PfCtl::new().unwrap();
+    let rule = nonat_rule_ipv6();
+    assert_matches!(pf.add_nat_rule(ANCHOR_NAME, &rule), Ok(()));
+    assert_eq!(
+        pfcli::get_nat_rules(ANCHOR_NAME),
+        &["no nat inet6 from any to ::1 port = 1234"]
     );
 });
