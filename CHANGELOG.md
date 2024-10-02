@@ -13,6 +13,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 * **Security**: in case of vulnerabilities.
 
 ## [unreleased]
+
+
+## [0.6.1] - 2024-10-02
 ### Added
 - Add support for NAT anchors and rules.
 
