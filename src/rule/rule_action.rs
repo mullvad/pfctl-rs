@@ -6,7 +6,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use crate::ffi;
+use crate::{ffi, NatEndpoint};
 
 /// Enum describing what should happen to a packet that matches a filter rule.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -54,6 +54,22 @@ impl From<DropAction> for u32 {
             DropAction::Return => PFRULE_RETURN,
             DropAction::ReturnRst => PFRULE_RETURNRST,
             DropAction::ReturnIcmp => PFRULE_RETURNICMP,
+        }
+    }
+}
+
+/// Enum describing what should happen to a packet that matches a NAT rule.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum NatRuleAction {
+    Nat { nat_to: NatEndpoint },
+    NoNat,
+}
+
+impl From<NatRuleAction> for u8 {
+    fn from(rule_action: NatRuleAction) -> Self {
+        match rule_action {
+            NatRuleAction::Nat { .. } => ffi::pfvar::PF_NAT as u8,
+            NatRuleAction::NoNat => ffi::pfvar::PF_NONAT as u8,
         }
     }
 }

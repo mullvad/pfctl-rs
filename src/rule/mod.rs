@@ -11,7 +11,10 @@ use crate::{
     ffi, Error, ErrorInternal, Result,
 };
 use ipnetwork::IpNetwork;
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+use std::{
+    net::{IpAddr, Ipv4Addr, Ipv6Addr},
+    ops::Deref,
+};
 
 mod addr_family;
 pub use self::addr_family::*;
@@ -154,6 +157,110 @@ impl TryCopyTo<ffi::pfvar::pf_rule> for FilterRule {
         if let Some(icmp_type) = self.icmp_type {
             icmp_type.copy_to(pf_rule);
         }
+
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, derive_builder::Builder)]
+#[builder(setter(into))]
+#[builder(build_fn(error = "Error"))]
+pub struct NatRule {
+    action: NatRuleAction,
+    #[builder(default)]
+    interface: Interface,
+    #[builder(default)]
+    af: AddrFamily,
+    #[builder(default)]
+    from: Endpoint,
+    #[builder(default)]
+    to: Endpoint,
+}
+
+impl NatRule {
+    /// Returns the `AddrFamily` this rule matches against. Returns an `InvalidRuleCombination`
+    /// error if this rule has an invalid combination of address families.
+    fn get_af(&self) -> Result<AddrFamily> {
+        let endpoint_af = compatible_af(self.from.get_af(), self.to.get_af())?;
+        if let Some(nat_to) = self.get_nat_to() {
+            let nat_af = compatible_af(endpoint_af, nat_to.0.get_af())?;
+            compatible_af(self.af, nat_af)
+        } else {
+            compatible_af(self.af, endpoint_af)
+        }
+    }
+
+    /// Accessor for `nat_to`
+    pub fn get_nat_to(&self) -> Option<NatEndpoint> {
+        match self.action {
+            NatRuleAction::Nat { nat_to } => Some(nat_to),
+            NatRuleAction::NoNat => None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct NatEndpoint(Endpoint);
+
+impl Deref for NatEndpoint {
+    type Target = Endpoint;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl From<Ip> for NatEndpoint {
+    fn from(ip: Ip) -> Self {
+        // Default NAT port range
+        const NAT_LOWER_DEFAULT: u16 = 32768;
+        const NAT_UPPER_DEFAULT: u16 = 49151;
+
+        Self(Endpoint::new(
+            ip,
+            Port::Range(
+                NAT_LOWER_DEFAULT,
+                NAT_UPPER_DEFAULT,
+                PortRangeModifier::Inclusive,
+            ),
+        ))
+    }
+}
+
+impl Default for NatEndpoint {
+    fn default() -> Self {
+        Self::from(Ip::Any)
+    }
+}
+
+impl From<Endpoint> for NatEndpoint {
+    fn from(endpoint: Endpoint) -> Self {
+        Self(endpoint)
+    }
+}
+
+impl From<Ipv4Addr> for NatEndpoint {
+    fn from(ip: Ipv4Addr) -> Self {
+        Self::from(Ip::from(ip))
+    }
+}
+
+impl From<Ipv6Addr> for NatEndpoint {
+    fn from(ip: Ipv6Addr) -> Self {
+        Self::from(Ip::from(ip))
+    }
+}
+
+impl TryCopyTo<ffi::pfvar::pf_rule> for NatRule {
+    type Error = crate::Error;
+
+    fn try_copy_to(&self, pf_rule: &mut ffi::pfvar::pf_rule) -> Result<()> {
+        pf_rule.action = self.action.into();
+        self.interface.try_copy_to(&mut pf_rule.ifname)?;
+        pf_rule.af = self.get_af()?.into();
+
+        self.from.try_copy_to(&mut pf_rule.src)?;
+        self.to.try_copy_to(&mut pf_rule.dst)?;
 
         Ok(())
     }

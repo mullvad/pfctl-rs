@@ -32,6 +32,8 @@ macro_rules! test {
     ($name:ident $block:block) => {
         #[test]
         fn $name() {
+            eprintln!("NOTE: Make sure there are not other PF rules interfering with this test.");
+
             let mut pf_state = helper::PfState::new();
             pf_state.save();
 

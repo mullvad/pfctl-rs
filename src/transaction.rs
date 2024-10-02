@@ -7,8 +7,8 @@
 // except according to those terms.
 
 use crate::{
-    conversion::TryCopyTo, ffi, utils, FilterRule, PoolAddrList, RedirectRule, Result, RulesetKind,
-    ScrubRule,
+    conversion::TryCopyTo, ffi, utils, FilterRule, NatRule, PoolAddrList, RedirectRule, Result,
+    RulesetKind, ScrubRule,
 };
 use std::{
     collections::HashMap,
@@ -60,6 +60,13 @@ impl Transaction {
                     .map(|rules| (anchor.clone(), rules))
             })
             .collect();
+        let nat_changes: Vec<(String, Vec<NatRule>)> = self
+            .change_by_anchor
+            .iter_mut()
+            .filter_map(|(anchor, change)| {
+                change.nat_rules.take().map(|rules| (anchor.clone(), rules))
+            })
+            .collect();
         let redirect_changes: Vec<(String, Vec<RedirectRule>)> = self
             .change_by_anchor
             .iter_mut()
@@ -88,6 +95,11 @@ impl Transaction {
             .iter()
             .map(|(anchor, _)| Self::new_trans_element(anchor, RulesetKind::Filter))
             .chain(
+                nat_changes
+                    .iter()
+                    .map(|(anchor, _)| Self::new_trans_element(anchor, RulesetKind::Nat)),
+            )
+            .chain(
                 redirect_changes
                     .iter()
                     .map(|(anchor, _)| Self::new_trans_element(anchor, RulesetKind::Redirect)),
@@ -112,6 +124,15 @@ impl Transaction {
         {
             for filter_rule in filter_rules.iter() {
                 Self::add_filter_rule(fd, &anchor_name, filter_rule, ticket)?;
+            }
+        }
+
+        // add NAT rules into transaction
+        for ((anchor_name, nat_rules), ticket) in
+            nat_changes.into_iter().zip(ticket_iterator.by_ref())
+        {
+            for nat_rule in nat_rules.iter() {
+                Self::add_nat_rule(fd, &anchor_name, nat_rule, ticket)?;
             }
         }
 
@@ -168,6 +189,33 @@ impl Transaction {
         ioctl_guard!(ffi::pf_add_rule(fd, &mut pfioc_rule))?;
         drop(_pool_addr_list);
         Ok(())
+    }
+
+    /// Internal helper to add nat rule into transaction
+    fn add_nat_rule(fd: RawFd, anchor: &str, rule: &NatRule, ticket: u32) -> Result<()> {
+        // prepare pfioc_rule
+        let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
+        utils::copy_anchor_name(anchor, &mut pfioc_rule.anchor[..])?;
+        rule.try_copy_to(&mut pfioc_rule.rule)?;
+
+        let pool_ticket = utils::get_pool_ticket(fd)?;
+
+        if let Some(nat_to) = rule.get_nat_to() {
+            // register NAT address in newly created address pool
+            utils::add_pool_address(fd, nat_to.ip(), pool_ticket)?;
+
+            // copy address pool in pf_rule
+            let nat_pool = nat_to.ip().to_pool_addr_list()?;
+            pfioc_rule.rule.rpool.list = unsafe { nat_pool.to_palist() };
+            nat_to.port().try_copy_to(&mut pfioc_rule.rule.rpool)?;
+        }
+
+        // set tickets
+        pfioc_rule.pool_ticket = pool_ticket;
+        pfioc_rule.ticket = ticket;
+
+        // add rule into transaction
+        ioctl_guard!(ffi::pf_add_rule(fd, &mut pfioc_rule))
     }
 
     /// Internal helper to add redirect rule into transaction
@@ -242,6 +290,7 @@ impl Transaction {
 #[derive(Debug)]
 pub struct AnchorChange {
     filter_rules: Option<Vec<FilterRule>>,
+    nat_rules: Option<Vec<NatRule>>,
     redirect_rules: Option<Vec<RedirectRule>>,
     scrub_rules: Option<Vec<ScrubRule>>,
 }
@@ -257,6 +306,7 @@ impl AnchorChange {
     pub fn new() -> Self {
         AnchorChange {
             filter_rules: None,
+            nat_rules: None,
             redirect_rules: None,
             scrub_rules: None,
         }
@@ -264,6 +314,10 @@ impl AnchorChange {
 
     pub fn set_filter_rules(&mut self, rules: Vec<FilterRule>) {
         self.filter_rules = Some(rules);
+    }
+
+    pub fn set_nat_rules(&mut self, rules: Vec<NatRule>) {
+        self.nat_rules = Some(rules);
     }
 
     pub fn set_redirect_rules(&mut self, rules: Vec<RedirectRule>) {

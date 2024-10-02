@@ -9,13 +9,18 @@ use std::net::Ipv4Addr;
 const ANCHOR1_NAME: &str = "pfctl-rs.integration.testing.transactions-1";
 const ANCHOR2_NAME: &str = "pfctl-rs.integration.testing.transactions-2";
 const ANCHOR3_NAME: &str = "pfctl-rs.integration.testing.transactions-3";
-const ANCHORS: [&str; 3] = [ANCHOR1_NAME, ANCHOR2_NAME, ANCHOR3_NAME];
+const ANCHOR4_NAME: &str = "pfctl-rs.integration.testing.transactions-4";
+const ANCHORS: [&str; 4] = [ANCHOR1_NAME, ANCHOR2_NAME, ANCHOR3_NAME, ANCHOR4_NAME];
 
 fn before_each() {
     for anchor_name in ANCHORS.iter() {
         pfctl::PfCtl::new()
             .unwrap()
             .try_add_anchor(anchor_name, pfctl::AnchorKind::Filter)
+            .unwrap();
+        pfctl::PfCtl::new()
+            .unwrap()
+            .try_add_anchor(anchor_name, pfctl::AnchorKind::Nat)
             .unwrap();
         pfctl::PfCtl::new()
             .unwrap()
@@ -56,6 +61,22 @@ fn get_filter_rules() -> Vec<pfctl::FilterRule> {
     let rule2 = pfctl::FilterRuleBuilder::default()
         .action(pfctl::FilterRuleAction::Pass)
         .to(Ipv4Addr::new(9, 8, 7, 6))
+        .build()
+        .unwrap();
+    vec![rule1, rule2]
+}
+
+fn get_nat_rules() -> Vec<pfctl::NatRule> {
+    let rule1 = pfctl::NatRuleBuilder::default()
+        .action(pfctl::NatRuleAction::Nat {
+            nat_to: Ipv4Addr::new(127, 0, 0, 1).into(),
+        })
+        .to(Ipv4Addr::new(1, 2, 3, 4))
+        .build()
+        .unwrap();
+    let rule2 = pfctl::NatRuleBuilder::default()
+        .action(pfctl::NatRuleAction::NoNat)
+        .to(Ipv4Addr::new(1, 3, 3, 7))
         .build()
         .unwrap();
     vec![rule1, rule2]
@@ -134,12 +155,29 @@ fn get_rules_filtered(anchor: &str, filter: impl Fn(&str) -> bool) -> Vec<String
 
 fn verify_redirect_rules(anchor: &str) {
     assert_eq!(
-        pfcli::get_nat_rules(anchor),
+        get_nat_rules_filtered(anchor, |rule| rule.contains("rdr")),
         &[
             "rdr inet from 1.2.3.4 to any port = 3000 -> any port 4000",
             "rdr inet from 1.2.3.4 to any port = 5000 -> any port 6000",
         ]
     );
+}
+
+fn verify_nat_rules(anchor: &str) {
+    assert_eq!(
+        get_nat_rules_filtered(anchor, |rule| rule.contains("nat")),
+        &[
+            "nat inet from any to 1.2.3.4 -> 127.0.0.1",
+            "no nat inet from any to 1.3.3.7",
+        ]
+    );
+}
+
+fn get_nat_rules_filtered(anchor: &str, filter: impl Fn(&str) -> bool) -> Vec<String> {
+    pfcli::get_nat_rules(anchor)
+        .into_iter()
+        .filter(|rule| filter(rule))
+        .collect::<Vec<_>>()
 }
 
 fn verify_filter_marker(anchor: &str) {
@@ -159,6 +197,7 @@ test!(replace_many_rulesets_in_one_anchor {
 
     let mut change = pfctl::AnchorChange::new();
     change.set_filter_rules(get_filter_rules());
+    change.set_nat_rules(get_nat_rules());
     change.set_redirect_rules(get_redirect_rules());
     change.set_scrub_rules(get_scrub_rules());
 
@@ -196,19 +235,24 @@ test!(replace_one_ruleset_in_many_anchors {
     change2.set_filter_rules(get_filter_rules());
 
     let mut change3 = pfctl::AnchorChange::new();
-    change3.set_scrub_rules(get_scrub_rules());
+    change3.set_nat_rules(get_nat_rules());
+
+    let mut change4 = pfctl::AnchorChange::new();
+    change4.set_scrub_rules(get_scrub_rules());
 
     // create and run transaction
     let mut trans = pfctl::Transaction::new();
     trans.add_change(ANCHOR1_NAME, change1);
     trans.add_change(ANCHOR2_NAME, change2);
     trans.add_change(ANCHOR3_NAME, change3);
+    trans.add_change(ANCHOR4_NAME, change4);
     assert_matches!(trans.commit(), Ok(()));
 
     // do final rules verification after transaction
     verify_filter_marker(ANCHOR1_NAME);
     verify_redirect_rules(ANCHOR1_NAME);
     verify_filter_rules(ANCHOR2_NAME);
-    verify_scrub_rules(ANCHOR3_NAME);
+    verify_nat_rules(ANCHOR3_NAME);
+    verify_scrub_rules(ANCHOR4_NAME);
     verify_redirect_marker(ANCHOR2_NAME);
 });
