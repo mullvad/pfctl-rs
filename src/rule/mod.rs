@@ -175,6 +175,10 @@ pub struct NatRule {
     from: Endpoint,
     #[builder(default)]
     to: Endpoint,
+    #[builder(default)]
+    user: Uid,
+    #[builder(default)]
+    group: Gid,
 }
 
 impl NatRule {
@@ -261,6 +265,8 @@ impl TryCopyTo<ffi::pfvar::pf_rule> for NatRule {
 
         self.from.try_copy_to(&mut pf_rule.src)?;
         self.to.try_copy_to(&mut pf_rule.dst)?;
+        self.user.copy_to(&mut pf_rule.uid);
+        self.group.copy_to(&mut pf_rule.gid);
 
         Ok(())
     }
