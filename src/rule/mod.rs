@@ -119,9 +119,8 @@ impl FilterRule {
             | (StatePolicy::Modulate, Proto::Tcp)
             | (StatePolicy::SynProxy, Proto::Tcp) => Ok(self.keep_state),
             (state_policy, proto) => {
-                let msg = format!(
-                    "StatePolicy {state_policy:?} and protocol {proto:?} are incompatible"
-                );
+                let msg =
+                    format!("StatePolicy {state_policy:?} and protocol {proto:?} are incompatible");
                 Err(Error::from(ErrorInternal::InvalidRuleCombination(msg)))
             }
         }
