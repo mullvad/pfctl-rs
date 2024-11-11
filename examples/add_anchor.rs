@@ -20,6 +20,6 @@ fn main() {
         pf.try_add_anchor(&anchor_name, pfctl::AnchorKind::Scrub)
             .expect("Unable to add scrub anchor");
 
-        println!("Added {} as every anchor type", anchor_name);
+        println!("Added {anchor_name} as every anchor type");
     }
 }
