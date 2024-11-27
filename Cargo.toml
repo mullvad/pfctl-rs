@@ -25,3 +25,10 @@ ipnetwork = "0.20.0"
 assert_matches = "1.1.0"
 uuid = { version = "1.8.0", features = ["v4"] }
 scopeguard = "1.0"
+tun = "0.7.4"
+
+# Transitive dependencies with incorrect semver use
+# or that no longer compile for some reason.
+# All of these belong to 'tun'
+ipnet = "2.6.0"
+log = "0.4.22"
