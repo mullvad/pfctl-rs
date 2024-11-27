@@ -499,7 +499,7 @@ impl PfCtl {
 
     /// Set the given interface flags for an interface.
     ///
-    /// These flags can be viewed with 'pfctl -sI -v -i tun'.
+    /// These flags can be viewed with 'pfctl -sI -v -i <iface>'.
     /// See https://man.freebsd.org/cgi/man.cgi?pf(4)
     pub fn set_interface_flag(
         &mut self,
