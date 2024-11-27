@@ -87,6 +87,19 @@ pub fn get_all_states() -> Vec<String> {
     states
 }
 
+/// Set skip flag on interface
+pub fn get_interface_flags(iface: &str) -> Vec<String> {
+    let output = get_command()
+        .arg("-sI")
+        .arg("-v")
+        .args(["-i", iface])
+        .output()
+        .expect("Failed to run pfctl");
+    let output = str_from_stdout(&output.stdout);
+    let states = output.lines().map(|x| x.trim().to_owned()).collect();
+    states
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum FlushOptions {
     All,

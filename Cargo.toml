@@ -25,3 +25,4 @@ ipnetwork = "0.20.0"
 assert_matches = "1.1.0"
 uuid = { version = "1.8.0", features = ["v4"] }
 scopeguard = "1.0"
+tun = "0.7"
