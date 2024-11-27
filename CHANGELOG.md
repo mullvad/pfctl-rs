@@ -17,7 +17,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Add function for setting and clearing interface flags.
 
 ### Changed
-- Bump MSRV to 1.70.
+- Bump MSRV to 1.77.
 
 
 ## [0.6.1] - 2024-10-02
