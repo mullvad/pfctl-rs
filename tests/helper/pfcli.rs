@@ -87,7 +87,7 @@ pub fn get_all_states() -> Vec<String> {
     states
 }
 
-/// Set skip flag on interface
+/// Get flags set on interface `iface`
 pub fn get_interface_flags(iface: &str) -> Vec<String> {
     let output = get_command()
         .arg("-sI")
