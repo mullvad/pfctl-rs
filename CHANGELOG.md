@@ -14,6 +14,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## [unreleased]
 
+### Changed
+- Bump MSRV to 1.70.
+
 
 ## [0.6.1] - 2024-10-02
 ### Added
