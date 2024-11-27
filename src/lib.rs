@@ -497,6 +497,22 @@ impl PfCtl {
         Ok(())
     }
 
+    /// Set the given interface flags for an interface.
+    ///
+    /// These flags can be viewed with 'pfctl -sI -v -i tun'.
+    /// See https://man.freebsd.org/cgi/man.cgi?pf(4)
+    pub fn set_interface_flag(
+        &mut self,
+        interface: Interface,
+        flags: InterfaceFlags,
+    ) -> Result<()> {
+        let mut iface = unsafe { mem::zeroed::<ffi::pfvar::pfioc_iface>() };
+        interface.try_copy_to(&mut iface.pfiio_name)?;
+        iface.pfiio_flags = flags as i32;
+        ioctl_guard!(ffi::pf_set_iface_flag(self.fd(), &mut iface))?;
+        Ok(())
+    }
+
     /// Clear the given interface flags for an interface.
     ///
     /// https://man.freebsd.org/cgi/man.cgi?pf(4)
