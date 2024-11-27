@@ -497,6 +497,21 @@ impl PfCtl {
         Ok(())
     }
 
+    /// Clear the given interface flags for an interface.
+    ///
+    /// https://man.freebsd.org/cgi/man.cgi?pf(4)
+    pub fn clear_interface_flag(
+        &mut self,
+        interface: Interface,
+        flags: InterfaceFlags,
+    ) -> Result<()> {
+        let mut iface = unsafe { mem::zeroed::<ffi::pfvar::pfioc_iface>() };
+        interface.try_copy_to(&mut iface.pfiio_name)?;
+        iface.pfiio_flags = flags as i32;
+        ioctl_guard!(ffi::pf_clear_iface_flag(self.fd(), &mut iface))?;
+        Ok(())
+    }
+
     /// Get all states created by stateful rules
     fn get_states_inner(&mut self) -> Result<Vec<ffi::pfvar::pfsync_state>> {
         let num_states = self.get_num_states()?;
