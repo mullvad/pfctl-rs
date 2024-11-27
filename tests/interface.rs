@@ -2,6 +2,7 @@ use helper::pfcli::get_interface_flags;
 use pfctl::InterfaceFlags;
 use tun::{AbstractDevice, Configuration};
 
+#[allow(dead_code)]
 mod helper;
 
 fn before_each() {}
