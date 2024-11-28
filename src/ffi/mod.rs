@@ -63,3 +63,7 @@ ioctl!(readwrite pf_add_addr with b'D', 52; pfvar::pfioc_pooladdr);
 ioctl!(readwrite pf_begin_trans with b'D', 81; pfvar::pfioc_trans);
 // DIOCXCOMMIT
 ioctl!(readwrite pf_commit_trans with b'D', 82; pfvar::pfioc_trans);
+// DIOCSETIFFLAG
+ioctl!(readwrite pf_set_iface_flag with b'D', 89; pfvar::pfioc_iface);
+// DIOCCLRIFFLAG
+ioctl!(readwrite pf_clear_iface_flag with b'D', 90; pfvar::pfioc_iface);

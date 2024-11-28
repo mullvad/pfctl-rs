@@ -43,3 +43,11 @@ impl TryCopyTo<[i8]> for Interface {
         .map_err(|reason| Error::from(ErrorInternal::InvalidInterfaceName(reason)))
     }
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[repr(i32)]
+pub enum InterfaceFlags {
+    /// Set or clear the skip flag on an interface.
+    /// This is equivalent to PFI_IFLAG_SKIP.
+    Skip = 0x0100,
+}
