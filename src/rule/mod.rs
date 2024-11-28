@@ -119,10 +119,8 @@ impl FilterRule {
             | (StatePolicy::Modulate, Proto::Tcp)
             | (StatePolicy::SynProxy, Proto::Tcp) => Ok(self.keep_state),
             (state_policy, proto) => {
-                let msg = format!(
-                    "StatePolicy {:?} and protocol {:?} are incompatible",
-                    state_policy, proto
-                );
+                let msg =
+                    format!("StatePolicy {state_policy:?} and protocol {proto:?} are incompatible");
                 Err(Error::from(ErrorInternal::InvalidRuleCombination(msg)))
             }
         }
@@ -360,7 +358,7 @@ fn compatible_af(af1: AddrFamily, af2: AddrFamily) -> Result<AddrFamily> {
         (af, AddrFamily::Any) => Ok(af),
         (AddrFamily::Any, af) => Ok(af),
         (af1, af2) => {
-            let msg = format!("AddrFamily {} and {} are incompatible", af1, af2);
+            let msg = format!("AddrFamily {af1} and {af2} are incompatible");
             Err(Error::from(ErrorInternal::InvalidRuleCombination(msg)))
         }
     }
