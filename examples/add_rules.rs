@@ -114,7 +114,7 @@ fn main() {
     pf.add_scrub_rule(ANCHOR_NAME, &scrub_rule)
         .expect("Unable to add scrub rule");
 
-    println!("Added a bunch of rules to the {} anchor.", ANCHOR_NAME);
+    println!("Added a bunch of rules to the {ANCHOR_NAME} anchor.");
     println!("Run this command to remove them:");
-    println!("sudo pfctl -a {} -F all", ANCHOR_NAME);
+    println!("sudo pfctl -a {ANCHOR_NAME} -F all");
 }
