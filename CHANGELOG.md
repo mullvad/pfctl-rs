@@ -15,11 +15,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [unreleased]
 ### Added
 - Add function for setting and clearing interface flags.
+- Add the `IpNetwork` type for representing IPv4 and IPv6 networks. It will replace the use of the
+  `ipnetwork::{IpNetwork, Ipv4Network, Ipv6Network}` types.
 
 ### Changed
 - Bump MSRV to 1.80.
-- Upgrade `ipnetwork` dependency from 0.20 to 0.21. This is a breaking change since
-  `ipnetwork` is part of the public API.
+- Upgrade `ipnetwork` dependency from 0.20 to 0.21.
+
+### Removed
+- Remove `ipnetwork` from the public API.
 
 
 ## [0.6.1] - 2024-10-02
