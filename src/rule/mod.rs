@@ -10,7 +10,6 @@ use crate::{
     conversion::{CopyTo, TryCopyTo},
     ffi, Error, ErrorInternal, Result,
 };
-use ipnetwork::IpNetwork;
 use std::{
     net::{IpAddr, Ipv4Addr, Ipv6Addr},
     ops::Deref,

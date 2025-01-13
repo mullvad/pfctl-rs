@@ -12,7 +12,6 @@ use crate::{
     pooladdr::{PoolAddr, PoolAddrList},
     AddrFamily, Result,
 };
-use ipnetwork::{IpNetwork, Ipv4Network, Ipv6Network};
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
@@ -26,19 +25,65 @@ impl Ip {
     pub fn get_af(&self) -> AddrFamily {
         match *self {
             Ip::Any => AddrFamily::Any,
-            Ip::Net(IpNetwork::V4(_)) => AddrFamily::Ipv4,
-            Ip::Net(IpNetwork::V6(_)) => AddrFamily::Ipv6,
+            Ip::Net(network) => network.get_af(),
         }
     }
 
     /// Returns `Ip::Any` represented an as an `IpNetwork`, used for ffi.
     fn any_ffi_repr() -> IpNetwork {
-        IpNetwork::V6(Ipv6Network::new(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0), 0).unwrap())
+        IpNetwork::new(Ipv6Addr::UNSPECIFIED, 0)
     }
 
     /// Returns PoolAddrList initialized with receiver
     pub fn to_pool_addr_list(&self) -> Result<PoolAddrList> {
         PoolAddrList::new(&[PoolAddr::from(*self)])
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct IpNetwork(ipnetwork::IpNetwork);
+
+impl IpNetwork {
+    pub fn new(ip: impl Into<IpAddr>, prefix: u8) -> IpNetwork {
+        Self::new_checked(ip.into(), prefix).unwrap()
+    }
+
+    pub const fn new_checked(ip: IpAddr, prefix: u8) -> Option<IpNetwork> {
+        match ip {
+            IpAddr::V4(ipv4_addr) => Self::v4(ipv4_addr, prefix),
+            IpAddr::V6(ipv6_addr) => Self::v6(ipv6_addr, prefix),
+        }
+    }
+
+    /// Create an IPv4 network.
+    pub const fn v4(ip: Ipv4Addr, prefix: u8) -> Option<IpNetwork> {
+        let Some(network) = ipnetwork::Ipv4Network::new_checked(ip, prefix) else {
+            return None;
+        };
+        Some(IpNetwork(ipnetwork::IpNetwork::V4(network)))
+    }
+
+    /// Create an IPv6 network.
+    pub const fn v6(ip: Ipv6Addr, prefix: u8) -> Option<IpNetwork> {
+        let Some(network) = ipnetwork::Ipv6Network::new_checked(ip, prefix) else {
+            return None;
+        };
+        Some(IpNetwork(ipnetwork::IpNetwork::V6(network)))
+    }
+
+    pub fn ip(&self) -> IpAddr {
+        self.0.ip()
+    }
+
+    pub fn mask(&self) -> IpAddr {
+        self.0.mask()
+    }
+
+    const fn get_af(&self) -> AddrFamily {
+        match self.0 {
+            ipnetwork::IpNetwork::V4(_) => AddrFamily::Ipv4,
+            ipnetwork::IpNetwork::V6(_) => AddrFamily::Ipv6,
+        }
     }
 }
 
@@ -50,13 +95,13 @@ impl From<IpNetwork> for Ip {
 
 impl From<Ipv4Addr> for Ip {
     fn from(ip: Ipv4Addr) -> Self {
-        Ip::Net(IpNetwork::V4(Ipv4Network::new(ip, 32).unwrap()))
+        Ip::from(IpNetwork::new(ip, 32))
     }
 }
 
 impl From<Ipv6Addr> for Ip {
     fn from(ip: Ipv6Addr) -> Self {
-        Ip::Net(IpNetwork::V6(Ipv6Network::new(ip, 128).unwrap()))
+        Ip::from(IpNetwork::new(ip, 128))
     }
 }
 

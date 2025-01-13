@@ -68,8 +68,6 @@ use std::{
     slice,
 };
 
-pub use ipnetwork;
-
 mod ffi;
 
 #[macro_use]

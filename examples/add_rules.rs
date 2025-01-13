@@ -6,7 +6,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use pfctl::{ipnetwork, FilterRuleBuilder, PfCtl, RedirectRuleBuilder, ScrubRuleBuilder};
+use pfctl::{FilterRuleBuilder, IpNetwork, PfCtl, RedirectRuleBuilder, ScrubRuleBuilder};
 use std::net::Ipv4Addr;
 
 static ANCHOR_NAME: &str = "test.anchor";
@@ -67,10 +67,10 @@ fn main() {
         .unwrap();
 
     // Block packets from the entire 10.0.0.0/8 private network.
-    let private_net = ipnetwork::Ipv4Network::new(Ipv4Addr::new(10, 0, 0, 0), 8).unwrap();
+    let private_net = IpNetwork::new(Ipv4Addr::new(10, 0, 0, 0), 8);
     let block_a_private_net_rule = FilterRuleBuilder::default()
         .action(pfctl::FilterRuleAction::Drop(pfctl::DropAction::Drop))
-        .from(pfctl::Ip::from(ipnetwork::IpNetwork::V4(private_net)))
+        .from(pfctl::Ip::from(private_net))
         .build()
         .unwrap();
 
