@@ -54,7 +54,7 @@ fn main() {
     pf.set_rules(ANCHOR_NAME, trans_change)
         .expect("Unable to set rules");
 
-    println!("Added a bunch of rules to the {} anchor.", ANCHOR_NAME);
+    println!("Added a bunch of rules to the {ANCHOR_NAME} anchor.");
     println!("Run this command to remove them:");
-    println!("sudo pfctl -a {} -F all", ANCHOR_NAME);
+    println!("sudo pfctl -a {ANCHOR_NAME} -F all");
 }
