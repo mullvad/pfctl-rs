@@ -19,7 +19,10 @@ jobs:
       matrix:
         # Keep MSRV in sync with rust-version in Cargo.toml as much as possible.
         rust: [stable, beta, nightly, 1.77.0]
-    runs-on: macos-latest
+        # NOTE: macos-13 is using Intel Mac as of 2025-05-20:
+        #       https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners
+        os: [macos-13, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
