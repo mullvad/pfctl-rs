@@ -6,7 +6,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use pfctl::{ipnetwork, FilterRuleBuilder, PfCtl, RedirectRuleBuilder, ScrubRuleBuilder};
+use pfctl::{FilterRuleBuilder, PfCtl, RedirectRuleBuilder, ScrubRuleBuilder, ipnetwork};
 use std::net::Ipv4Addr;
 
 static ANCHOR_NAME: &str = "test.anchor";

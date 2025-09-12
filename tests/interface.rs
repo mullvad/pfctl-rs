@@ -1,3 +1,5 @@
+use core::slice;
+
 use helper::pfcli::get_interface_flags;
 use pfctl::InterfaceFlags;
 use tun::{AbstractDevice, Configuration};
@@ -18,7 +20,7 @@ test!(set_and_reset_interface_flag {
 
     assert_eq!(
         get_interface_flags(&temp_tun_name),
-        &[temp_tun_name.clone()],
+        slice::from_ref(&temp_tun_name),
     );
 
     pf.set_interface_flag(interface.clone(), InterfaceFlags::Skip).unwrap();

@@ -2,7 +2,7 @@ use std::fmt;
 use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr};
 
 use crate::ffi::pfvar::pfsync_state_host;
-use crate::{ffi::pfvar::pfsync_state, Direction, Proto};
+use crate::{Direction, Proto, ffi::pfvar::pfsync_state};
 use crate::{Error, ErrorInternal, Result};
 
 /// PF connection state created by a stateful rule
@@ -91,7 +91,7 @@ unsafe fn parse_address(family: u8, host: pfsync_state_host) -> Result<SocketAdd
 #[cfg(test)]
 mod tests {
     use super::pfsync_state_host;
-    use crate::{state::parse_address, AddrFamily};
+    use crate::{AddrFamily, state::parse_address};
     use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr};
 
     #[test]
