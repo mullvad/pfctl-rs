@@ -8,8 +8,8 @@ repository = "https://github.com/mullvad/pfctl-rs"
 readme = "README.md"
 keywords = ["pf", "firewall", "macos", "packet", "filter"]
 categories = ["network-programming", "os", "os::macos-apis", "api-bindings"]
-edition = "2021"
-rust-version = "1.77.0"
+edition = "2024"
+rust-version = "1.85.0"
 
 [badges]
 travis-ci = { repository = "mullvad/pfctl-rs" }
