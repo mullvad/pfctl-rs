@@ -7,9 +7,10 @@
 // except according to those terms.
 
 use crate::{
-    conversion::TryCopyTo, ffi, utils, FilterRule, NatRule, PoolAddrList, RedirectRule, Result,
-    RulesetKind, ScrubRule,
+    FilterRule, NatRule, PoolAddrList, RedirectRule, Result, RulesetKind, ScrubRule,
+    conversion::TryCopyTo, ffi, utils,
 };
+use core::slice;
 use std::{
     collections::HashMap,
     mem,
@@ -173,7 +174,7 @@ impl Transaction {
         let _pool_addr_list = if let Some(pool_addr) = rule.get_route().get_pool_addr() {
             // register pool address with firewall
             utils::add_pool_address(fd, pool_addr.clone(), pool_ticket)?;
-            let pool_addr_list = PoolAddrList::new(&[pool_addr.clone()])?;
+            let pool_addr_list = PoolAddrList::new(slice::from_ref(pool_addr))?;
 
             pfioc_rule.rule.rpool.list = unsafe { pool_addr_list.to_palist() };
             Some(pool_addr_list)

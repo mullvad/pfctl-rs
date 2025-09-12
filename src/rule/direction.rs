@@ -6,7 +6,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use crate::{ffi, Error, ErrorInternal, Result};
+use crate::{Error, ErrorInternal, Result, ffi};
 
 /// Enum describing matching of rule towards packet flow direction.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]

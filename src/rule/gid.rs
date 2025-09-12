@@ -9,7 +9,7 @@
 pub use super::uid::Id;
 use crate::{
     conversion::CopyTo,
-    ffi::pfvar::{pf_rule_gid, PF_OP_NONE},
+    ffi::pfvar::{PF_OP_NONE, pf_rule_gid},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

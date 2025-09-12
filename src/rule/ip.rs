@@ -7,10 +7,10 @@
 // except according to those terms.
 
 use crate::{
+    AddrFamily, Result,
     conversion::CopyTo,
     ffi,
     pooladdr::{PoolAddr, PoolAddrList},
-    AddrFamily, Result,
 };
 use ipnetwork::{IpNetwork, Ipv4Network, Ipv6Network};
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};

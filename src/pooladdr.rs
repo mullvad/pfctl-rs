@@ -7,8 +7,9 @@
 // except according to those terms.
 
 use crate::{
+    Interface, Ip,
     conversion::{CopyTo, TryCopyTo},
-    ffi, Interface, Ip,
+    ffi,
 };
 use std::{mem, ptr, vec::Vec};
 
