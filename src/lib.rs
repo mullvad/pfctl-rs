@@ -204,7 +204,7 @@ impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         use ErrorInternal::*;
         match &self.0 {
-            DeviceOpen(_, ref e) => Some(e),
+            DeviceOpen(_, e) => Some(e),
             Ioctl(e) => Some(e),
             _ => None,
         }
