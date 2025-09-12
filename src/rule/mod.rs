@@ -1,4 +1,4 @@
-// Copyright 2024 Mullvad VPN AB.
+// Copyright 2025 Mullvad VPN AB.
 //
 // Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
 // http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
@@ -7,8 +7,9 @@
 // except according to those terms.
 
 use crate::{
+    Error, ErrorInternal, Result,
     conversion::{CopyTo, TryCopyTo},
-    ffi, Error, ErrorInternal, Result,
+    ffi,
 };
 use ipnetwork::IpNetwork;
 use std::{
@@ -476,12 +477,14 @@ mod filter_rule_tests {
                 .get_af()
                 .unwrap()
         );
-        assert!(testee
-            .af(AddrFamily::Ipv6)
-            .build()
-            .unwrap()
-            .get_af()
-            .is_err());
+        assert!(
+            testee
+                .af(AddrFamily::Ipv6)
+                .build()
+                .unwrap()
+                .get_af()
+                .is_err()
+        );
     }
 
     #[test]
@@ -508,12 +511,14 @@ mod filter_rule_tests {
                 .get_af()
                 .unwrap()
         );
-        assert!(testee
-            .af(AddrFamily::Ipv4)
-            .build()
-            .unwrap()
-            .get_af()
-            .is_err());
+        assert!(
+            testee
+                .af(AddrFamily::Ipv4)
+                .build()
+                .unwrap()
+                .get_af()
+                .is_err()
+        );
     }
 
     #[test]
@@ -576,14 +581,16 @@ mod filter_rule_tests {
 
     #[test]
     fn state_policy_incompatible_modulate() {
-        assert!(FilterRuleBuilder::default()
-            .action(FilterRuleAction::Pass)
-            .keep_state(StatePolicy::Modulate)
-            .proto(Proto::Udp)
-            .build()
-            .unwrap()
-            .validate_state_policy()
-            .is_err());
+        assert!(
+            FilterRuleBuilder::default()
+                .action(FilterRuleAction::Pass)
+                .keep_state(StatePolicy::Modulate)
+                .proto(Proto::Udp)
+                .build()
+                .unwrap()
+                .validate_state_policy()
+                .is_err()
+        );
     }
 
     #[test]
@@ -603,13 +610,15 @@ mod filter_rule_tests {
 
     #[test]
     fn state_policy_incompatible_synproxy() {
-        assert!(FilterRuleBuilder::default()
-            .action(FilterRuleAction::Pass)
-            .keep_state(StatePolicy::SynProxy)
-            .proto(Proto::Udp)
-            .build()
-            .unwrap()
-            .validate_state_policy()
-            .is_err());
+        assert!(
+            FilterRuleBuilder::default()
+                .action(FilterRuleAction::Pass)
+                .keep_state(StatePolicy::SynProxy)
+                .proto(Proto::Udp)
+                .build()
+                .unwrap()
+                .validate_state_policy()
+                .is_err()
+        );
     }
 }

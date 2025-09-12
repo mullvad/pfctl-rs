@@ -13,11 +13,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 * **Security**: in case of vulnerabilities.
 
 ## [unreleased]
+
+
+## [0.7.0] - 2025-09-12
 ### Added
 - Add function for setting and clearing interface flags.
 
 ### Changed
-- Bump MSRV to 1.77.
+- Bump MSRV to 1.85.
+- Update to Rust edition 2024.
 - Upgrade `ipnetwork` dependency from 0.20 to 0.21. This is a breaking change since
   `ipnetwork` is part of the public API.
 

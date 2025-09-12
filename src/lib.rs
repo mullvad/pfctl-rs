@@ -1,4 +1,4 @@
-// Copyright 2024 Mullvad VPN AB.
+// Copyright 2025 Mullvad VPN AB.
 //
 // Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
 // http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
@@ -204,7 +204,7 @@ impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         use ErrorInternal::*;
         match &self.0 {
-            DeviceOpen(_, ref e) => Some(e),
+            DeviceOpen(_, e) => Some(e),
             Ioctl(e) => Some(e),
             _ => None,
         }

@@ -1,4 +1,4 @@
-// Copyright 2024 Mullvad VPN AB.
+// Copyright 2025 Mullvad VPN AB.
 //
 // Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
 // http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
@@ -6,7 +6,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use crate::{conversion::TryCopyTo, ffi, Error, ErrorInternal};
+use crate::{Error, ErrorInternal, conversion::TryCopyTo, ffi};
 
 // Port range representation
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]

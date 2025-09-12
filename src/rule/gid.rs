@@ -1,4 +1,4 @@
-// Copyright 2024 Mullvad VPN AB.
+// Copyright 2025 Mullvad VPN AB.
 //
 // Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
 // http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
@@ -9,7 +9,7 @@
 pub use super::uid::Id;
 use crate::{
     conversion::CopyTo,
-    ffi::pfvar::{pf_rule_gid, PF_OP_NONE},
+    ffi::pfvar::{PF_OP_NONE, pf_rule_gid},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
