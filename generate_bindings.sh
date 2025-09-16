@@ -20,6 +20,7 @@ bindgen \
     --allowlist-type pfioc_states \
     --allowlist-type pfioc_state_kill \
     --allowlist-type pfioc_iface \
+    --allowlist-type pfi_kif \
     --allowlist-var PF_.* \
     --allowlist-var PFRULE_.* \
     --default-enum-style rust \

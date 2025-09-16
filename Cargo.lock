@@ -411,6 +411,7 @@ name = "pfctl"
 version = "0.7.0"
 dependencies = [
  "assert_matches",
+ "bitflags",
  "derive_builder",
  "ioctl-sys",
  "ipnet",
