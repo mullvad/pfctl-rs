@@ -6,8 +6,7 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use crate::conversion::TryCopyTo;
-use crate::{Error, ErrorInternal};
+use crate::{Error, ErrorInternal, conversion::TryCopyTo};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct InterfaceName(String);
@@ -44,10 +43,38 @@ impl TryCopyTo<[i8]> for Interface {
     }
 }
 
+bitflags::bitflags! {
+    #[repr(transparent)]
+    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+    pub struct InterfaceFlags: i32 {
+        /// Set or clear the skip flag on an interface.
+        /// This is equivalent to PFI_IFLAG_SKIP.
+        const SKIP = 0x0100;
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-#[repr(i32)]
-pub enum InterfaceFlags {
-    /// Set or clear the skip flag on an interface.
-    /// This is equivalent to PFI_IFLAG_SKIP.
-    Skip = 0x0100,
+pub struct InterfaceDescription {
+    pub name: String,
+    pub flags: InterfaceFlags,
+}
+
+impl TryFrom<crate::ffi::pfvar::pfi_kif> for InterfaceDescription {
+    type Error = crate::Error;
+
+    fn try_from(kif: crate::ffi::pfvar::pfi_kif) -> Result<Self, Self::Error> {
+        let c_chars_ptr = kif.pfik_name.as_ptr() as *const u8;
+        // SAFETY: valid as long as `kif` is within the scope
+        let c_chars_u8 = unsafe { std::slice::from_raw_parts(c_chars_ptr, kif.pfik_name.len()) };
+
+        let name = std::ffi::CStr::from_bytes_until_nul(c_chars_u8)
+            .map_err(|_| Error::from(ErrorInternal::InvalidInterfaceName("missing null byte")))?
+            .to_str()
+            .map_err(|_| Error::from(ErrorInternal::InvalidInterfaceName("invalid utf8 encoding")))?
+            .to_owned();
+
+        let flags = InterfaceFlags::from_bits_retain(kif.pfik_flags);
+
+        Ok(InterfaceDescription { name, flags })
+    }
 }

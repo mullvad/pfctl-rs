@@ -508,7 +508,7 @@ impl PfCtl {
     ) -> Result<()> {
         let mut iface = unsafe { mem::zeroed::<ffi::pfvar::pfioc_iface>() };
         interface.try_copy_to(&mut iface.pfiio_name)?;
-        iface.pfiio_flags = flags as i32;
+        iface.pfiio_flags = flags.bits();
         ioctl_guard!(ffi::pf_set_iface_flag(self.fd(), &mut iface))?;
         Ok(())
     }
@@ -523,9 +523,51 @@ impl PfCtl {
     ) -> Result<()> {
         let mut iface = unsafe { mem::zeroed::<ffi::pfvar::pfioc_iface>() };
         interface.try_copy_to(&mut iface.pfiio_name)?;
-        iface.pfiio_flags = flags as i32;
+        iface.pfiio_flags = flags.bits();
         ioctl_guard!(ffi::pf_clear_iface_flag(self.fd(), &mut iface))?;
         Ok(())
+    }
+
+    /// Get interfaces with corresponding flags.
+    ///
+    /// https://man.freebsd.org/cgi/man.cgi?pf(4)
+    pub fn get_interface_flags(
+        &mut self,
+        interface: Interface,
+    ) -> Result<Vec<InterfaceDescription>> {
+        // This should be sufficient capacity on average machine to avoid reallocation
+        const INITIAL_CAPACITY: usize = 1;
+        // Maximum number of ioctl retries before giving up
+        const MAX_RETRIES: usize = 2;
+
+        let mut buf: Vec<ffi::pfvar::pfi_kif> = Vec::with_capacity(INITIAL_CAPACITY);
+        let mut iface = unsafe { mem::zeroed::<ffi::pfvar::pfioc_iface>() };
+        interface.try_copy_to(&mut iface.pfiio_name)?;
+        iface.pfiio_esize = mem::size_of::<ffi::pfvar::pfi_kif>() as i32;
+
+        let mut retry = 0;
+        loop {
+            iface.pfiio_buffer = buf.as_mut_ptr() as _;
+            iface.pfiio_size = buf.capacity() as _;
+
+            ioctl_guard!(ffi::pf_get_ifaces(self.fd(), &mut iface))?;
+            let num_system_interfaces = usize::try_from(iface.pfiio_size).unwrap_or_default();
+
+            retry += 1;
+            // Reserve additional space and retry if number of system interfaces exceeds capacity
+            if retry < MAX_RETRIES && num_system_interfaces > buf.capacity() {
+                buf.reserve(num_system_interfaces);
+            } else {
+                let new_len = std::cmp::min(num_system_interfaces, buf.capacity());
+                // SAFETY: safe since new_len is capped at capacity
+                unsafe { buf.set_len(new_len) };
+                break;
+            }
+        }
+
+        buf.into_iter()
+            .map(InterfaceDescription::try_from)
+            .collect()
     }
 
     /// Get all states created by stateful rules
