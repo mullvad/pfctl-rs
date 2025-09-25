@@ -531,10 +531,7 @@ impl PfCtl {
     /// Get interfaces with corresponding flags.
     ///
     /// https://man.freebsd.org/cgi/man.cgi?pf(4)
-    pub fn get_interface_flags(
-        &mut self,
-        interface: Interface,
-    ) -> Result<Vec<InterfaceDescription>> {
+    pub fn get_interfaces(&mut self, interface: Interface) -> Result<Vec<InterfaceDescription>> {
         // This should be sufficient capacity on average machine to avoid reallocation
         const INITIAL_CAPACITY: usize = 30;
         // Maximum number of ioctl retries before giving up

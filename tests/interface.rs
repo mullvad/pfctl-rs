@@ -48,7 +48,7 @@ test!(get_all_interfaces_flags {
     let mut pf = pfctl::PfCtl::new().unwrap();
     pf.set_interface_flag(interface.clone(), InterfaceFlags::SKIP).unwrap();
 
-    let iface = pf.get_interface_flags(pfctl::Interface::Any)
+    let iface = pf.get_interfaces(pfctl::Interface::Any)
         .unwrap()
         .into_iter()
         .find(|iface| iface.name == temp_tun_name)
@@ -65,7 +65,7 @@ test!(get_single_interface_flags {
     let mut pf = pfctl::PfCtl::new().unwrap();
     pf.set_interface_flag(interface.clone(), InterfaceFlags::SKIP).unwrap();
 
-    let ifaces = pf.get_interface_flags(pfctl::Interface::from(&temp_tun_name))
+    let ifaces = pf.get_interfaces(pfctl::Interface::from(&temp_tun_name))
         .unwrap();
     assert_eq!(ifaces.len(), 1);
 
