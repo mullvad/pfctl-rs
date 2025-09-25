@@ -16,6 +16,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ### Added
 - Add function for getting interface flags.
 
+### Changed
+- Change `InterfaceFlags` from enum to bitflags struct. This is a breaking change.
 
 ## [0.7.0] - 2025-09-12
 ### Added
