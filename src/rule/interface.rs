@@ -63,12 +63,13 @@ impl TryFrom<crate::ffi::pfvar::pfi_kif> for InterfaceDescription {
     type Error = crate::Error;
 
     fn try_from(kif: crate::ffi::pfvar::pfi_kif) -> Result<Self, Self::Error> {
-        let c_chars_ptr = kif.pfik_name.as_ptr() as *const u8;
-        // SAFETY: valid as long as `kif` is within the scope
-        let c_chars_u8 = unsafe { std::slice::from_raw_parts(c_chars_ptr, kif.pfik_name.len()) };
-
-        let name = std::ffi::CStr::from_bytes_until_nul(c_chars_u8)
-            .map_err(|_| Error::from(ErrorInternal::InvalidInterfaceName("missing null byte")))?
+        let chars = kif
+            .pfik_name
+            .into_iter()
+            .map(|b| b as u8)
+            .collect::<Vec<_>>();
+        let name = std::ffi::CStr::from_bytes_until_nul(&chars)
+            .map_err(|_| Error::from(ErrorInternal::InvalidInterfaceName("missing nul byte")))?
             .to_str()
             .map_err(|_| Error::from(ErrorInternal::InvalidInterfaceName("invalid utf8 encoding")))?
             .to_owned();
