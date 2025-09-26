@@ -6,10 +6,11 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+use zerocopy::FromZeros;
+
 use crate::{AnchorKind, Error, ErrorInternal, PoolAddr, Result, conversion::TryCopyTo, ffi};
 use std::{
     fs::{File, OpenOptions},
-    mem,
     os::unix::io::RawFd,
 };
 
@@ -31,7 +32,7 @@ pub fn add_pool_address<A: Into<PoolAddr>>(
     pool_addr: A,
     pool_ticket: u32,
 ) -> Result<()> {
-    let mut pfioc_pooladdr = unsafe { mem::zeroed::<ffi::pfvar::pfioc_pooladdr>() };
+    let mut pfioc_pooladdr = ffi::pfvar::pfioc_pooladdr::new_zeroed();
     pfioc_pooladdr.ticket = pool_ticket;
     pool_addr.into().try_copy_to(&mut pfioc_pooladdr.addr)?;
     ioctl_guard!(ffi::pf_add_addr(fd, &mut pfioc_pooladdr))
@@ -39,13 +40,13 @@ pub fn add_pool_address<A: Into<PoolAddr>>(
 
 /// Get pool ticket
 pub fn get_pool_ticket(fd: RawFd) -> Result<u32> {
-    let mut pfioc_pooladdr = unsafe { mem::zeroed::<ffi::pfvar::pfioc_pooladdr>() };
+    let mut pfioc_pooladdr = ffi::pfvar::pfioc_pooladdr::new_zeroed();
     ioctl_guard!(ffi::pf_begin_addrs(fd, &mut pfioc_pooladdr))?;
     Ok(pfioc_pooladdr.ticket)
 }
 
 pub fn get_ticket(fd: RawFd, anchor: &str, kind: AnchorKind) -> Result<u32> {
-    let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
+    let mut pfioc_rule = ffi::pfvar::pfioc_rule::new_zeroed();
     pfioc_rule.action = ffi::pfvar::PF_CHANGE_GET_TICKET as u32;
     pfioc_rule.rule.action = kind.into();
     copy_anchor_name(anchor, &mut pfioc_rule.anchor[..])?;

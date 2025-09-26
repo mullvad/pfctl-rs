@@ -6,6 +6,8 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+use zerocopy::FromZeros;
+
 use crate::{
     FilterRule, NatRule, PoolAddrList, RedirectRule, Result, RulesetKind, ScrubRule,
     conversion::TryCopyTo, ffi, utils,
@@ -48,7 +50,7 @@ impl Transaction {
     pub fn commit(mut self) -> Result<()> {
         let pf_file = utils::open_pf()?;
         let fd = pf_file.as_raw_fd();
-        let mut pfioc_trans = unsafe { mem::zeroed::<ffi::pfvar::pfioc_trans>() };
+        let mut pfioc_trans = ffi::pfvar::pfioc_trans::new_zeroed();
 
         // partition changes by ruleset kind
         let filter_changes: Vec<(String, Vec<FilterRule>)> = self
@@ -161,7 +163,7 @@ impl Transaction {
     /// Internal helper add filter rule into transaction
     fn add_filter_rule(fd: RawFd, anchor: &str, rule: &FilterRule, ticket: u32) -> Result<()> {
         // prepare pfioc_rule
-        let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
+        let mut pfioc_rule = ffi::pfvar::pfioc_rule::new_zeroed();
         pfioc_rule.action = ffi::pfvar::PF_CHANGE_NONE as u32;
         utils::copy_anchor_name(anchor, &mut pfioc_rule.anchor[..])?;
         rule.try_copy_to(&mut pfioc_rule.rule)?;
@@ -195,7 +197,7 @@ impl Transaction {
     /// Internal helper to add nat rule into transaction
     fn add_nat_rule(fd: RawFd, anchor: &str, rule: &NatRule, ticket: u32) -> Result<()> {
         // prepare pfioc_rule
-        let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
+        let mut pfioc_rule = ffi::pfvar::pfioc_rule::new_zeroed();
         utils::copy_anchor_name(anchor, &mut pfioc_rule.anchor[..])?;
         rule.try_copy_to(&mut pfioc_rule.rule)?;
 
@@ -222,7 +224,7 @@ impl Transaction {
     /// Internal helper to add redirect rule into transaction
     fn add_redirect_rule(fd: RawFd, anchor: &str, rule: &RedirectRule, ticket: u32) -> Result<()> {
         // prepare pfioc_rule
-        let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
+        let mut pfioc_rule = ffi::pfvar::pfioc_rule::new_zeroed();
         utils::copy_anchor_name(anchor, &mut pfioc_rule.anchor[..])?;
         rule.try_copy_to(&mut pfioc_rule.rule)?;
 
@@ -247,7 +249,7 @@ impl Transaction {
     /// Internal helper to add scrub rule into transaction
     fn add_scrub_rule(fd: RawFd, anchor: &str, rule: &ScrubRule, ticket: u32) -> Result<()> {
         // prepare pfioc_rule
-        let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
+        let mut pfioc_rule = ffi::pfvar::pfioc_rule::new_zeroed();
         utils::copy_anchor_name(anchor, &mut pfioc_rule.anchor[..])?;
         rule.try_copy_to(&mut pfioc_rule.rule)?;
 
@@ -277,7 +279,7 @@ impl Transaction {
         anchor: &str,
         ruleset_kind: RulesetKind,
     ) -> Result<ffi::pfvar::pfioc_trans_pfioc_trans_e> {
-        let mut pfioc_trans_e = unsafe { mem::zeroed::<ffi::pfvar::pfioc_trans_pfioc_trans_e>() };
+        let mut pfioc_trans_e = ffi::pfvar::pfioc_trans_pfioc_trans_e::new_zeroed();
         pfioc_trans_e.rs_num = ruleset_kind.into();
         utils::copy_anchor_name(anchor, &mut pfioc_trans_e.anchor[..])?;
         Ok(pfioc_trans_e)

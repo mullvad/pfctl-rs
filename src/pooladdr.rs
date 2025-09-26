@@ -6,12 +6,14 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+use zerocopy::FromZeros;
+
 use crate::{
     Interface, Ip,
     conversion::{CopyTo, TryCopyTo},
     ffi,
 };
-use std::{mem, ptr, vec::Vec};
+use std::{ptr, vec::Vec};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct PoolAddr {
@@ -94,7 +96,7 @@ impl PoolAddrList {
     fn init_pool(pool_addrs: &[PoolAddr]) -> Result<Vec<ffi::pfvar::pf_pooladdr>, crate::Error> {
         let mut pool = Vec::with_capacity(pool_addrs.len());
         for pool_addr in pool_addrs {
-            let mut pf_pooladdr = unsafe { mem::zeroed::<ffi::pfvar::pf_pooladdr>() };
+            let mut pf_pooladdr = ffi::pfvar::pf_pooladdr::new_zeroed();
             pool_addr.try_copy_to(&mut pf_pooladdr)?;
             pool.push(pf_pooladdr);
         }
@@ -111,7 +113,7 @@ impl PoolAddrList {
     }
 
     fn create_palist(pool: &mut [ffi::pfvar::pf_pooladdr]) -> ffi::pfvar::pf_palist {
-        let mut list = unsafe { mem::zeroed::<ffi::pfvar::pf_palist>() };
+        let mut list = ffi::pfvar::pf_palist::new_zeroed();
         if !pool.is_empty() {
             let mut first_elem = pool[0];
             let mut last_elem = pool[pool.len() - 1];
