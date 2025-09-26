@@ -141,7 +141,14 @@ pub type pid_t = __darwin_pid_t;
 pub type uid_t = __darwin_uid_t;
 pub type sa_family_t = __uint8_t;
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    :: zerocopy :: FromZeros,
+    :: zerocopy :: Immutable,
+    :: zerocopy :: KnownLayout,
+)]
 pub struct in_addr {
     pub s_addr: in_addr_t,
 }
@@ -152,12 +159,16 @@ const _: () = {
     ["Offset of field: in_addr::s_addr"][::std::mem::offset_of!(in_addr, s_addr) - 0usize];
 };
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(
+    Copy, Clone, :: zerocopy :: FromZeros, :: zerocopy :: Immutable, :: zerocopy :: KnownLayout,
+)]
 pub struct in6_addr {
     pub __u6_addr: in6_addr__bindgen_ty_1,
 }
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(
+    Copy, Clone, :: zerocopy :: FromZeros, :: zerocopy :: Immutable, :: zerocopy :: KnownLayout,
+)]
 pub union in6_addr__bindgen_ty_1 {
     pub __u6_addr8: [__uint8_t; 16usize],
     pub __u6_addr16: [__uint16_t; 8usize],
@@ -185,7 +196,17 @@ pub const PF_INOUT: _bindgen_ty_6 = _bindgen_ty_6::PF_INOUT;
 pub const PF_IN: _bindgen_ty_6 = _bindgen_ty_6::PF_IN;
 pub const PF_OUT: _bindgen_ty_6 = _bindgen_ty_6::PF_OUT;
 #[repr(u32)]
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    Hash,
+    PartialEq,
+    Eq,
+    :: zerocopy :: FromZeros,
+    :: zerocopy :: Immutable,
+    :: zerocopy :: KnownLayout,
+)]
 pub enum _bindgen_ty_6 {
     PF_INOUT = 0,
     PF_IN = 1,
@@ -207,7 +228,17 @@ pub const PF_NODUMMYNET: _bindgen_ty_7 = _bindgen_ty_7::PF_NODUMMYNET;
 pub const PF_NAT64: _bindgen_ty_7 = _bindgen_ty_7::PF_NAT64;
 pub const PF_NONAT64: _bindgen_ty_7 = _bindgen_ty_7::PF_NONAT64;
 #[repr(u32)]
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    Hash,
+    PartialEq,
+    Eq,
+    :: zerocopy :: FromZeros,
+    :: zerocopy :: Immutable,
+    :: zerocopy :: KnownLayout,
+)]
 pub enum _bindgen_ty_7 {
     PF_PASS = 0,
     PF_DROP = 1,
@@ -233,7 +264,17 @@ pub const PF_RULESET_RDR: _bindgen_ty_8 = _bindgen_ty_8::PF_RULESET_RDR;
 pub const PF_RULESET_DUMMYNET: _bindgen_ty_8 = _bindgen_ty_8::PF_RULESET_DUMMYNET;
 pub const PF_RULESET_MAX: _bindgen_ty_8 = _bindgen_ty_8::PF_RULESET_MAX;
 #[repr(u32)]
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    Hash,
+    PartialEq,
+    Eq,
+    :: zerocopy :: FromZeros,
+    :: zerocopy :: Immutable,
+    :: zerocopy :: KnownLayout,
+)]
 pub enum _bindgen_ty_8 {
     PF_RULESET_SCRUB = 0,
     PF_RULESET_FILTER = 1,
@@ -254,7 +295,17 @@ pub const PF_OP_GE: _bindgen_ty_9 = _bindgen_ty_9::PF_OP_GE;
 pub const PF_OP_XRG: _bindgen_ty_9 = _bindgen_ty_9::PF_OP_XRG;
 pub const PF_OP_RRG: _bindgen_ty_9 = _bindgen_ty_9::PF_OP_RRG;
 #[repr(u32)]
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    Hash,
+    PartialEq,
+    Eq,
+    :: zerocopy :: FromZeros,
+    :: zerocopy :: Immutable,
+    :: zerocopy :: KnownLayout,
+)]
 pub enum _bindgen_ty_9 {
     PF_OP_NONE = 0,
     PF_OP_IRG = 1,
@@ -272,7 +323,17 @@ pub const PF_DEBUG_URGENT: _bindgen_ty_10 = _bindgen_ty_10::PF_DEBUG_URGENT;
 pub const PF_DEBUG_MISC: _bindgen_ty_10 = _bindgen_ty_10::PF_DEBUG_MISC;
 pub const PF_DEBUG_NOISY: _bindgen_ty_10 = _bindgen_ty_10::PF_DEBUG_NOISY;
 #[repr(u32)]
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    Hash,
+    PartialEq,
+    Eq,
+    :: zerocopy :: FromZeros,
+    :: zerocopy :: Immutable,
+    :: zerocopy :: KnownLayout,
+)]
 pub enum _bindgen_ty_10 {
     PF_DEBUG_NONE = 0,
     PF_DEBUG_URGENT = 1,
@@ -287,7 +348,17 @@ pub const PF_CHANGE_ADD_AFTER: _bindgen_ty_11 = _bindgen_ty_11::PF_CHANGE_ADD_AF
 pub const PF_CHANGE_REMOVE: _bindgen_ty_11 = _bindgen_ty_11::PF_CHANGE_REMOVE;
 pub const PF_CHANGE_GET_TICKET: _bindgen_ty_11 = _bindgen_ty_11::PF_CHANGE_GET_TICKET;
 #[repr(u32)]
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    Hash,
+    PartialEq,
+    Eq,
+    :: zerocopy :: FromZeros,
+    :: zerocopy :: Immutable,
+    :: zerocopy :: KnownLayout,
+)]
 pub enum _bindgen_ty_11 {
     PF_CHANGE_NONE = 0,
     PF_CHANGE_ADD_HEAD = 1,
@@ -300,7 +371,17 @@ pub enum _bindgen_ty_11 {
 pub const PF_GET_NONE: _bindgen_ty_12 = _bindgen_ty_12::PF_GET_NONE;
 pub const PF_GET_CLR_CNTR: _bindgen_ty_12 = _bindgen_ty_12::PF_GET_CLR_CNTR;
 #[repr(u32)]
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    Hash,
+    PartialEq,
+    Eq,
+    :: zerocopy :: FromZeros,
+    :: zerocopy :: Immutable,
+    :: zerocopy :: KnownLayout,
+)]
 pub enum _bindgen_ty_12 {
     PF_GET_NONE = 0,
     PF_GET_CLR_CNTR = 1,
@@ -311,7 +392,17 @@ pub const PF_ROUTETO: _bindgen_ty_14 = _bindgen_ty_14::PF_ROUTETO;
 pub const PF_DUPTO: _bindgen_ty_14 = _bindgen_ty_14::PF_DUPTO;
 pub const PF_REPLYTO: _bindgen_ty_14 = _bindgen_ty_14::PF_REPLYTO;
 #[repr(u32)]
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    Hash,
+    PartialEq,
+    Eq,
+    :: zerocopy :: FromZeros,
+    :: zerocopy :: Immutable,
+    :: zerocopy :: KnownLayout,
+)]
 pub enum _bindgen_ty_14 {
     PF_NOPFROUTE = 0,
     PF_FASTROUTE = 1,
@@ -327,7 +418,17 @@ pub const PF_LIMIT_TABLES: _bindgen_ty_15 = _bindgen_ty_15::PF_LIMIT_TABLES;
 pub const PF_LIMIT_TABLE_ENTRIES: _bindgen_ty_15 = _bindgen_ty_15::PF_LIMIT_TABLE_ENTRIES;
 pub const PF_LIMIT_MAX: _bindgen_ty_15 = _bindgen_ty_15::PF_LIMIT_MAX;
 #[repr(u32)]
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    Hash,
+    PartialEq,
+    Eq,
+    :: zerocopy :: FromZeros,
+    :: zerocopy :: Immutable,
+    :: zerocopy :: KnownLayout,
+)]
 pub enum _bindgen_ty_15 {
     PF_LIMIT_STATES = 0,
     PF_LIMIT_APP_STATES = 1,
@@ -343,7 +444,17 @@ pub const PF_POOL_RANDOM: _bindgen_ty_16 = _bindgen_ty_16::PF_POOL_RANDOM;
 pub const PF_POOL_SRCHASH: _bindgen_ty_16 = _bindgen_ty_16::PF_POOL_SRCHASH;
 pub const PF_POOL_ROUNDROBIN: _bindgen_ty_16 = _bindgen_ty_16::PF_POOL_ROUNDROBIN;
 #[repr(u32)]
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    Hash,
+    PartialEq,
+    Eq,
+    :: zerocopy :: FromZeros,
+    :: zerocopy :: Immutable,
+    :: zerocopy :: KnownLayout,
+)]
 pub enum _bindgen_ty_16 {
     PF_POOL_NONE = 0,
     PF_POOL_BITMASK = 1,
@@ -359,7 +470,17 @@ pub const PF_ADDR_RTLABEL: _bindgen_ty_17 = _bindgen_ty_17::PF_ADDR_RTLABEL;
 pub const PF_ADDR_URPFFAILED: _bindgen_ty_17 = _bindgen_ty_17::PF_ADDR_URPFFAILED;
 pub const PF_ADDR_RANGE: _bindgen_ty_17 = _bindgen_ty_17::PF_ADDR_RANGE;
 #[repr(u32)]
-#[derive(Debug, Copy, Clone, Hash, PartialEq, Eq)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    Hash,
+    PartialEq,
+    Eq,
+    :: zerocopy :: FromZeros,
+    :: zerocopy :: Immutable,
+    :: zerocopy :: KnownLayout,
+)]
 pub enum _bindgen_ty_17 {
     PF_ADDR_ADDRMASK = 0,
     PF_ADDR_NOROUTE = 1,
@@ -370,12 +491,16 @@ pub enum _bindgen_ty_17 {
     PF_ADDR_RANGE = 6,
 }
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(
+    Copy, Clone, :: zerocopy :: FromZeros, :: zerocopy :: Immutable, :: zerocopy :: KnownLayout,
+)]
 pub struct pf_addr {
     pub pfa: pf_addr__bindgen_ty_1,
 }
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(
+    Copy, Clone, :: zerocopy :: FromZeros, :: zerocopy :: Immutable, :: zerocopy :: KnownLayout,
+)]
 pub union pf_addr__bindgen_ty_1 {
     pub _v4addr: in_addr,
     pub _v6addr: in6_addr,
@@ -406,7 +531,9 @@ const _: () = {
     ["Offset of field: pf_addr::pfa"][::std::mem::offset_of!(pf_addr, pfa) - 0usize];
 };
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(
+    Copy, Clone, :: zerocopy :: FromZeros, :: zerocopy :: Immutable, :: zerocopy :: KnownLayout,
+)]
 pub struct pf_addr_wrap {
     pub v: pf_addr_wrap__bindgen_ty_1,
     pub p: pf_addr_wrap__bindgen_ty_2,
@@ -414,7 +541,9 @@ pub struct pf_addr_wrap {
     pub iflags: u_int8_t,
 }
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(
+    Copy, Clone, :: zerocopy :: FromZeros, :: zerocopy :: Immutable, :: zerocopy :: KnownLayout,
+)]
 pub union pf_addr_wrap__bindgen_ty_1 {
     pub a: pf_addr_wrap__bindgen_ty_1__bindgen_ty_1,
     pub ifname: [::std::os::raw::c_char; 16usize],
@@ -423,7 +552,9 @@ pub union pf_addr_wrap__bindgen_ty_1 {
     pub rtlabel: u_int32_t,
 }
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(
+    Copy, Clone, :: zerocopy :: FromZeros, :: zerocopy :: Immutable, :: zerocopy :: KnownLayout,
+)]
 pub struct pf_addr_wrap__bindgen_ty_1__bindgen_ty_1 {
     pub addr: pf_addr,
     pub mask: pf_addr,
@@ -457,7 +588,9 @@ const _: () = {
         [::std::mem::offset_of!(pf_addr_wrap__bindgen_ty_1, rtlabel) - 0usize];
 };
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(
+    Copy, Clone, :: zerocopy :: FromZeros, :: zerocopy :: Immutable, :: zerocopy :: KnownLayout,
+)]
 pub union pf_addr_wrap__bindgen_ty_2 {
     pub dyn_: *mut ::std::os::raw::c_void,
     pub tbl: *mut ::std::os::raw::c_void,
@@ -490,7 +623,14 @@ const _: () = {
         [::std::mem::offset_of!(pf_addr_wrap, iflags) - 41usize];
 };
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    :: zerocopy :: FromZeros,
+    :: zerocopy :: Immutable,
+    :: zerocopy :: KnownLayout,
+)]
 pub struct pf_port_range {
     pub port: [u_int16_t; 2usize],
     pub op: u_int8_t,
@@ -503,7 +643,9 @@ const _: () = {
     ["Offset of field: pf_port_range::op"][::std::mem::offset_of!(pf_port_range, op) - 4usize];
 };
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(
+    Copy, Clone, :: zerocopy :: FromZeros, :: zerocopy :: Immutable, :: zerocopy :: KnownLayout,
+)]
 pub union pf_rule_xport {
     pub range: pf_port_range,
     pub call_id: u_int16_t,
@@ -520,7 +662,14 @@ const _: () = {
     ["Offset of field: pf_rule_xport::spi"][::std::mem::offset_of!(pf_rule_xport, spi) - 0usize];
 };
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    :: zerocopy :: FromZeros,
+    :: zerocopy :: Immutable,
+    :: zerocopy :: KnownLayout,
+)]
 pub struct pf_rule_uid {
     pub uid: [uid_t; 2usize],
     pub op: u_int8_t,
@@ -535,7 +684,14 @@ const _: () = {
     ["Offset of field: pf_rule_uid::_pad"][::std::mem::offset_of!(pf_rule_uid, _pad) - 9usize];
 };
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    :: zerocopy :: FromZeros,
+    :: zerocopy :: Immutable,
+    :: zerocopy :: KnownLayout,
+)]
 pub struct pf_rule_gid {
     pub gid: [uid_t; 2usize],
     pub op: u_int8_t,
@@ -550,7 +706,9 @@ const _: () = {
     ["Offset of field: pf_rule_gid::_pad"][::std::mem::offset_of!(pf_rule_gid, _pad) - 9usize];
 };
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(
+    Copy, Clone, :: zerocopy :: FromZeros, :: zerocopy :: Immutable, :: zerocopy :: KnownLayout,
+)]
 pub struct pf_rule_addr {
     pub addr: pf_addr_wrap,
     pub xport: pf_rule_xport,
@@ -565,7 +723,9 @@ const _: () = {
     ["Offset of field: pf_rule_addr::neg"][::std::mem::offset_of!(pf_rule_addr, neg) - 56usize];
 };
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(
+    Copy, Clone, :: zerocopy :: FromZeros, :: zerocopy :: Immutable, :: zerocopy :: KnownLayout,
+)]
 pub struct pf_pooladdr {
     pub addr: pf_addr_wrap,
     pub entries: pf_pooladdr__bindgen_ty_1,
@@ -573,7 +733,14 @@ pub struct pf_pooladdr {
     pub kif: *mut ::std::os::raw::c_void,
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    :: zerocopy :: FromZeros,
+    :: zerocopy :: Immutable,
+    :: zerocopy :: KnownLayout,
+)]
 pub struct pf_pooladdr__bindgen_ty_1 {
     pub tqe_next: *mut pf_pooladdr,
     pub tqe_prev: *mut *mut pf_pooladdr,
@@ -600,7 +767,14 @@ const _: () = {
     ["Offset of field: pf_pooladdr::kif"][::std::mem::offset_of!(pf_pooladdr, kif) - 80usize];
 };
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    :: zerocopy :: FromZeros,
+    :: zerocopy :: Immutable,
+    :: zerocopy :: KnownLayout,
+)]
 pub struct pf_palist {
     pub tqh_first: *mut pf_pooladdr,
     pub tqh_last: *mut *mut pf_pooladdr,
@@ -614,12 +788,16 @@ const _: () = {
     ["Offset of field: pf_palist::tqh_last"][::std::mem::offset_of!(pf_palist, tqh_last) - 8usize];
 };
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(
+    Copy, Clone, :: zerocopy :: FromZeros, :: zerocopy :: Immutable, :: zerocopy :: KnownLayout,
+)]
 pub struct pf_poolhashkey {
     pub pfk: pf_poolhashkey__bindgen_ty_1,
 }
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(
+    Copy, Clone, :: zerocopy :: FromZeros, :: zerocopy :: Immutable, :: zerocopy :: KnownLayout,
+)]
 pub union pf_poolhashkey__bindgen_ty_1 {
     pub key8: [u_int8_t; 16usize],
     pub key16: [u_int16_t; 8usize],
@@ -645,7 +823,9 @@ const _: () = {
     ["Offset of field: pf_poolhashkey::pfk"][::std::mem::offset_of!(pf_poolhashkey, pfk) - 0usize];
 };
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(
+    Copy, Clone, :: zerocopy :: FromZeros, :: zerocopy :: Immutable, :: zerocopy :: KnownLayout,
+)]
 pub struct pf_pool {
     pub list: pf_palist,
     pub cur: *mut ::std::os::raw::c_void,
@@ -673,7 +853,9 @@ const _: () = {
 };
 pub type pf_osfp_t = u_int32_t;
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(
+    Copy, Clone, :: zerocopy :: FromZeros, :: zerocopy :: Immutable, :: zerocopy :: KnownLayout,
+)]
 pub union pf_rule_ptr {
     pub ptr: *mut pf_rule,
     pub nr: u_int32_t,
@@ -686,7 +868,9 @@ const _: () = {
     ["Offset of field: pf_rule_ptr::nr"][::std::mem::offset_of!(pf_rule_ptr, nr) - 0usize];
 };
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(
+    Copy, Clone, :: zerocopy :: FromZeros, :: zerocopy :: Immutable, :: zerocopy :: KnownLayout,
+)]
 pub struct pf_rule {
     pub src: pf_rule_addr,
     pub dst: pf_rule_addr,
@@ -764,7 +948,14 @@ pub struct pf_rule {
     pub dntype: u_int32_t,
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    :: zerocopy :: FromZeros,
+    :: zerocopy :: Immutable,
+    :: zerocopy :: KnownLayout,
+)]
 pub struct pf_rule__bindgen_ty_1 {
     pub tqe_next: *mut pf_rule,
     pub tqe_prev: *mut *mut pf_rule,
@@ -780,7 +971,14 @@ const _: () = {
         [::std::mem::offset_of!(pf_rule__bindgen_ty_1, tqe_prev) - 8usize];
 };
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    :: zerocopy :: FromZeros,
+    :: zerocopy :: Immutable,
+    :: zerocopy :: KnownLayout,
+)]
 pub struct pf_rule__bindgen_ty_2 {
     pub limit: u_int32_t,
     pub seconds: u_int32_t,
@@ -894,7 +1092,9 @@ const _: () = {
     ["Offset of field: pf_rule::dntype"][::std::mem::offset_of!(pf_rule, dntype) - 1036usize];
 };
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(
+    Copy, Clone, :: zerocopy :: FromZeros, :: zerocopy :: Immutable, :: zerocopy :: KnownLayout,
+)]
 pub union pf_state_xport {
     pub port: u_int16_t,
     pub call_id: u_int16_t,
@@ -911,12 +1111,26 @@ const _: () = {
     ["Offset of field: pf_state_xport::spi"][::std::mem::offset_of!(pf_state_xport, spi) - 0usize];
 };
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    :: zerocopy :: FromZeros,
+    :: zerocopy :: Immutable,
+    :: zerocopy :: KnownLayout,
+)]
 pub struct hook_desc {
     _unused: [u8; 0],
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    :: zerocopy :: FromZeros,
+    :: zerocopy :: Immutable,
+    :: zerocopy :: KnownLayout,
+)]
 pub struct hook_desc_head {
     pub tqh_first: *mut hook_desc,
     pub tqh_last: *mut *mut hook_desc,
@@ -931,7 +1145,14 @@ const _: () = {
         [::std::mem::offset_of!(hook_desc_head, tqh_last) - 8usize];
 };
 #[repr(C, packed)]
-#[derive(Debug, Copy, Clone)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    :: zerocopy :: FromZeros,
+    :: zerocopy :: Immutable,
+    :: zerocopy :: KnownLayout,
+)]
 pub struct pfsync_state_scrub {
     pub pfss_flags: u_int16_t,
     pub pfss_ttl: u_int8_t,
@@ -952,7 +1173,9 @@ const _: () = {
         [::std::mem::offset_of!(pfsync_state_scrub, pfss_ts_mod) - 4usize];
 };
 #[repr(C, packed)]
-#[derive(Copy, Clone)]
+#[derive(
+    Copy, Clone, :: zerocopy :: FromZeros, :: zerocopy :: Immutable, :: zerocopy :: KnownLayout,
+)]
 pub struct pfsync_state_host {
     pub addr: pf_addr,
     pub xport: pf_state_xport,
@@ -970,7 +1193,14 @@ const _: () = {
         [::std::mem::offset_of!(pfsync_state_host, pad) - 20usize];
 };
 #[repr(C, packed)]
-#[derive(Debug, Copy, Clone)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    :: zerocopy :: FromZeros,
+    :: zerocopy :: Immutable,
+    :: zerocopy :: KnownLayout,
+)]
 pub struct pfsync_state_peer {
     pub scrub: pfsync_state_scrub,
     pub seqlo: u_int32_t,
@@ -1006,7 +1236,9 @@ const _: () = {
         [::std::mem::offset_of!(pfsync_state_peer, pad) - 26usize];
 };
 #[repr(C, packed)]
-#[derive(Copy, Clone)]
+#[derive(
+    Copy, Clone, :: zerocopy :: FromZeros, :: zerocopy :: Immutable, :: zerocopy :: KnownLayout,
+)]
 pub struct pfsync_state {
     pub id: [u_int32_t; 2usize],
     pub ifname: [::std::os::raw::c_char; 16usize],
@@ -1100,7 +1332,14 @@ const _: () = {
         [::std::mem::offset_of!(pfsync_state, flowhash) - 293usize];
 };
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    :: zerocopy :: FromZeros,
+    :: zerocopy :: Immutable,
+    :: zerocopy :: KnownLayout,
+)]
 pub struct pf_rulequeue {
     pub tqh_first: *mut pf_rule,
     pub tqh_last: *mut *mut pf_rule,
@@ -1115,7 +1354,14 @@ const _: () = {
         [::std::mem::offset_of!(pf_rulequeue, tqh_last) - 8usize];
 };
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    :: zerocopy :: FromZeros,
+    :: zerocopy :: Immutable,
+    :: zerocopy :: KnownLayout,
+)]
 pub struct pf_ruleset {
     pub rules: [pf_ruleset__bindgen_ty_1; 6usize],
     pub anchor: *mut pf_anchor,
@@ -1124,14 +1370,28 @@ pub struct pf_ruleset {
     pub topen: ::std::os::raw::c_int,
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    :: zerocopy :: FromZeros,
+    :: zerocopy :: Immutable,
+    :: zerocopy :: KnownLayout,
+)]
 pub struct pf_ruleset__bindgen_ty_1 {
     pub queues: [pf_rulequeue; 2usize],
     pub active: pf_ruleset__bindgen_ty_1__bindgen_ty_1,
     pub inactive: pf_ruleset__bindgen_ty_1__bindgen_ty_1,
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    :: zerocopy :: FromZeros,
+    :: zerocopy :: Immutable,
+    :: zerocopy :: KnownLayout,
+)]
 pub struct pf_ruleset__bindgen_ty_1__bindgen_ty_1 {
     pub ptr: *mut pf_rulequeue,
     pub ptr_array: *mut *mut pf_rule,
@@ -1184,7 +1444,14 @@ const _: () = {
     ["Offset of field: pf_ruleset::topen"][::std::mem::offset_of!(pf_ruleset, topen) - 592usize];
 };
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    :: zerocopy :: FromZeros,
+    :: zerocopy :: Immutable,
+    :: zerocopy :: KnownLayout,
+)]
 pub struct pf_anchor_node {
     pub rbh_root: *mut pf_anchor,
 }
@@ -1196,7 +1463,14 @@ const _: () = {
         [::std::mem::offset_of!(pf_anchor_node, rbh_root) - 0usize];
 };
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    :: zerocopy :: FromZeros,
+    :: zerocopy :: Immutable,
+    :: zerocopy :: KnownLayout,
+)]
 pub struct pf_anchor {
     pub entry_global: pf_anchor__bindgen_ty_1,
     pub entry_node: pf_anchor__bindgen_ty_2,
@@ -1210,7 +1484,14 @@ pub struct pf_anchor {
     pub owner: [::std::os::raw::c_char; 64usize],
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    :: zerocopy :: FromZeros,
+    :: zerocopy :: Immutable,
+    :: zerocopy :: KnownLayout,
+)]
 pub struct pf_anchor__bindgen_ty_1 {
     pub rbe_left: *mut pf_anchor,
     pub rbe_right: *mut pf_anchor,
@@ -1229,7 +1510,14 @@ const _: () = {
         [::std::mem::offset_of!(pf_anchor__bindgen_ty_1, rbe_parent) - 16usize];
 };
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    :: zerocopy :: FromZeros,
+    :: zerocopy :: Immutable,
+    :: zerocopy :: KnownLayout,
+)]
 pub struct pf_anchor__bindgen_ty_2 {
     pub rbe_left: *mut pf_anchor,
     pub rbe_right: *mut pf_anchor,
@@ -1265,7 +1553,14 @@ const _: () = {
     ["Offset of field: pf_anchor::owner"][::std::mem::offset_of!(pf_anchor, owner) - 1760usize];
 };
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    :: zerocopy :: FromZeros,
+    :: zerocopy :: Immutable,
+    :: zerocopy :: KnownLayout,
+)]
 pub struct pfi_kif {
     pub pfik_name: [::std::os::raw::c_char; 16usize],
     pub pfik_packets: [[[u_int64_t; 2usize]; 2usize]; 2usize],
@@ -1293,7 +1588,14 @@ const _: () = {
         [::std::mem::offset_of!(pfi_kif, pfik_rules) - 160usize];
 };
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    :: zerocopy :: FromZeros,
+    :: zerocopy :: Immutable,
+    :: zerocopy :: KnownLayout,
+)]
 pub struct pf_status {
     pub counters: [u_int64_t; 17usize],
     pub lcounters: [u_int64_t; 7usize],
@@ -1339,7 +1641,9 @@ const _: () = {
         [::std::mem::offset_of!(pf_status, pf_chksum) - 424usize];
 };
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(
+    Copy, Clone, :: zerocopy :: FromZeros, :: zerocopy :: Immutable, :: zerocopy :: KnownLayout,
+)]
 pub struct pfioc_pooladdr {
     pub action: u_int32_t,
     pub ticket: u_int32_t,
@@ -1373,7 +1677,9 @@ const _: () = {
         [::std::mem::offset_of!(pfioc_pooladdr, addr) - 1048usize];
 };
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(
+    Copy, Clone, :: zerocopy :: FromZeros, :: zerocopy :: Immutable, :: zerocopy :: KnownLayout,
+)]
 pub struct pfioc_rule {
     pub action: u_int32_t,
     pub ticket: u_int32_t,
@@ -1398,7 +1704,9 @@ const _: () = {
     ["Offset of field: pfioc_rule::rule"][::std::mem::offset_of!(pfioc_rule, rule) - 2064usize];
 };
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(
+    Copy, Clone, :: zerocopy :: FromZeros, :: zerocopy :: Immutable, :: zerocopy :: KnownLayout,
+)]
 pub struct pfioc_state_addr_kill {
     pub addr: pf_addr_wrap,
     pub reserved_: [u_int8_t; 3usize],
@@ -1420,7 +1728,9 @@ const _: () = {
         [::std::mem::offset_of!(pfioc_state_addr_kill, xport) - 52usize];
 };
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(
+    Copy, Clone, :: zerocopy :: FromZeros, :: zerocopy :: Immutable, :: zerocopy :: KnownLayout,
+)]
 pub struct pfioc_state_kill {
     pub psk_af: sa_family_t,
     pub psk_proto: u_int8_t,
@@ -1453,13 +1763,17 @@ const _: () = {
         [::std::mem::offset_of!(pfioc_state_kill, psk_ownername) - 152usize];
 };
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(
+    Copy, Clone, :: zerocopy :: FromZeros, :: zerocopy :: Immutable, :: zerocopy :: KnownLayout,
+)]
 pub struct pfioc_states {
     pub ps_len: ::std::os::raw::c_int,
     pub ps_u: pfioc_states__bindgen_ty_1,
 }
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(
+    Copy, Clone, :: zerocopy :: FromZeros, :: zerocopy :: Immutable, :: zerocopy :: KnownLayout,
+)]
 pub union pfioc_states__bindgen_ty_1 {
     pub psu_buf: caddr_t,
     pub psu_states: *mut pfsync_state,
@@ -1484,14 +1798,28 @@ const _: () = {
     ["Offset of field: pfioc_states::ps_u"][::std::mem::offset_of!(pfioc_states, ps_u) - 8usize];
 };
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    :: zerocopy :: FromZeros,
+    :: zerocopy :: Immutable,
+    :: zerocopy :: KnownLayout,
+)]
 pub struct pfioc_trans {
     pub size: ::std::os::raw::c_int,
     pub esize: ::std::os::raw::c_int,
     pub array: *mut pfioc_trans_pfioc_trans_e,
 }
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    :: zerocopy :: FromZeros,
+    :: zerocopy :: Immutable,
+    :: zerocopy :: KnownLayout,
+)]
 pub struct pfioc_trans_pfioc_trans_e {
     pub rs_num: ::std::os::raw::c_int,
     pub anchor: [::std::os::raw::c_char; 1024usize],
@@ -1519,7 +1847,14 @@ const _: () = {
     ["Offset of field: pfioc_trans::array"][::std::mem::offset_of!(pfioc_trans, array) - 8usize];
 };
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    :: zerocopy :: FromZeros,
+    :: zerocopy :: Immutable,
+    :: zerocopy :: KnownLayout,
+)]
 pub struct pfioc_iface {
     pub pfiio_name: [::std::os::raw::c_char; 16usize],
     pub pfiio_buffer: *mut ::std::os::raw::c_void,
