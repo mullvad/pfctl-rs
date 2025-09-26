@@ -65,7 +65,6 @@ use std::{
     fs::File,
     mem,
     os::unix::io::{AsRawFd, RawFd},
-    slice,
 };
 
 pub use ipnetwork;
@@ -253,19 +252,14 @@ use crate::conversion::*;
 /// # Panics
 ///
 /// Panics if `cchars` does not contain any null byte.
-fn compare_cstr_safe(s: &str, c_chars: &[std::os::raw::c_char]) -> bool {
+fn compare_cstr_safe(s: &str, c_str: &[std::os::raw::c_char]) -> bool {
     // Due to `c_char` being `i8` on macOS, and `CStr` methods taking `u8` data,
     // we need to convert the slice from `&[i8]` to `&[u8]`
-    let c_chars_ptr = c_chars.as_ptr() as *const u8;
-
-    // SAFETY: We point to the same memory region as `c_chars`,
-    // which is a valid slice, so it's guaranteed to be safe
-    let c_chars_u8 = unsafe { slice::from_raw_parts(c_chars_ptr, c_chars.len()) };
-
-    let cs = CStr::from_bytes_until_nul(c_chars_u8)
+    let c_str: &[u8] = zerocopy::transmute_ref!(c_str);
+    let c_str = CStr::from_bytes_until_nul(c_str)
         .expect("System returned C String without terminating null byte");
 
-    s.as_bytes() == cs.to_bytes()
+    s.as_bytes() == c_str.to_bytes()
 }
 
 /// Struct communicating with the PF firewall.

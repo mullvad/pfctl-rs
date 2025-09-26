@@ -406,7 +406,8 @@ impl<T: AsRef<str>> TryCopyTo<[i8]> for T {
     /// Safely copy a Rust string into a raw buffer. Returning an error if the string could not
     /// be copied to the buffer.
     fn try_copy_to(&self, dst: &mut [i8]) -> std::result::Result<(), Self::Error> {
-        let src_i8: &[i8] = unsafe { &*(self.as_ref().as_bytes() as *const _ as *const _) };
+        let src_u8: &[u8] = self.as_ref().as_bytes();
+        let src_i8: &[i8] = zerocopy::transmute_ref!(src_u8);
 
         if src_i8.len() >= dst.len() {
             return Err("Too long");
