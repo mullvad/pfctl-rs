@@ -13,7 +13,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 * **Security**: in case of vulnerabilities.
 
 ## [unreleased]
+### Added
+- Add function for getting interface flags.
 
+### Changed
+- Change `InterfaceFlags` from enum to bitflags struct. This is a breaking change.
 
 ## [0.7.0] - 2025-09-12
 ### Added
@@ -126,4 +130,3 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 ## [0.1.0] - 2017-12-20
 ### Added
 - Initial functionality able to control most parts of the PF firewall on macOS
-
