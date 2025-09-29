@@ -60,7 +60,7 @@
 #![deny(rust_2018_idioms)]
 
 use std::{
-    ffi::CStr,
+    ffi::{CStr, c_void},
     fmt,
     fs::File,
     mem,
@@ -531,27 +531,28 @@ impl PfCtl {
         // Maximum number of ioctl retries before giving up
         const MAX_RETRIES: usize = 2;
 
-        let mut buf: Vec<ffi::pfvar::pfi_kif> = Vec::with_capacity(INITIAL_CAPACITY);
-        let mut iface = unsafe { mem::zeroed::<ffi::pfvar::pfioc_iface>() };
+        let mut buf: Vec<ffi::pfvar::pfi_kif> =
+            ffi::pfvar::pfi_kif::new_vec_zeroed(INITIAL_CAPACITY).expect("allocation must succeed");
+        let mut iface = ffi::pfvar::pfioc_iface::new_zeroed();
         interface.try_copy_to(&mut iface.pfiio_name)?;
         iface.pfiio_esize = mem::size_of::<ffi::pfvar::pfi_kif>() as i32;
 
         let mut retry = 0;
         loop {
-            iface.pfiio_buffer = buf.as_mut_ptr() as _;
-            iface.pfiio_size = buf.capacity() as _;
+            iface.pfiio_buffer = buf.as_mut_ptr().cast::<c_void>();
+            iface.pfiio_size = buf.len() as i32;
 
             ioctl_guard!(ffi::pf_get_ifaces(self.fd(), &mut iface))?;
             let num_system_interfaces = usize::try_from(iface.pfiio_size).unwrap_or_default();
 
             retry += 1;
             // Reserve additional space and retry if number of system interfaces exceeds capacity
-            if retry < MAX_RETRIES && num_system_interfaces > buf.capacity() {
-                buf.reserve(num_system_interfaces);
+            if retry < MAX_RETRIES && num_system_interfaces > buf.len() {
+                buf = ffi::pfvar::pfi_kif::new_vec_zeroed(num_system_interfaces)
+                    .expect("allocation must succeed");
             } else {
-                let new_len = std::cmp::min(num_system_interfaces, buf.capacity());
-                // SAFETY: safe since new_len is capped at capacity
-                unsafe { buf.set_len(new_len) };
+                // truncate will only shorten the vec, but this is fine.
+                buf.truncate(num_system_interfaces);
                 break;
             }
         }
