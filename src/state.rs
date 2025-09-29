@@ -90,6 +90,8 @@ unsafe fn parse_address(family: u8, host: pfsync_state_host) -> Result<SocketAdd
 
 #[cfg(test)]
 mod tests {
+    use zerocopy::FromZeros;
+
     use super::pfsync_state_host;
     use crate::{AddrFamily, state::parse_address};
     use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr};
@@ -99,7 +101,7 @@ mod tests {
         const EXPECTED_IP: Ipv4Addr = Ipv4Addr::new(1, 2, 3, 4);
         const EXPECTED_PORT: u16 = 12345;
 
-        let mut host: pfsync_state_host = unsafe { std::mem::zeroed() };
+        let mut host = pfsync_state_host::new_zeroed();
         host.addr.pfa._v4addr.s_addr = u32::from_be_bytes(EXPECTED_IP.octets()).to_be();
         host.xport.port = EXPECTED_PORT.to_be();
 
@@ -114,7 +116,7 @@ mod tests {
         const EXPECTED_IP: Ipv6Addr = Ipv6Addr::new(1, 2, 3, 4, 5, 6, 7, 0x7f);
         const EXPECTED_PORT: u16 = 12345;
 
-        let mut host: pfsync_state_host = unsafe { std::mem::zeroed() };
+        let mut host = pfsync_state_host::new_zeroed();
         host.addr.pfa._v6addr.__u6_addr.__u6_addr8 = EXPECTED_IP.octets();
         host.xport.port = EXPECTED_PORT.to_be();
 

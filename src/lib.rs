@@ -60,15 +60,15 @@
 #![deny(rust_2018_idioms)]
 
 use std::{
-    ffi::CStr,
+    ffi::{CStr, c_void},
     fmt,
     fs::File,
     mem,
     os::unix::io::{AsRawFd, RawFd},
-    slice,
 };
 
 pub use ipnetwork;
+use zerocopy::FromZeros;
 
 mod ffi;
 
@@ -252,19 +252,14 @@ use crate::conversion::*;
 /// # Panics
 ///
 /// Panics if `cchars` does not contain any null byte.
-fn compare_cstr_safe(s: &str, c_chars: &[std::os::raw::c_char]) -> bool {
+fn compare_cstr_safe(s: &str, c_str: &[std::os::raw::c_char]) -> bool {
     // Due to `c_char` being `i8` on macOS, and `CStr` methods taking `u8` data,
     // we need to convert the slice from `&[i8]` to `&[u8]`
-    let c_chars_ptr = c_chars.as_ptr() as *const u8;
-
-    // SAFETY: We point to the same memory region as `c_chars`,
-    // which is a valid slice, so it's guaranteed to be safe
-    let c_chars_u8 = unsafe { slice::from_raw_parts(c_chars_ptr, c_chars.len()) };
-
-    let cs = CStr::from_bytes_until_nul(c_chars_u8)
+    let c_str: &[u8] = zerocopy::transmute_ref!(c_str);
+    let c_str = CStr::from_bytes_until_nul(c_str)
         .expect("System returned C String without terminating null byte");
 
-    s.as_bytes() == cs.to_bytes()
+    s.as_bytes() == c_str.to_bytes()
 }
 
 /// Struct communicating with the PF firewall.
@@ -305,13 +300,13 @@ impl PfCtl {
 
     /// Tries to determine if PF is enabled or not.
     pub fn is_enabled(&mut self) -> Result<bool> {
-        let mut pf_status = unsafe { mem::zeroed::<ffi::pfvar::pf_status>() };
+        let mut pf_status = ffi::pfvar::pf_status::new_zeroed();
         ioctl_guard!(ffi::pf_get_status(self.fd(), &mut pf_status))?;
         Ok(pf_status.running == 1)
     }
 
     pub fn add_anchor(&mut self, name: &str, kind: AnchorKind) -> Result<()> {
-        let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
+        let mut pfioc_rule = ffi::pfvar::pfioc_rule::new_zeroed();
 
         pfioc_rule.rule.action = kind.into();
         utils::copy_anchor_name(name, &mut pfioc_rule.anchor_call[..])?;
@@ -343,7 +338,7 @@ impl PfCtl {
 
     // TODO(linus): Make more generic. No hardcoded ADD_TAIL etc.
     pub fn add_rule(&mut self, anchor: &str, rule: &FilterRule) -> Result<()> {
-        let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
+        let mut pfioc_rule = ffi::pfvar::pfioc_rule::new_zeroed();
 
         pfioc_rule.pool_ticket = utils::get_pool_ticket(self.fd())?;
         pfioc_rule.ticket = utils::get_ticket(self.fd(), anchor, AnchorKind::Filter)?;
@@ -362,7 +357,7 @@ impl PfCtl {
 
     pub fn add_nat_rule(&mut self, anchor: &str, rule: &NatRule) -> Result<()> {
         // prepare pfioc_rule
-        let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
+        let mut pfioc_rule = ffi::pfvar::pfioc_rule::new_zeroed();
         utils::copy_anchor_name(anchor, &mut pfioc_rule.anchor[..])?;
         rule.try_copy_to(&mut pfioc_rule.rule)?;
 
@@ -389,7 +384,7 @@ impl PfCtl {
 
     pub fn add_redirect_rule(&mut self, anchor: &str, rule: &RedirectRule) -> Result<()> {
         // prepare pfioc_rule
-        let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
+        let mut pfioc_rule = ffi::pfvar::pfioc_rule::new_zeroed();
         utils::copy_anchor_name(anchor, &mut pfioc_rule.anchor[..])?;
         rule.try_copy_to(&mut pfioc_rule.rule)?;
 
@@ -413,7 +408,7 @@ impl PfCtl {
     }
 
     pub fn add_scrub_rule(&mut self, anchor: &str, rule: &ScrubRule) -> Result<()> {
-        let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
+        let mut pfioc_rule = ffi::pfvar::pfioc_rule::new_zeroed();
 
         pfioc_rule.pool_ticket = utils::get_pool_ticket(self.fd())?;
         pfioc_rule.ticket = utils::get_ticket(self.fd(), anchor, AnchorKind::Scrub)?;
@@ -448,8 +443,7 @@ impl PfCtl {
                     .iter()
                     .filter(|pfsync_state| pfsync_state.anchor == anchor_rule.nr)
                     .map(|pfsync_state| {
-                        let mut pfioc_state_kill =
-                            unsafe { mem::zeroed::<ffi::pfvar::pfioc_state_kill>() };
+                        let mut pfioc_state_kill = ffi::pfvar::pfioc_state_kill::new_zeroed();
                         setup_pfioc_state_kill(pfsync_state, &mut pfioc_state_kill);
                         ioctl_guard!(ffi::pf_kill_states(self.fd(), &mut pfioc_state_kill))?;
                         // psk_af holds the number of killed states
@@ -466,7 +460,7 @@ impl PfCtl {
     /// Clear states belonging to a given interface
     /// Returns total number of removed states upon success
     pub fn clear_interface_states(&mut self, interface: Interface) -> Result<u32> {
-        let mut pfioc_state_kill = unsafe { mem::zeroed::<ffi::pfvar::pfioc_state_kill>() };
+        let mut pfioc_state_kill = ffi::pfvar::pfioc_state_kill::new_zeroed();
         interface.try_copy_to(&mut pfioc_state_kill.psk_ifname)?;
 
         ioctl_guard!(ffi::pf_clear_states(self.fd(), &mut pfioc_state_kill))?;
@@ -491,7 +485,7 @@ impl PfCtl {
     ///
     /// All current states can be obtained via [get_states].
     pub fn kill_state(&mut self, state: &State) -> Result<()> {
-        let mut pfioc_state_kill = unsafe { mem::zeroed::<ffi::pfvar::pfioc_state_kill>() };
+        let mut pfioc_state_kill = ffi::pfvar::pfioc_state_kill::new_zeroed();
         setup_pfioc_state_kill(state.as_raw(), &mut pfioc_state_kill);
         ioctl_guard!(ffi::pf_kill_states(self.fd(), &mut pfioc_state_kill))?;
         Ok(())
@@ -506,7 +500,7 @@ impl PfCtl {
         interface: Interface,
         flags: InterfaceFlags,
     ) -> Result<()> {
-        let mut iface = unsafe { mem::zeroed::<ffi::pfvar::pfioc_iface>() };
+        let mut iface = ffi::pfvar::pfioc_iface::new_zeroed();
         interface.try_copy_to(&mut iface.pfiio_name)?;
         iface.pfiio_flags = flags.bits();
         ioctl_guard!(ffi::pf_set_iface_flag(self.fd(), &mut iface))?;
@@ -521,7 +515,7 @@ impl PfCtl {
         interface: Interface,
         flags: InterfaceFlags,
     ) -> Result<()> {
-        let mut iface = unsafe { mem::zeroed::<ffi::pfvar::pfioc_iface>() };
+        let mut iface = ffi::pfvar::pfioc_iface::new_zeroed();
         interface.try_copy_to(&mut iface.pfiio_name)?;
         iface.pfiio_flags = flags.bits();
         ioctl_guard!(ffi::pf_clear_iface_flag(self.fd(), &mut iface))?;
@@ -537,27 +531,28 @@ impl PfCtl {
         // Maximum number of ioctl retries before giving up
         const MAX_RETRIES: usize = 2;
 
-        let mut buf: Vec<ffi::pfvar::pfi_kif> = Vec::with_capacity(INITIAL_CAPACITY);
-        let mut iface = unsafe { mem::zeroed::<ffi::pfvar::pfioc_iface>() };
+        let mut buf: Vec<ffi::pfvar::pfi_kif> =
+            ffi::pfvar::pfi_kif::new_vec_zeroed(INITIAL_CAPACITY).expect("allocation must succeed");
+        let mut iface = ffi::pfvar::pfioc_iface::new_zeroed();
         interface.try_copy_to(&mut iface.pfiio_name)?;
         iface.pfiio_esize = mem::size_of::<ffi::pfvar::pfi_kif>() as i32;
 
         let mut retry = 0;
         loop {
-            iface.pfiio_buffer = buf.as_mut_ptr() as _;
-            iface.pfiio_size = buf.capacity() as _;
+            iface.pfiio_buffer = buf.as_mut_ptr().cast::<c_void>();
+            iface.pfiio_size = buf.len() as i32;
 
             ioctl_guard!(ffi::pf_get_ifaces(self.fd(), &mut iface))?;
             let num_system_interfaces = usize::try_from(iface.pfiio_size).unwrap_or_default();
 
             retry += 1;
             // Reserve additional space and retry if number of system interfaces exceeds capacity
-            if retry < MAX_RETRIES && num_system_interfaces > buf.capacity() {
-                buf.reserve(num_system_interfaces);
+            if retry < MAX_RETRIES && num_system_interfaces > buf.len() {
+                buf = ffi::pfvar::pfi_kif::new_vec_zeroed(num_system_interfaces)
+                    .expect("allocation must succeed");
             } else {
-                let new_len = std::cmp::min(num_system_interfaces, buf.capacity());
-                // SAFETY: safe since new_len is capped at capacity
-                unsafe { buf.set_len(new_len) };
+                // truncate will only shorten the vec, but this is fine.
+                buf.truncate(num_system_interfaces);
                 break;
             }
         }
@@ -592,7 +587,7 @@ impl PfCtl {
     where
         F: FnOnce(ffi::pfvar::pfioc_rule) -> Result<R>,
     {
-        let mut pfioc_rule = unsafe { mem::zeroed::<ffi::pfvar::pfioc_rule>() };
+        let mut pfioc_rule = ffi::pfvar::pfioc_rule::new_zeroed();
         pfioc_rule.rule.action = kind.into();
         ioctl_guard!(ffi::pf_get_rules(self.fd(), &mut pfioc_rule))?;
         pfioc_rule.action = ffi::pfvar::PF_GET_NONE as u32;
@@ -608,7 +603,7 @@ impl PfCtl {
 
     /// Returns global number of states created by all stateful rules (see keep_state)
     fn get_num_states(&self) -> Result<u32> {
-        let mut pfioc_states = unsafe { mem::zeroed::<ffi::pfvar::pfioc_states>() };
+        let mut pfioc_states = ffi::pfvar::pfioc_states::new_zeroed();
         ioctl_guard!(ffi::pf_get_states(self.fd(), &mut pfioc_states))?;
         let element_size = mem::size_of::<ffi::pfvar::pfsync_state>() as u32;
         let buffer_size = pfioc_states.ps_len as u32;
@@ -628,11 +623,11 @@ impl PfCtl {
 fn setup_pfioc_states(
     num_states: u32,
 ) -> (ffi::pfvar::pfioc_states, Vec<ffi::pfvar::pfsync_state>) {
-    let mut pfioc_states = unsafe { mem::zeroed::<ffi::pfvar::pfioc_states>() };
+    let mut pfioc_states = ffi::pfvar::pfioc_states::new_zeroed();
     let element_size = mem::size_of::<ffi::pfvar::pfsync_state>() as i32;
     pfioc_states.ps_len = element_size * (num_states as i32);
     let mut pfsync_states = (0..num_states)
-        .map(|_| unsafe { mem::zeroed::<ffi::pfvar::pfsync_state>() })
+        .map(|_| ffi::pfvar::pfsync_state::new_zeroed())
         .collect::<Vec<_>>();
     pfioc_states.ps_u.psu_states = pfsync_states.as_mut_ptr();
     (pfioc_states, pfsync_states)

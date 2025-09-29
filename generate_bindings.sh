@@ -24,6 +24,7 @@ bindgen \
     --allowlist-var PF_.* \
     --allowlist-var PFRULE_.* \
     --default-enum-style rust \
+    --with-derive-custom ".*=::zerocopy::FromZeros,::zerocopy::Immutable,::zerocopy::KnownLayout" \
     -o ./src/ffi/pfvar.rs "$pfvar_h_path" -- \
     -DPRIVATE \
     -I"$SDK_PATH/usr/include" \

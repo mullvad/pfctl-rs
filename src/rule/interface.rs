@@ -6,6 +6,8 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
+use zerocopy::transmute_ref;
+
 use crate::{Error, ErrorInternal, conversion::TryCopyTo};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -63,12 +65,8 @@ impl TryFrom<crate::ffi::pfvar::pfi_kif> for InterfaceDescription {
     type Error = crate::Error;
 
     fn try_from(kif: crate::ffi::pfvar::pfi_kif) -> Result<Self, Self::Error> {
-        let chars = kif
-            .pfik_name
-            .into_iter()
-            .map(|b| b as u8)
-            .collect::<Vec<_>>();
-        let name = std::ffi::CStr::from_bytes_until_nul(&chars)
+        let pfik_name: &[u8] = transmute_ref!(&kif.pfik_name[..]);
+        let name = std::ffi::CStr::from_bytes_until_nul(pfik_name)
             .map_err(|_| Error::from(ErrorInternal::InvalidInterfaceName("missing nul byte")))?
             .to_str()
             .map_err(|_| Error::from(ErrorInternal::InvalidInterfaceName("invalid utf8 encoding")))?
