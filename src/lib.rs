@@ -340,12 +340,23 @@ impl PfCtl {
     pub fn add_rule(&mut self, anchor: &str, rule: &FilterRule) -> Result<()> {
         let mut pfioc_rule = ffi::pfvar::pfioc_rule::new_zeroed();
 
-        pfioc_rule.pool_ticket = utils::get_pool_ticket(self.fd())?;
+        let pool_ticket = utils::get_pool_ticket(self.fd())?;
         pfioc_rule.ticket = utils::get_ticket(self.fd(), anchor, AnchorKind::Filter)?;
         utils::copy_anchor_name(anchor, &mut pfioc_rule.anchor[..])?;
         rule.try_copy_to(&mut pfioc_rule.rule)?;
 
+        if let Some(pool_addr) = rule.get_route().get_pool_addr() {
+            // Register pool address with firewall
+            utils::add_pool_address(self.fd(), pool_addr.clone(), pool_ticket)?;
+
+            // copy address pool in pf_rule
+            let pool = PoolAddrList::new(core::slice::from_ref(pool_addr))?;
+            pfioc_rule.rule.rpool.list = unsafe { pool.to_palist() };
+        };
+
+        pfioc_rule.pool_ticket = pool_ticket;
         pfioc_rule.action = ffi::pfvar::PF_CHANGE_ADD_TAIL as u32;
+
         ioctl_guard!(ffi::pf_change_rule(self.fd(), &mut pfioc_rule))
     }
 
