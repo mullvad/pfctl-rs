@@ -36,3 +36,8 @@ tun = "0.7.4"
 # to the latest version.
 ipnet = "2.6.0"
 log = "0.4.22"
+
+
+[package.metadata.cargo-shear]
+# See comment on these dependencies. Can be un-ignored once we upgrade `tun`
+ignored = ["ipnet", "log"]
