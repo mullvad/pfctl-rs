@@ -129,9 +129,6 @@ test!(drop_by_interface_rule {
     );
 });
 
-// TODO(andrej):
-// currently only transactions support Route. We need to unify code
-// in lib.rs for adding single rule and code in transaction.rs.
 test!(pass_out_route_rule {
     let rule = pfctl::FilterRuleBuilder::default()
         .action(pfctl::FilterRuleAction::Pass)
@@ -153,6 +150,34 @@ test!(pass_out_route_rule {
     trans.add_change(ANCHOR_NAME, change);
 
     assert_matches!(trans.commit(), Ok(()));
+    assert_eq!(
+        pfcli::get_rules(ANCHOR_NAME),
+        &[
+            "pass out route-to (lo0 127.0.0.1) inet proto udp \
+            from 1.2.3.4 to any port = 53 no state"
+        ]
+    );
+});
+
+// Test direct add_rule() API with route_to
+test!(pass_out_route_rule_with_add_rule {
+    let mut pf = pfctl::PfCtl::new().unwrap();
+
+    let rule = pfctl::FilterRuleBuilder::default()
+        .action(pfctl::FilterRuleAction::Pass)
+        .direction(pfctl::Direction::Out)
+        .route(
+            pfctl::Route::RouteTo(
+                pfctl::PoolAddr::new("lo0", Ipv4Addr::new(127, 0, 0, 1))
+            )
+        )
+        .proto(pfctl::Proto::Udp)
+        .from(Ipv4Addr::new(1, 2, 3, 4))
+        .to(pfctl::Port::from(53))
+        .build()
+        .unwrap();
+
+    assert_matches!(pf.add_rule(ANCHOR_NAME, &rule), Ok(()));
     assert_eq!(
         pfcli::get_rules(ANCHOR_NAME),
         &[
