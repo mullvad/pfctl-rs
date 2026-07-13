@@ -363,15 +363,19 @@ impl PfCtl {
 
         let pool_ticket = utils::get_pool_ticket(self.fd())?;
 
-        if let Some(nat_to) = rule.get_nat_to() {
+        // Keep the backing storage alive until PF has copied the rule below.
+        let nat_pool = if let Some(nat_to) = rule.get_nat_to() {
             // register NAT address in newly created address pool
             utils::add_pool_address(self.fd(), nat_to.ip(), pool_ticket)?;
 
             // copy address pool in pf_rule
-            let nat_pool = nat_to.ip().to_pool_addr_list()?;
-            pfioc_rule.rule.rpool.list = unsafe { nat_pool.to_palist() };
+            let mut nat_pool = nat_to.ip().to_pool_addr_list()?;
+            nat_pool.write_to(&mut pfioc_rule.rule.rpool.list);
             nat_to.port().try_copy_to(&mut pfioc_rule.rule.rpool)?;
-        }
+            Some(nat_pool)
+        } else {
+            None
+        };
 
         // set tickets
         pfioc_rule.pool_ticket = pool_ticket;
@@ -379,7 +383,9 @@ impl PfCtl {
 
         // append rule
         pfioc_rule.action = ffi::pfvar::PF_CHANGE_ADD_TAIL as u32;
-        ioctl_guard!(ffi::pf_change_rule(self.fd(), &mut pfioc_rule))
+        ioctl_guard!(ffi::pf_change_rule(self.fd(), &mut pfioc_rule))?;
+        drop(nat_pool);
+        Ok(())
     }
 
     pub fn add_redirect_rule(&mut self, anchor: &str, rule: &RedirectRule) -> Result<()> {
@@ -394,8 +400,8 @@ impl PfCtl {
         utils::add_pool_address(self.fd(), redirect_to.ip(), pool_ticket)?;
 
         // copy address pool in pf_rule
-        let redirect_pool = redirect_to.ip().to_pool_addr_list()?;
-        pfioc_rule.rule.rpool.list = unsafe { redirect_pool.to_palist() };
+        let mut redirect_pool = redirect_to.ip().to_pool_addr_list()?;
+        redirect_pool.write_to(&mut pfioc_rule.rule.rpool.list);
         redirect_to.port().try_copy_to(&mut pfioc_rule.rule.rpool)?;
 
         // set tickets
@@ -404,7 +410,9 @@ impl PfCtl {
 
         // append rule
         pfioc_rule.action = ffi::pfvar::PF_CHANGE_ADD_TAIL as u32;
-        ioctl_guard!(ffi::pf_change_rule(self.fd(), &mut pfioc_rule))
+        ioctl_guard!(ffi::pf_change_rule(self.fd(), &mut pfioc_rule))?;
+        drop(redirect_pool);
+        Ok(())
     }
 
     pub fn add_scrub_rule(&mut self, anchor: &str, rule: &ScrubRule) -> Result<()> {

@@ -62,35 +62,51 @@ impl TryCopyTo<ffi::pfvar::pf_pooladdr> for PoolAddr {
 ///
 /// See pf_rule.rpool.list for more info.
 ///
-/// This class retains the array of `pf_pooladdr` to make sure that pointers used in pf_palist
-/// reference the valid memory.
+/// Owns the `pf_pooladdr` storage referenced by a PF address-pool list.
 ///
-/// One should never use `pf_palist` produced by this class past the lifetime expiration of it.
+/// The caller must retain this value until the ioctl consuming the populated
+/// `pf_palist` has returned.
 pub struct PoolAddrList {
-    list: ffi::pfvar::pf_palist,
-    _pool: Box<[ffi::pfvar::pf_pooladdr]>,
+    pool: Box<[ffi::pfvar::pf_pooladdr]>,
 }
 
 impl PoolAddrList {
     pub fn new(pool_addrs: &[PoolAddr]) -> Result<Self, crate::Error> {
-        let mut pool = Self::init_pool(pool_addrs)?;
+        let mut pool = Self::init_pool(pool_addrs)?.into_boxed_slice();
         Self::link_elements(&mut pool);
-        let list = Self::create_palist(&mut pool);
-
-        Ok(PoolAddrList {
-            list,
-            _pool: pool.into_boxed_slice(),
-        })
+        Ok(PoolAddrList { pool })
     }
 
-    /// Returns a copy of inner pf_palist linked list.
-    ///
-    /// # Safety
-    ///
-    /// Returned object has pointers into the `PoolAddrList` it was created from. So the
-    /// `PoolAddrList` must outlive the returned `pf_palist`
-    pub(crate) unsafe fn to_palist(&self) -> ffi::pfvar::pf_palist {
-        self.list
+    /// Writes a BSD tail queue backed by this object's stable heap storage.
+    pub(crate) fn write_to(&mut self, list: &mut ffi::pfvar::pf_palist) {
+        *list = ffi::pfvar::pf_palist::new_zeroed();
+        if self.pool.is_empty() {
+            list.tqh_last = &mut list.tqh_first;
+            return;
+        }
+
+        let pool = self.pool.as_mut_ptr();
+        unsafe {
+            let first = pool;
+            let last = pool.add(self.pool.len() - 1);
+            list.tqh_first = first;
+            list.tqh_last = &mut (*last).entries.tqe_next;
+            (*first).entries.tqe_prev = &mut list.tqh_first;
+            (*last).entries.tqe_next = ptr::null_mut();
+        }
+    }
+
+    /// Links adjacent pool entries in their stable heap allocation.
+    fn link_elements(pool: &mut [ffi::pfvar::pf_pooladdr]) {
+        let entries = pool.as_mut_ptr();
+        unsafe {
+            for index in 1..pool.len() {
+                let previous = entries.add(index - 1);
+                let current = entries.add(index);
+                (*previous).entries.tqe_next = current;
+                (*current).entries.tqe_prev = &mut (*previous).entries.tqe_next;
+            }
+        }
     }
 
     fn init_pool(pool_addrs: &[PoolAddr]) -> Result<Vec<ffi::pfvar::pf_pooladdr>, crate::Error> {
@@ -102,30 +118,30 @@ impl PoolAddrList {
         }
         Ok(pool)
     }
+}
 
-    fn link_elements(pool: &mut [ffi::pfvar::pf_pooladdr]) {
-        for i in 1..pool.len() {
-            let mut elem1 = pool[i - 1];
-            let mut elem2 = pool[i];
-            elem1.entries.tqe_next = &mut elem2;
-            elem2.entries.tqe_prev = &mut elem1.entries.tqe_next;
-        }
-    }
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    fn create_palist(pool: &mut [ffi::pfvar::pf_pooladdr]) -> ffi::pfvar::pf_palist {
-        let mut list = ffi::pfvar::pf_palist::new_zeroed();
-        if !pool.is_empty() {
-            let mut first_elem = pool[0];
-            let mut last_elem = pool[pool.len() - 1];
+    #[test]
+    fn new_links_the_owned_pool_storage() {
+        let mut pool = PoolAddrList::new(&[
+            PoolAddr::from(Ip::Any),
+            PoolAddr::from(Ip::from(std::net::Ipv4Addr::new(192, 0, 2, 1))),
+        ])
+        .unwrap();
 
-            list.tqh_first = &mut first_elem;
-            first_elem.entries.tqe_prev = &mut list.tqh_first;
-            last_elem.entries.tqe_next = ptr::null_mut();
-            list.tqh_last = &mut last_elem.entries.tqe_next;
-        } else {
-            list.tqh_first = ptr::null_mut();
-            list.tqh_last = &mut list.tqh_first;
-        }
-        list
+        let first = pool.pool.as_mut_ptr();
+        let second = unsafe { first.add(1) };
+        let first_next = unsafe { std::ptr::addr_of_mut!((*first).entries.tqe_next) };
+        assert_eq!(unsafe { (*first).entries.tqe_next }, second);
+        assert_eq!(unsafe { (*second).entries.tqe_prev }, first_next);
+
+        let mut palist = ffi::pfvar::pf_palist::new_zeroed();
+        pool.write_to(&mut palist);
+        let second_next = unsafe { std::ptr::addr_of_mut!((*second).entries.tqe_next) };
+        assert_eq!(palist.tqh_first, first);
+        assert_eq!(palist.tqh_last, second_next);
     }
 }
