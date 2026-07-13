@@ -368,8 +368,8 @@ impl PfCtl {
             utils::add_pool_address(self.fd(), nat_to.ip(), pool_ticket)?;
 
             // copy address pool in pf_rule
-            let nat_pool = nat_to.ip().to_pool_addr_list()?;
-            pfioc_rule.rule.rpool.list = unsafe { nat_pool.to_palist() };
+            let mut nat_pool = nat_to.ip().to_pool_addr_list()?;
+            nat_pool.write_to(&mut pfioc_rule.rule.rpool.list);
             nat_to.port().try_copy_to(&mut pfioc_rule.rule.rpool)?;
         }
 
@@ -394,8 +394,8 @@ impl PfCtl {
         utils::add_pool_address(self.fd(), redirect_to.ip(), pool_ticket)?;
 
         // copy address pool in pf_rule
-        let redirect_pool = redirect_to.ip().to_pool_addr_list()?;
-        pfioc_rule.rule.rpool.list = unsafe { redirect_pool.to_palist() };
+        let mut redirect_pool = redirect_to.ip().to_pool_addr_list()?;
+        redirect_pool.write_to(&mut pfioc_rule.rule.rpool.list);
         redirect_to.port().try_copy_to(&mut pfioc_rule.rule.rpool)?;
 
         // set tickets

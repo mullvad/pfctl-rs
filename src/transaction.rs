@@ -173,12 +173,12 @@ impl Transaction {
 
         // setup address pool for route if routing is enabled on the rule.
         // Save the list so the memory is valid until end of method.
-        let _pool_addr_list = if let Some(pool_addr) = rule.get_route().get_pool_addr() {
+        let pool_addr_list = if let Some(pool_addr) = rule.get_route().get_pool_addr() {
             // register pool address with firewall
             utils::add_pool_address(fd, pool_addr.clone(), pool_ticket)?;
-            let pool_addr_list = PoolAddrList::new(slice::from_ref(pool_addr))?;
+            let mut pool_addr_list = PoolAddrList::new(slice::from_ref(pool_addr))?;
 
-            pfioc_rule.rule.rpool.list = unsafe { pool_addr_list.to_palist() };
+            pool_addr_list.write_to(&mut pfioc_rule.rule.rpool.list);
             Some(pool_addr_list)
         } else {
             None
@@ -190,7 +190,7 @@ impl Transaction {
 
         // add rule into transaction
         ioctl_guard!(ffi::pf_add_rule(fd, &mut pfioc_rule))?;
-        drop(_pool_addr_list);
+        drop(pool_addr_list);
         Ok(())
     }
 
@@ -208,8 +208,8 @@ impl Transaction {
             utils::add_pool_address(fd, nat_to.ip(), pool_ticket)?;
 
             // copy address pool in pf_rule
-            let nat_pool = nat_to.ip().to_pool_addr_list()?;
-            pfioc_rule.rule.rpool.list = unsafe { nat_pool.to_palist() };
+            let mut nat_pool = nat_to.ip().to_pool_addr_list()?;
+            nat_pool.write_to(&mut pfioc_rule.rule.rpool.list);
             nat_to.port().try_copy_to(&mut pfioc_rule.rule.rpool)?;
         }
 
@@ -234,8 +234,8 @@ impl Transaction {
         utils::add_pool_address(fd, redirect_to.ip(), pool_ticket)?;
 
         // copy address pool in pf_rule
-        let redirect_pool = redirect_to.ip().to_pool_addr_list()?;
-        pfioc_rule.rule.rpool.list = unsafe { redirect_pool.to_palist() };
+        let mut redirect_pool = redirect_to.ip().to_pool_addr_list()?;
+        redirect_pool.write_to(&mut pfioc_rule.rule.rpool.list);
         redirect_to.port().try_copy_to(&mut pfioc_rule.rule.rpool)?;
 
         // set tickets
