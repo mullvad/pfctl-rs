@@ -117,6 +117,7 @@ impl Transaction {
 
         // get tickets
         ioctl_guard!(ffi::pf_begin_trans(fd, &mut pfioc_trans))?;
+        let mut pool_ticket = PoolTicket::new(fd)?;
 
         // create iterator for tickets
         let mut ticket_iterator = pfioc_elements.iter().map(|e| e.ticket);
@@ -126,7 +127,7 @@ impl Transaction {
             filter_changes.into_iter().zip(ticket_iterator.by_ref())
         {
             for filter_rule in filter_rules.iter() {
-                Self::add_filter_rule(fd, &anchor_name, filter_rule, ticket)?;
+                Self::add_filter_rule(fd, &anchor_name, filter_rule, ticket, &mut pool_ticket)?;
             }
         }
 
@@ -135,7 +136,7 @@ impl Transaction {
             nat_changes.into_iter().zip(ticket_iterator.by_ref())
         {
             for nat_rule in nat_rules.iter() {
-                Self::add_nat_rule(fd, &anchor_name, nat_rule, ticket)?;
+                Self::add_nat_rule(fd, &anchor_name, nat_rule, ticket, &mut pool_ticket)?;
             }
         }
 
@@ -144,7 +145,7 @@ impl Transaction {
             redirect_changes.into_iter().zip(ticket_iterator.by_ref())
         {
             for redirect_rule in redirect_rules.iter() {
-                Self::add_redirect_rule(fd, &anchor_name, redirect_rule, ticket)?;
+                Self::add_redirect_rule(fd, &anchor_name, redirect_rule, ticket, &mut pool_ticket)?;
             }
         }
 
@@ -153,7 +154,7 @@ impl Transaction {
             scrub_changes.into_iter().zip(ticket_iterator.by_ref())
         {
             for scrub_rule in scrub_rules.iter() {
-                Self::add_scrub_rule(fd, &anchor_name, scrub_rule, ticket)?;
+                Self::add_scrub_rule(fd, &anchor_name, scrub_rule, ticket, &mut pool_ticket)?;
             }
         }
 
@@ -161,21 +162,23 @@ impl Transaction {
     }
 
     /// Internal helper add filter rule into transaction
-    fn add_filter_rule(fd: RawFd, anchor: &str, rule: &FilterRule, ticket: u32) -> Result<()> {
+    fn add_filter_rule(
+        fd: RawFd,
+        anchor: &str,
+        rule: &FilterRule,
+        ticket: u32,
+        pool_ticket: &mut PoolTicket,
+    ) -> Result<()> {
         // prepare pfioc_rule
         let mut pfioc_rule = ffi::pfvar::pfioc_rule::new_zeroed();
         pfioc_rule.action = ffi::pfvar::PF_CHANGE_NONE as u32;
         utils::copy_anchor_name(anchor, &mut pfioc_rule.anchor[..])?;
         rule.try_copy_to(&mut pfioc_rule.rule)?;
 
-        // request new address pool
-        let pool_ticket = utils::get_pool_ticket(fd)?;
-
         // setup address pool for route if routing is enabled on the rule.
         // Save the list so the memory is valid until end of method.
-        let _pool_addr_list = if let Some(pool_addr) = rule.get_route().get_pool_addr() {
-            // register pool address with firewall
-            utils::add_pool_address(fd, pool_addr.clone(), pool_ticket)?;
+        let pool_addr = rule.get_route().get_pool_addr();
+        let _pool_addr_list = if let Some(pool_addr) = pool_addr {
             let pool_addr_list = PoolAddrList::new(slice::from_ref(pool_addr))?;
 
             pfioc_rule.rule.rpool.list = unsafe { pool_addr_list.to_palist() };
@@ -186,27 +189,36 @@ impl Transaction {
 
         // fill in ticket with ticket associated with transaction
         pfioc_rule.ticket = ticket;
-        pfioc_rule.pool_ticket = pool_ticket;
 
-        // add rule into transaction
-        ioctl_guard!(ffi::pf_add_rule(fd, &mut pfioc_rule))?;
+        pool_ticket.add_rule(|pool_ticket| {
+            // register pool address with firewall
+            if let Some(pool_addr) = pool_addr {
+                utils::add_pool_address(fd, pool_addr.clone(), pool_ticket)?;
+            }
+            pfioc_rule.pool_ticket = pool_ticket;
+
+            // add rule into transaction
+            ioctl_guard!(ffi::pf_add_rule(fd, &mut pfioc_rule))
+        })?;
         drop(_pool_addr_list);
         Ok(())
     }
 
     /// Internal helper to add nat rule into transaction
-    fn add_nat_rule(fd: RawFd, anchor: &str, rule: &NatRule, ticket: u32) -> Result<()> {
+    fn add_nat_rule(
+        fd: RawFd,
+        anchor: &str,
+        rule: &NatRule,
+        ticket: u32,
+        pool_ticket: &mut PoolTicket,
+    ) -> Result<()> {
         // prepare pfioc_rule
         let mut pfioc_rule = ffi::pfvar::pfioc_rule::new_zeroed();
         utils::copy_anchor_name(anchor, &mut pfioc_rule.anchor[..])?;
         rule.try_copy_to(&mut pfioc_rule.rule)?;
 
-        let pool_ticket = utils::get_pool_ticket(fd)?;
-
-        if let Some(nat_to) = rule.get_nat_to() {
-            // register NAT address in newly created address pool
-            utils::add_pool_address(fd, nat_to.ip(), pool_ticket)?;
-
+        let nat_to = rule.get_nat_to();
+        if let Some(nat_to) = nat_to {
             // copy address pool in pf_rule
             let nat_pool = nat_to.ip().to_pool_addr_list()?;
             pfioc_rule.rule.rpool.list = unsafe { nat_pool.to_palist() };
@@ -214,54 +226,74 @@ impl Transaction {
         }
 
         // set tickets
-        pfioc_rule.pool_ticket = pool_ticket;
         pfioc_rule.ticket = ticket;
 
-        // add rule into transaction
-        ioctl_guard!(ffi::pf_add_rule(fd, &mut pfioc_rule))
+        pool_ticket.add_rule(|pool_ticket| {
+            if let Some(nat_to) = nat_to {
+                // register NAT address in the address pool
+                utils::add_pool_address(fd, nat_to.ip(), pool_ticket)?;
+            }
+            pfioc_rule.pool_ticket = pool_ticket;
+
+            // add rule into transaction
+            ioctl_guard!(ffi::pf_add_rule(fd, &mut pfioc_rule))
+        })
     }
 
     /// Internal helper to add redirect rule into transaction
-    fn add_redirect_rule(fd: RawFd, anchor: &str, rule: &RedirectRule, ticket: u32) -> Result<()> {
+    fn add_redirect_rule(
+        fd: RawFd,
+        anchor: &str,
+        rule: &RedirectRule,
+        ticket: u32,
+        pool_ticket: &mut PoolTicket,
+    ) -> Result<()> {
         // prepare pfioc_rule
         let mut pfioc_rule = ffi::pfvar::pfioc_rule::new_zeroed();
         utils::copy_anchor_name(anchor, &mut pfioc_rule.anchor[..])?;
         rule.try_copy_to(&mut pfioc_rule.rule)?;
 
-        // register redirect address in newly created address pool
-        let redirect_to = rule.get_redirect_to();
-        let pool_ticket = utils::get_pool_ticket(fd)?;
-        utils::add_pool_address(fd, redirect_to.ip(), pool_ticket)?;
-
         // copy address pool in pf_rule
+        let redirect_to = rule.get_redirect_to();
         let redirect_pool = redirect_to.ip().to_pool_addr_list()?;
         pfioc_rule.rule.rpool.list = unsafe { redirect_pool.to_palist() };
         redirect_to.port().try_copy_to(&mut pfioc_rule.rule.rpool)?;
 
         // set tickets
-        pfioc_rule.pool_ticket = pool_ticket;
         pfioc_rule.ticket = ticket;
 
-        // add rule into transaction
-        ioctl_guard!(ffi::pf_add_rule(fd, &mut pfioc_rule))
+        pool_ticket.add_rule(|pool_ticket| {
+            // register redirect address in the address pool
+            utils::add_pool_address(fd, redirect_to.ip(), pool_ticket)?;
+            pfioc_rule.pool_ticket = pool_ticket;
+
+            // add rule into transaction
+            ioctl_guard!(ffi::pf_add_rule(fd, &mut pfioc_rule))
+        })
     }
 
     /// Internal helper to add scrub rule into transaction
-    fn add_scrub_rule(fd: RawFd, anchor: &str, rule: &ScrubRule, ticket: u32) -> Result<()> {
+    fn add_scrub_rule(
+        fd: RawFd,
+        anchor: &str,
+        rule: &ScrubRule,
+        ticket: u32,
+        pool_ticket: &mut PoolTicket,
+    ) -> Result<()> {
         // prepare pfioc_rule
         let mut pfioc_rule = ffi::pfvar::pfioc_rule::new_zeroed();
         utils::copy_anchor_name(anchor, &mut pfioc_rule.anchor[..])?;
         rule.try_copy_to(&mut pfioc_rule.rule)?;
 
-        // request new address pool
-        let pool_ticket = utils::get_pool_ticket(fd)?;
-
         // set tickets
         pfioc_rule.ticket = ticket;
-        pfioc_rule.pool_ticket = pool_ticket;
 
-        // add rule into transaction
-        ioctl_guard!(ffi::pf_add_rule(fd, &mut pfioc_rule))
+        pool_ticket.add_rule(|pool_ticket| {
+            pfioc_rule.pool_ticket = pool_ticket;
+
+            // add rule into transaction
+            ioctl_guard!(ffi::pf_add_rule(fd, &mut pfioc_rule))
+        })
     }
 
     /// Internal helper to wire up pfioc_trans and pfioc_trans_e
@@ -283,6 +315,38 @@ impl Transaction {
         pfioc_trans_e.rs_num = ruleset_kind.into();
         utils::copy_anchor_name(anchor, &mut pfioc_trans_e.anchor[..])?;
         Ok(pfioc_trans_e)
+    }
+}
+
+/// Address pool ticket shared by every rule added in one transaction.
+///
+/// When pf accepts a rule it moves the pool buffer's addresses into that rule, leaving the buffer
+/// empty and the ticket still valid, so one ticket serves all of the transaction's rules. Anyone
+/// else asking pf for a pool ticket in the meantime invalidates it, and the next rule added with
+/// it fails with `EBUSY`.
+struct PoolTicket {
+    fd: RawFd,
+    ticket: u32,
+}
+
+impl PoolTicket {
+    fn new(fd: RawFd) -> Result<Self> {
+        Ok(Self {
+            fd,
+            ticket: utils::get_pool_ticket(fd)?,
+        })
+    }
+
+    /// Run `add_rule` with the current ticket, retrying it once with a fresh ticket if pf reports
+    /// `EBUSY`.
+    fn add_rule(&mut self, mut add_rule: impl FnMut(u32) -> Result<()>) -> Result<()> {
+        match add_rule(self.ticket) {
+            Err(error) if error.is_busy() => {
+                self.ticket = utils::get_pool_ticket(self.fd)?;
+                add_rule(self.ticket)
+            }
+            result => result,
+        }
     }
 }
 

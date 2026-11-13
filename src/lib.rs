@@ -167,6 +167,11 @@ impl Error {
             Ioctl(_) => ErrorKind::Ioctl,
         }
     }
+
+    /// Returns true if an ioctl failed with `EBUSY`, which pf reports for a stale ticket.
+    pub(crate) fn is_busy(&self) -> bool {
+        matches!(&self.0, ErrorInternal::Ioctl(error) if error.raw_os_error() == Some(libc::EBUSY))
+    }
 }
 
 impl From<ErrorInternal> for Error {
