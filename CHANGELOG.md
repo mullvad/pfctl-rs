@@ -18,6 +18,13 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 - Change `InterfaceFlags` from enum to bitflags struct. This is a breaking change.
+- Reuse one address pool ticket for every rule in a transaction instead of requesting one per
+  rule. This saves one ioctl per rule, which matters when pf's lock is contended and each ioctl
+  waits for it.
+
+### Fixed
+- Retry adding a rule once with a fresh address pool ticket when another process has invalidated
+  the current one, instead of failing the whole transaction with `EBUSY`.
 
 ## [0.7.0] - 2025-09-12
 ### Added
